@@ -19,7 +19,49 @@
 --     be modified straight from a browser
 -- ============================================================
 
-create extension if not exists pgcrypto;
+-- ------------------------------------------------------------
+-- 0. pgcrypto
+--
+-- On Supabase, pgcrypto lives in the `extensions` schema, NOT in
+-- `public`. Any function that pins `search_path = public` therefore
+-- cannot see crypt()/gen_salt() and fails at runtime with
+-- "function crypt(text, text) does not exist".
+--
+-- So: make sure the extension exists wherever this project puts it,
+-- and put `extensions` on the search_path for this script and for
+-- every function that needs it.
+-- ------------------------------------------------------------
+
+set search_path = public, extensions;
+
+-- Harmless if it already exists, and it must exist before the grant
+-- below even on a self-hosted project where pgcrypto sits in public.
+create schema if not exists extensions;
+
+do $$
+begin
+  if not exists (select 1 from pg_extension where extname = 'pgcrypto') then
+    begin
+      create extension pgcrypto with schema extensions;
+    exception when others then
+      create extension pgcrypto;   -- fallback: lands in public
+    end;
+  end if;
+end $$;
+
+do $$
+declare v_schema text;
+begin
+  select n.nspname into v_schema
+    from pg_extension e join pg_namespace n on n.oid = e.extnamespace
+   where e.extname = 'pgcrypto';
+  raise notice 'pgcrypto is installed in schema: %', v_schema;
+  if v_schema not in ('public', 'extensions') then
+    raise warning 'pgcrypto is in "%" — add it to the search_path of admin_login and admin_change_password', v_schema;
+  end if;
+end $$;
+
+grant usage on schema extensions to anon, authenticated;
 
 
 -- ============================================================
@@ -251,7 +293,8 @@ end $$;
 
 create or replace function public.admin_login(p_admin_id text, p_password text)
 returns json
-language plpgsql security definer set search_path = public, pg_temp as $$
+-- `extensions` is on the path because crypt() lives there on Supabase.
+language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare
   v_admin public.admins;
   v_token uuid;
@@ -359,7 +402,8 @@ $$;
 create or replace function public.admin_change_password(
   p_token uuid, p_current text, p_new text)
 returns void
-language plpgsql security definer set search_path = public, pg_temp as $$
+-- `extensions` is on the path because crypt()/gen_salt() live there on Supabase.
+language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_admin public.admins;
 begin
   v_admin := public._admin_from_token(p_token);
@@ -652,3 +696,9 @@ on conflict (lower(admin_id)) do nothing;
 -- Policies?               select policyname, cmd from pg_policies where tablename='waitlists';
 -- Hashes unreachable?     set role anon; select * from admins;   -- expect 0 rows
 -- Login works?            select admin_login('admin','ChangeMe123!');
+--                            -> expect {"ok": true, "token": ...}
+--                            -> "function crypt(text, text) does not exist" means
+--                               this script's section 0 did not run; re-run it all.
+-- Where is pgcrypto?       select n.nspname from pg_extension e
+--                            join pg_namespace n on n.oid = e.extnamespace
+--                           where extname = 'pgcrypto';
