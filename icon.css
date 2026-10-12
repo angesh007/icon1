@@ -1,0 +1,609 @@
+/* ============================================================
+   ICON — design system
+   One stylesheet for all four screens.
+
+   Concept: the salon ticket. Every screen leads with a number.
+   Palette is barber-pole DNA cooled down — enamel ink, porcelain
+   tile, chrome, and a single barber red used only for "attention".
+   ============================================================ */
+
+/* ---------- Tokens ------------------------------------------- */
+
+:root {
+  /* Surfaces */
+  --ink:        #141A2E;
+  --ink-raised: #1E2641;
+  --ink-line:   #2A3454;
+  --porcelain:  #EDEEF0;
+  --paper:      #FFFFFF;
+
+  /* Text */
+  --on-ink:        #F4F6F9;
+  --on-ink-dim:    #9AA4B4;
+  --on-paper:      #141A2E;
+  --on-paper-dim:  #5E6878;
+
+  /* Accents — red means attention, green means moving */
+  --signal:     #D8232A;
+  --signal-dim: #F7DCDD;
+  --go:         #0F9B6C;
+  --go-dim:     #DCF2EA;
+  --chrome:     #A8AFB8;
+  /* Chrome is too light for large text on white (2.2:1). This is the
+     readable version used for waiting ticket numerals. */
+  --chrome-ink: #78839A;
+  --note:       #6E5A14;
+  --note-wash:  #FBF3DA;
+
+  /* Type */
+  --display: "Anton", "Arial Narrow", sans-serif;
+  --text: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Scale (1.25 major third) */
+  --t-xs: 0.8125rem;   /* 13 */
+  --t-sm: 0.9375rem;   /* 15 */
+  --t-md: 1rem;        /* 16 */
+  --t-lg: 1.25rem;     /* 20 */
+  --t-xl: 1.5625rem;   /* 25 */
+  --t-2xl: 1.9375rem;  /* 31 */
+  --t-3xl: 2.4375rem;  /* 39 */
+  --t-4xl: 3.0625rem;  /* 49 */
+
+  /* Space */
+  --s1: 0.25rem; --s2: 0.5rem;  --s3: 0.75rem; --s4: 1rem;
+  --s5: 1.5rem;  --s6: 2rem;    --s7: 3rem;    --s8: 4rem;
+
+  --radius-ticket: 14px;
+  --radius-control: 6px;
+  --edge: 1px solid rgba(20, 26, 46, 0.12);
+  --edge-ink: 1px solid var(--ink-line);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Any class that sets `display` (.btn, .ticket, .slots …) would otherwise
+   outrank the browser's own [hidden] rule, leaving hidden elements on
+   screen. Keep this above the component styles. */
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--text);
+  font-size: var(--t-md);
+  line-height: 1.5;
+  color: var(--on-paper);
+  background: var(--porcelain);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numerals must never wobble as they tick. */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+h1, h2, h3 { margin: 0; font-weight: 600; line-height: 1.2; }
+
+a { color: inherit; }
+
+/* Visible keyboard focus everywhere, on both surfaces. */
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+.on-ink :focus-visible { outline-color: #FFF; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Wordmark ---------------------------------------- */
+
+.wordmark {
+  font-family: var(--display);
+  font-size: var(--t-lg);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* ---------- Top bar ----------------------------------------- */
+
+.bar {
+  background: var(--ink);
+  color: var(--on-ink);
+  padding: var(--s3) var(--s5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+.bar nav { display: flex; align-items: center; gap: var(--s5); }
+
+.bar a {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--on-ink-dim);
+  text-decoration: none;
+  padding: var(--s1) 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.bar a:hover { color: var(--on-ink); }
+.bar a[aria-current="page"] { color: var(--on-ink); border-bottom-color: var(--signal); }
+
+/* ---------- Layout ------------------------------------------ */
+
+.shell {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: var(--s6) var(--s4);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s7);
+  align-items: start;
+}
+@media (min-width: 62rem) {
+  .split { grid-template-columns: 1fr 24rem; gap: var(--s8); }
+}
+
+/* ---------- The ticket -------------------------------------- */
+
+.ticket {
+  background: var(--paper);
+  border-radius: var(--radius-ticket);
+  box-shadow: 0 1px 0 rgba(20, 26, 46, 0.08), 0 12px 32px -16px rgba(20, 26, 46, 0.35);
+  overflow: hidden;
+  position: relative;
+}
+
+.ticket__head {
+  background: var(--ink);
+  color: var(--on-ink);
+  padding: var(--s3) var(--s4);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.ticket__head .label {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--on-ink-dim);
+}
+
+.ticket__number {
+  font-family: var(--display);
+  font-size: clamp(5rem, 22vw, 8.5rem);
+  line-height: 0.82;
+  letter-spacing: -0.01em;
+  text-align: center;
+  padding: var(--s5) var(--s4) var(--s3);
+  color: var(--ink);
+}
+.ticket__number.is-waiting { color: var(--chrome-ink); }
+
+.ticket__caption {
+  text-align: center;
+  padding: 0 var(--s4) var(--s5);
+  font-size: var(--t-sm);
+  color: var(--on-paper-dim);
+}
+.ticket__caption strong { color: var(--on-paper); font-weight: 600; }
+
+/* Perforated tear line, with punched notches at both edges. */
+.ticket__tear {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed rgba(20, 26, 46, 0.18);
+  margin: 0 var(--s4);
+}
+.ticket__tear::before,
+.ticket__tear::after {
+  content: "";
+  position: absolute;
+  top: -11px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--porcelain);
+}
+.ticket__tear::before { left: calc(var(--s4) * -1 - 10px); }
+.ticket__tear::after  { right: calc(var(--s4) * -1 - 10px); }
+
+.ticket__stub { padding: var(--s4); }
+
+.ticket__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s2) 0;
+  font-size: var(--t-sm);
+}
+.ticket__row + .ticket__row { border-top: var(--edge); }
+.ticket__row dt { color: var(--on-paper-dim); margin: 0; }
+.ticket__row dd { margin: 0; font-weight: 600; text-align: right; }
+
+/* A freshly issued ticket is the one moment that animates. */
+@keyframes ticket-issue {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+.ticket.is-new { animation: ticket-issue 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* ---------- Headline + prose -------------------------------- */
+
+.headline {
+  font-family: var(--display);
+  font-size: clamp(2.4375rem, 7vw, 3.8rem);
+  line-height: 0.95;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  max-width: 18ch;
+}
+
+.lede {
+  font-size: var(--t-lg);
+  color: var(--on-paper-dim);
+  max-width: 46ch;
+  margin: var(--s4) 0 0;
+}
+
+.prose { max-width: 60ch; }
+
+/* ---------- Status readout ---------------------------------- */
+
+.readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s6);
+  margin: var(--s6) 0;
+  padding: var(--s5) 0;
+  border-top: 2px solid var(--ink);
+  border-bottom: var(--edge);
+}
+
+.readout__item { min-width: 7rem; }
+.readout__value {
+  font-family: var(--display);
+  font-size: var(--t-3xl);
+  line-height: 1;
+}
+.readout__unit { font-family: var(--text); font-size: var(--t-lg); font-weight: 600; }
+.readout__key {
+  display: block;
+  margin-top: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--on-paper-dim);
+}
+
+/* ---------- Controls ---------------------------------------- */
+
+.field { margin-bottom: var(--s4); }
+
+.field label {
+  display: block;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  margin-bottom: var(--s2);
+}
+.field .help {
+  display: block;
+  font-weight: 400;
+  font-size: var(--t-xs);
+  color: var(--on-paper-dim);
+  margin-top: 2px;
+}
+
+input[type="text"], input[type="tel"], input[type="password"], textarea, select {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  padding: 0.7rem 0.8rem;
+  background: var(--paper);
+  border: 1px solid rgba(20, 26, 46, 0.22);
+  border-radius: var(--radius-control);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:hover, textarea:hover { border-color: rgba(20, 26, 46, 0.4); }
+input:focus, textarea:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(20, 26, 46, 0.1);
+  outline: none;
+}
+textarea { resize: vertical; min-height: 4.5rem; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  font: inherit;
+  font-weight: 600;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--ink);
+  color: var(--on-ink);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.08s;
+}
+.btn:hover { background: var(--ink-raised); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { background: var(--chrome); cursor: not-allowed; transform: none; }
+
+.btn--block { width: 100%; }
+.btn--lg { padding: 0.95rem 1.25rem; font-size: var(--t-md); }
+
+.btn--go { background: var(--go); }
+.btn--go:hover { background: #0C8559; }
+
+.btn--quiet {
+  background: transparent;
+  color: var(--on-paper);
+  border-color: rgba(20, 26, 46, 0.25);
+}
+.btn--quiet:hover { background: rgba(20, 26, 46, 0.05); }
+
+.btn--danger { background: transparent; color: var(--signal); border-color: transparent; padding: 0.4rem 0; }
+.btn--danger:hover { background: transparent; text-decoration: underline; }
+
+/* Time slot chips */
+.slots { display: flex; flex-wrap: wrap; gap: var(--s2); }
+
+.slot {
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  padding: 0.5rem 0.8rem;
+  background: var(--paper);
+  color: var(--on-paper);
+  border: 1px solid rgba(20, 26, 46, 0.22);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.slot:hover { border-color: var(--ink); }
+.slot[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+/* ---------- Messages ---------------------------------------- */
+
+.msg {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  padding: var(--s3) var(--s4);
+  border-radius: var(--radius-control);
+  border-left: 3px solid;
+  margin-bottom: var(--s4);
+}
+.msg--bad  { background: var(--signal-dim); border-color: var(--signal); color: #7E1317; }
+.msg--good { background: var(--go-dim); border-color: var(--go); color: #0A5E42; }
+
+/* ---------- Queue list (staff console) ---------------------- */
+
+.queue { border-top: 2px solid var(--ink); }
+
+.entry {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr auto;
+  gap: var(--s4);
+  align-items: center;
+  padding: var(--s4) var(--s2);
+  border-bottom: var(--edge);
+  background: transparent;
+  transition: background 0.15s;
+}
+.entry:hover { background: rgba(20, 26, 46, 0.03); }
+.entry.is-active { background: var(--go-dim); }
+
+.entry__ticket {
+  font-family: var(--display);
+  font-size: var(--t-2xl);
+  line-height: 1;
+  text-align: center;
+  color: var(--chrome-ink);
+}
+.entry.is-active .entry__ticket { color: var(--go); }
+
+.entry__name { font-weight: 600; font-size: var(--t-lg); }
+.entry__meta {
+  font-size: var(--t-xs);
+  color: var(--on-paper-dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin-top: 2px;
+}
+.entry__note {
+  display: inline-block;
+  margin-top: var(--s2);
+  font-size: var(--t-xs);
+  color: var(--note);
+  background: var(--note-wash);
+  padding: 0.2rem 0.45rem;
+  border-radius: 3px;
+}
+.entry__actions { display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 40rem) {
+  .entry { grid-template-columns: 2.5rem 1fr; }
+  .entry__actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* ---------- Empty states ------------------------------------ */
+
+.empty {
+  padding: var(--s7) var(--s4);
+  text-align: center;
+  color: var(--on-paper-dim);
+  border: 1px dashed rgba(20, 26, 46, 0.2);
+  border-radius: var(--radius-ticket);
+}
+.empty strong { display: block; font-size: var(--t-lg); color: var(--on-paper); margin-bottom: var(--s1); }
+
+/* ============================================================
+   Lobby board — ink surface, wall-scale numerals
+   ============================================================ */
+
+.board {
+  background: var(--ink);
+  color: var(--on-ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.board__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s5);
+  padding: var(--s4) var(--s6);
+  border-bottom: 3px solid var(--signal);
+}
+.board__head .wordmark { font-size: var(--t-2xl); }
+.board__where { font-size: var(--t-sm); color: var(--on-ink-dim); margin-top: 2px; }
+
+.board__wait { text-align: right; }
+.board__wait .v { font-family: var(--display); font-size: var(--t-4xl); line-height: 1; }
+.board__wait .k { font-size: var(--t-xs); color: var(--on-ink-dim); }
+
+.board__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  min-height: 0;
+}
+@media (min-width: 60rem) {
+  .board__body { grid-template-columns: 1.1fr 1fr; }
+}
+
+.board__col { padding: var(--s5) var(--s6); min-height: 0; display: flex; flex-direction: column; }
+.board__col + .board__col { border-top: var(--edge-ink); }
+@media (min-width: 60rem) {
+  .board__col + .board__col { border-top: 0; border-left: var(--edge-ink); }
+}
+
+.board__title {
+  font-size: var(--t-md);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--on-ink-dim);
+  padding-bottom: var(--s3);
+  margin-bottom: var(--s4);
+  border-bottom: var(--edge-ink);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.pip { width: 8px; height: 8px; border-radius: 50%; background: var(--go); flex: none; }
+.pip--live { animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.board__list { list-style: none; margin: 0; padding: 0; flex: 1; overflow-y: auto; min-height: 0; }
+
+/* Now serving — the single loudest element on any screen. */
+.serving {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  padding: var(--s4) 0;
+  border-bottom: var(--edge-ink);
+}
+.serving__no {
+  font-family: var(--display);
+  font-size: clamp(3.5rem, 9vw, 6.5rem);
+  line-height: 0.85;
+  color: #FFF;
+  min-width: 2.2ch;
+}
+.serving__who { font-size: clamp(1.25rem, 2.6vw, 1.9375rem); font-weight: 600; }
+.serving__at {
+  font-size: var(--t-xs);
+  color: var(--go);
+  font-weight: 600;
+  margin-top: var(--s1);
+}
+
+.upnext {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  padding: var(--s3) 0;
+  border-bottom: var(--edge-ink);
+}
+.upnext__no {
+  font-family: var(--display);
+  font-size: var(--t-3xl);
+  line-height: 1;
+  color: var(--chrome);
+  min-width: 2.2ch;
+}
+.upnext:first-child .upnext__no { color: var(--signal); }
+.upnext__who { font-size: var(--t-xl); font-weight: 600; }
+.upnext__eta { margin-left: auto; font-size: var(--t-sm); color: var(--on-ink-dim); }
+
+.board .empty {
+  border-color: var(--ink-line);
+  color: var(--on-ink-dim);
+}
+.board .empty strong { color: var(--on-ink); }
+
+/* ============================================================
+   Sign-in — deliberately the quietest screen
+   ============================================================ */
+
+.gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--s5);
+  background: var(--ink);
+}
+
+.gate__card {
+  width: 100%;
+  max-width: 23rem;
+  background: var(--paper);
+  border-radius: var(--radius-ticket);
+  padding: var(--s6);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+}
+.gate__card .wordmark { color: var(--ink); }
+.gate__intro { margin: var(--s4) 0 var(--s5); color: var(--on-paper-dim); font-size: var(--t-sm); }
+
+.gate__back {
+  display: block;
+  text-align: center;
+  margin-top: var(--s5);
+  font-size: var(--t-sm);
+  color: var(--on-ink-dim);
+  text-decoration: none;
+}
+.gate__back:hover { color: var(--on-ink); }
+
+/* ---------- Utility ----------------------------------------- */
+
+.muted { color: var(--on-paper-dim); }
+.stack > * + * { margin-top: var(--s4); }
+.row { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.spread { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
+.sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

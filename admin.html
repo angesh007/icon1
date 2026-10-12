@@ -1,259 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICON - Stylist Control Console</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICON — The chair</title>
+<meta name="robots" content="noindex">
 
-    <!-- Core External Dependencies (pinned versions) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-    <script src="https://cdn.tailwindcss.com/3.4.3"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="./icon.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+  /* Nothing renders until we know who is signed in. */
+  body[data-gate="pending"] .gated { visibility: hidden; }
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
-    <nav class="bg-slate-800 border-b border-slate-700 p-4 shadow-xl">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-black tracking-wider text-teal-400">ICON <span class="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Stylist Console</span></h1>
-            <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                    <span id="linkDot" class="w-2 h-2 bg-amber-400 rounded-full animate-ping"></span>
-                    <span id="linkLabel" class="text-xs text-slate-400 font-mono">Connecting&hellip;</span>
-                </div>
-                <a href="./tv.html" target="_blank" class="text-xs text-slate-400 hover:text-teal-400 font-semibold transition-colors">
-                    <i class="fa-solid fa-tv mr-1"></i> Lobby Board
-                </a>
-            </div>
+<body data-gate="pending">
+
+<header class="bar">
+  <span class="wordmark">Icon</span>
+  <nav>
+    <a href="./admin.html" aria-current="page">The chair</a>
+    <a href="./tv.html" target="_blank" rel="noopener">Board</a>
+    <span class="muted" style="color: var(--on-ink-dim); font-size: var(--t-sm);" id="who"></span>
+    <button class="btn btn--quiet" id="signOutBtn"
+            style="color: var(--on-ink); border-color: var(--ink-line); padding: 0.35rem 0.7rem; font-size: var(--t-sm);">
+      Sign out
+    </button>
+  </nav>
+</header>
+
+<main class="shell gated">
+  <div class="split">
+
+    <!-- ============ Queue ============ -->
+    <section>
+      <div class="spread" style="margin-bottom: var(--s4);">
+        <div>
+          <h1 style="font-size: var(--t-xl);">Today's line</h1>
+          <p class="muted" style="margin: var(--s1) 0 0; font-size: var(--t-sm);" id="summary">Loading…</p>
         </div>
-    </nav>
+        <button class="btn btn--danger" id="purgeBtn" hidden>Clear the line</button>
+      </div>
 
-    <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl h-fit">
-            <h2 class="text-lg font-bold mb-4 text-slate-200 border-b border-slate-700 pb-2">Walk-In Desk Registration</h2>
-            <form id="customerForm" class="space-y-4">
-                <div>
-                    <label for="custName" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Customer Full Name</label>
-                    <input type="text" id="custName" required maxlength="80" placeholder="John Doe" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-teal-400 transition-colors">
-                </div>
-                <div>
-                    <label for="custPhone" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Mobile Phone Number</label>
-                    <input type="tel" id="custPhone" required placeholder="(404) 555-0199" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-teal-400 transition-colors">
-                </div>
-                <div>
-                    <label for="custNotes" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Clip Notes (Haircut Details)</label>
-                    <textarea id="custNotes" maxlength="500" placeholder="e.g., #4 guard fade, trim top." rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-teal-400 transition-colors resize-none"></textarea>
-                </div>
+      <p class="msg msg--bad" id="queueMsg" hidden></p>
 
-                <p id="adminError" class="hidden text-xs font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3"></p>
+      <div class="queue" id="queue"></div>
+    </section>
 
-                <button type="submit" id="registerBtn" class="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all">
-                    Register Client
-                </button>
-            </form>
+    <!-- ============ Walk-in desk ============ -->
+    <aside>
+      <form class="ticket" id="walkInForm">
+        <div class="ticket__head">
+          <span class="label">Walk-in desk</span>
         </div>
+        <div class="ticket__stub">
+          <p class="msg msg--bad" id="deskMsg" hidden></p>
 
-        <div class="lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                <h2 class="text-lg font-bold text-slate-200">Active Lobby Stations Queue</h2>
-                <button onclick="purgeQueue()" class="text-xs text-rose-400 font-semibold hover:underline">Purge Queue</button>
-            </div>
-            <div id="adminQueueContainer" class="space-y-3"></div>
+          <div class="field">
+            <label for="custName">Name</label>
+            <input type="text" id="custName" required maxlength="80" placeholder="John Doe">
+          </div>
+
+          <div class="field">
+            <label for="custPhone">Mobile number</label>
+            <input type="tel" id="custPhone" required placeholder="(404) 555-0199">
+          </div>
+
+          <div class="field">
+            <label for="custNotes">Cut notes
+              <span class="help">Optional.</span>
+            </label>
+            <textarea id="custNotes" maxlength="500" placeholder="#4 guard fade, trim the top"></textarea>
+          </div>
+
+          <div class="field">
+            <label id="deskWhenLabel">Coming in</label>
+            <div class="slots" id="deskSlots" role="group" aria-labelledby="deskWhenLabel"></div>
+          </div>
+
+          <button type="submit" class="btn btn--block btn--lg btn--go" id="addBtn">Add to the line</button>
         </div>
-    </main>
+      </form>
+    </aside>
+  </div>
+</main>
 
-    <script src="./config.js"></script>
-    <script src="./icon.js"></script>
-    <script>
-        (function () {
-            'use strict';
-            if (!window.ICON) return;
+<script src="./config.js"></script>
+<script src="./icon.js"></script>
+<script>
+(function () {
+  'use strict';
+  if (!window.ICON) return;
+  var ICON = window.ICON;
 
-            var ICON = window.ICON;
-            var formLayout = document.getElementById('customerForm');
-            var container = document.getElementById('adminQueueContainer');
-            var errorBox = document.getElementById('adminError');
-            var registerBtn = document.getElementById('registerBtn');
-            var linkDot = document.getElementById('linkDot');
-            var linkLabel = document.getElementById('linkLabel');
+  var queueEl = document.getElementById('queue');
+  var summaryEl = document.getElementById('summary');
+  var queueMsg = document.getElementById('queueMsg');
+  var deskMsg = document.getElementById('deskMsg');
+  var addBtn = document.getElementById('addBtn');
+  var deskSlots = document.getElementById('deskSlots');
+  var purgeBtn = document.getElementById('purgeBtn');
 
-            function showError(msg) {
-                errorBox.textContent = msg;
-                errorBox.classList.remove('hidden');
-            }
-            function hideError() {
-                errorBox.classList.add('hidden');
-            }
+  var staff = null;
+  var deskTime = null;
 
-            function setLink(ok, text) {
-                linkDot.className = 'w-2 h-2 rounded-full ' + (ok ? 'bg-emerald-400 animate-ping' : 'bg-rose-500');
-                linkLabel.textContent = text;
-            }
+  function say(el, text, good) {
+    el.textContent = text;
+    el.hidden = !text;
+    el.className = 'msg ' + (good ? 'msg--good' : 'msg--bad');
+  }
 
-            /* ---------- Render the queue ---------- */
+  function bounceToLogin() {
+    location.replace('./login.html?next=admin.html');
+  }
 
-            async function renderActiveState() {
-                var res = await ICON.openQueue('id,customer_name,phone_number,clip_notes,status,join_time');
+  /* ---------- Render the line ---------- */
 
-                if (res.error) {
-                    console.error('[ICON]', res.error);
-                    setLink(false, 'Connection error');
-                    showError('Could not load the queue: ' + res.error.message);
-                    return;
-                }
+  async function render() {
+    var out = await ICON.admin.queue();
 
-                hideError();
-                setLink(true, 'Live Session Uplink Active');
+    if (!out.ok) {
+      if (out.expired) return bounceToLogin();
+      say(queueMsg, out.error);
+      return;
+    }
+    say(queueMsg, '');
 
-                var data = res.data || [];
-                container.innerHTML = '';
+    var rows = out.data || [];
+    var waiting = rows.filter(function (r) { return r.status === 'waiting'; });
+    var inChair = rows.filter(function (r) { return r.status === 'in_chair'; });
 
-                if (data.length === 0) {
-                    container.innerHTML =
-                        '<div class="text-center text-slate-500 py-12 border border-dashed border-slate-700 rounded-xl">' +
-                        'No active customers in the shop.</div>';
-                    return;
-                }
+    summaryEl.textContent = rows.length === 0
+      ? 'Nobody in the shop.'
+      : waiting.length + ' waiting · ' + inChair.length + ' in the chair · about ' +
+        ICON.estimateWaitMinutes(waiting.length) + ' min for a new walk-in';
 
-                // Queue position counts only the people actually waiting.
-                var waitingSeen = 0;
-                var fragment = document.createDocumentFragment();
+    if (rows.length === 0) {
+      queueEl.innerHTML =
+        '<div class="empty"><strong>The line is empty</strong>' +
+        'Add a walk-in from the desk, or wait for an online ticket.</div>';
+      buildDeskSlots(0);
+      return;
+    }
 
-                data.forEach(function (entry) {
-                    var activeSession = entry.status === 'in_chair';
-                    if (!activeSession) waitingSeen += 1;
+    var seen = 0;
+    var html = '';
 
-                    var segment = document.createElement('div');
-                    segment.className =
-                        'p-4 rounded-xl border flex justify-between items-center transition-all ' +
-                        (activeSession
-                            ? 'bg-emerald-950/20 border-emerald-500/30'
-                            : 'bg-slate-900 border-slate-700');
+    rows.forEach(function (row) {
+      var active = row.status === 'in_chair';
+      if (!active) seen += 1;
 
-                    var name = ICON.esc(entry.customer_name);
-                    var phone = ICON.esc(entry.phone_number);
-                    var notes = entry.clip_notes ? ICON.esc(entry.clip_notes) : '';
-                    var id = Number(entry.id);
+      var eta = active ? null : ICON.etaFor(seen);
+      var meta = [];
+      meta.push(active
+        ? 'In the chair since ' + ICON.esc(ICON.fmtTime(row.called_at))
+        : seen + ordinal(seen) + ' · about ' + ICON.esc(ICON.fmtTime(eta)));
+      meta.push(ICON.esc(row.phone_number ? ICON.fmtPhone(row.phone_number) : 'no number'));
+      meta.push('joined ' + ICON.esc(ICON.fmtRelative(row.join_time)));
+      if (row.preferred_time) {
+        meta.push('asked for ' + ICON.esc(ICON.fmtTime(row.preferred_time)));
+      }
 
-                    segment.innerHTML =
-                        '<div class="space-y-1">' +
-                            '<div class="flex items-center space-x-2">' +
-                                '<h3 class="font-bold text-lg tracking-wide text-slate-200">' + name + '</h3>' +
-                                '<span class="text-xs font-mono text-slate-500">' + phone + '</span>' +
-                            '</div>' +
-                            (notes
-                                ? '<p class="text-xs text-amber-400/80 bg-amber-500/5 px-2 py-1 rounded border border-amber-500/10 w-fit">' +
-                                  '📋 Clip Notes: ' + notes + '</p>'
-                                : '') +
-                            '<p class="text-xs font-semibold ' +
-                                (activeSession ? 'text-emerald-400' : 'text-slate-400') + '">' +
-                                (activeSession
-                                    ? '🟢 Styling Session Live'
-                                    : '⏳ Waiting (Queue Position: ' + waitingSeen + ')') +
-                            '</p>' +
-                        '</div>' +
-                        '<div class="flex space-x-2">' +
-                            (!activeSession
-                                ? '<button data-action="call" data-id="' + id + '" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">Call Client</button>'
-                                : '<button data-action="finish" data-id="' + id + '" class="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">Finish</button>') +
-                            '<button data-action="remove" data-id="' + id + '" class="bg-slate-800 text-slate-300 border border-slate-700 hover:border-rose-500/40 hover:text-rose-400 px-3 py-1.5 rounded-lg text-xs transition-all">Remove</button>' +
-                        '</div>';
+      html +=
+        '<div class="entry' + (active ? ' is-active' : '') + '">' +
+          '<div class="entry__ticket num">' + ICON.padTicket(row.ticket_no) + '</div>' +
+          '<div>' +
+            '<div class="entry__name">' + ICON.esc(row.customer_name) + '</div>' +
+            '<div class="entry__meta">' + meta.map(function (m) {
+              return '<span>' + m + '</span>';
+            }).join('') + '</div>' +
+            (row.clip_notes
+              ? '<span class="entry__note">' + ICON.esc(row.clip_notes) + '</span>'
+              : '') +
+          '</div>' +
+          '<div class="entry__actions">' +
+            (active
+              ? '<button class="btn btn--go" data-do="done" data-id="' + Number(row.id) + '">Finished</button>'
+              : '<button class="btn" data-do="call" data-id="' + Number(row.id) + '">Call to chair</button>') +
+            '<button class="btn btn--quiet" data-do="drop" data-id="' + Number(row.id) + '">Remove</button>' +
+          '</div>' +
+        '</div>';
+    });
 
-                    fragment.appendChild(segment);
-                });
+    queueEl.innerHTML = html;
+    buildDeskSlots(waiting.length);
+  }
 
-                container.appendChild(fragment);
-            }
+  function ordinal(n) {
+    if (n % 100 >= 11 && n % 100 <= 13) return 'th';
+    return ['th', 'st', 'nd', 'rd'][n % 10] || 'th';
+  }
 
-            /* ---------- Queue actions (event delegation) ---------- */
+  /* ---------- Queue actions ---------- */
 
-            container.addEventListener('click', async function (e) {
-                var btn = e.target.closest('button[data-action]');
-                if (!btn) return;
+  queueEl.addEventListener('click', async function (e) {
+    var btn = e.target.closest('button[data-do]');
+    if (!btn) return;
 
-                var id = Number(btn.dataset.id);
-                var action = btn.dataset.action;
-                btn.disabled = true;
+    var id = Number(btn.dataset.id);
+    var map = { call: 'in_chair', done: 'done', drop: 'cancelled' };
+    var status = map[btn.dataset.do];
+    if (!status) return;
 
-                var patch = null;
-                if (action === 'call') {
-                    patch = { status: 'in_chair', called_at: new Date().toISOString() };
-                } else if (action === 'finish') {
-                    patch = { status: 'done', finished_at: new Date().toISOString() };
-                } else if (action === 'remove') {
-                    patch = { status: 'cancelled', finished_at: new Date().toISOString() };
-                }
+    if (status === 'cancelled' && !confirm('Remove this person from the line?')) return;
 
-                var res = await ICON.db.from(ICON.TABLE).update(patch).eq('id', id);
-                if (res.error) {
-                    console.error('[ICON]', res.error);
-                    showError('Action failed: ' + res.error.message);
-                    btn.disabled = false;
-                    return;
-                }
-                renderActiveState();
-            });
+    Array.prototype.forEach.call(queueEl.querySelectorAll('button'), function (b) { b.disabled = true; });
 
-            /* ---------- Walk-in registration ---------- */
+    var out = await ICON.admin.setStatus(id, status);
+    if (!out.ok) {
+      if (out.expired) return bounceToLogin();
+      say(queueMsg, out.error);
+    }
+    render();
+  });
 
-            formLayout.addEventListener('submit', async function (e) {
-                e.preventDefault();
-                hideError();
+  /* ---------- Walk-in desk ---------- */
 
-                var name = document.getElementById('custName').value.trim();
-                var phoneRaw = document.getElementById('custPhone').value;
-                var notes = document.getElementById('custNotes').value.trim();
+  function buildDeskSlots(waitingCount) {
+    if (document.activeElement && deskSlots.contains(document.activeElement)) return;
+    var slots = ICON.timeSlots(waitingCount, 3);
+    var html = '<button type="button" class="slot" data-when="asap" aria-pressed="' +
+               (deskTime ? 'false' : 'true') + '">Now</button>';
+    slots.forEach(function (d) {
+      var iso = d.toISOString();
+      html += '<button type="button" class="slot" data-when="' + iso + '" aria-pressed="' +
+              (deskTime === iso ? 'true' : 'false') + '">' + ICON.esc(ICON.fmtTime(d)) + '</button>';
+    });
+    deskSlots.innerHTML = html;
+  }
 
-                if (name.length < 2) return showError('Enter the customer’s full name.');
-                if (!ICON.isValidPhone(phoneRaw)) return showError('Enter a valid mobile number (10–15 digits).');
+  deskSlots.addEventListener('click', function (e) {
+    var btn = e.target.closest('.slot');
+    if (!btn) return;
+    Array.prototype.forEach.call(deskSlots.querySelectorAll('.slot'), function (b) {
+      b.setAttribute('aria-pressed', String(b === btn));
+    });
+    deskTime = btn.dataset.when === 'asap' ? null : btn.dataset.when;
+  });
 
-                registerBtn.disabled = true;
-                registerBtn.textContent = 'Registering…';
+  document.getElementById('walkInForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    say(deskMsg, '');
 
-                var res = await ICON.db.from(ICON.TABLE).insert([{
-                    salon_id: ICON.SALON_ID,
-                    customer_name: name,
-                    phone_number: ICON.normalisePhone(phoneRaw),
-                    clip_notes: notes || null,
-                    status: 'waiting'
-                }]);
+    var name = document.getElementById('custName').value.trim();
+    var phone = document.getElementById('custPhone').value;
+    var notes = document.getElementById('custNotes').value.trim();
 
-                registerBtn.disabled = false;
-                registerBtn.textContent = 'Register Client';
+    if (name.length < 2) return say(deskMsg, 'Enter the customer’s name.');
+    if (!ICON.isValidPhone(phone)) return say(deskMsg, 'Enter a mobile number with 10 to 15 digits.');
 
-                if (res.error) {
-                    console.error('[ICON]', res.error);
-                    return showError(
-                        res.error.code === '23505'
-                            ? 'That number is already on the waitlist.'
-                            : 'Registration failed: ' + res.error.message
-                    );
-                }
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding…';
 
-                formLayout.reset();
-                renderActiveState();
-            });
+    var out = await ICON.admin.register(name, phone, notes, deskTime);
 
-            /* ---------- Purge ---------- */
+    addBtn.disabled = false;
+    addBtn.textContent = 'Add to the line';
 
-            window.purgeQueue = async function () {
-                if (!confirm('Close out every client currently in the shop?')) return;
+    if (!out.ok) {
+      if (out.expired) return bounceToLogin();
+      return say(deskMsg, out.error);
+    }
 
-                var res = await ICON.db
-                    .from(ICON.TABLE)
-                    .update({ status: 'cancelled', finished_at: new Date().toISOString() })
-                    .eq('salon_id', ICON.SALON_ID)
-                    .in('status', ['waiting', 'in_chair']);
+    say(deskMsg, 'Ticket ' + ICON.padTicket(out.data.ticket_no) + ' added for ' + name + '.', true);
+    this.reset();
+    deskTime = null;
+    render();
+  });
 
-                if (res.error) {
-                    console.error('[ICON]', res.error);
-                    return showError('Purge failed: ' + res.error.message);
-                }
-                renderActiveState();
-            };
+  /* ---------- Clear the line ---------- */
 
-            /* ---------- Boot ---------- */
+  purgeBtn.addEventListener('click', async function () {
+    if (!confirm('Close out everyone currently in the shop? This cannot be undone.')) return;
 
-            ICON.subscribeQueue('receptionist-sync', renderActiveState);
-        })();
-    </script>
+    var out = await ICON.admin.purge();
+    if (!out.ok) {
+      if (out.expired) return bounceToLogin();
+      return say(queueMsg, out.error);
+    }
+    say(queueMsg, 'Cleared ' + out.data + (out.data === 1 ? ' ticket.' : ' tickets.'), true);
+    render();
+  });
+
+  /* ---------- Sign out ---------- */
+
+  document.getElementById('signOutBtn').addEventListener('click', async function () {
+    await ICON.auth.logout();
+    location.replace('./login.html');
+  });
+
+  /* ---------- Boot: gate first, then render ---------- */
+
+  (async function start() {
+    staff = await ICON.auth.require('./login.html');
+    if (!staff) return;  // require() already redirected
+
+    document.body.dataset.gate = 'open';
+    document.getElementById('who').textContent = staff.display_name + ' · ' + staff.role;
+
+    // Only managers and owners get the destructive control.
+    purgeBtn.hidden = !(staff.role === 'manager' || staff.role === 'owner');
+
+    ICON.subscribeQueue('desk-queue', render);
+  })();
+})();
+</script>
 </body>
 </html>

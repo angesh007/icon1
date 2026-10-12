@@ -1,9 +1,10 @@
 {
   "name": "icon-waitlist",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "ICON Haircuts — live salon waitlist. Static HTML + Supabase Realtime.",
   "private": true,
   "scripts": {
+    "build": "node scripts/build-config.js",
     "config": "node scripts/build-config.js",
     "start": "npm run config && npx --yes serve@14 . -l 3000",
     "serve": "npx --yes serve@14 . -l 3000"

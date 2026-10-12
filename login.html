@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICON — Staff sign in</title>
+<meta name="robots" content="noindex">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="./icon.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+</head>
+<body class="on-ink">
+
+<main class="gate">
+  <div>
+    <form class="gate__card" id="signInForm">
+      <span class="wordmark">Icon</span>
+      <p class="gate__intro">Sign in to run the chair.</p>
+
+      <p class="msg msg--bad" id="msg" hidden></p>
+
+      <div class="field">
+        <label for="adminId">Staff ID</label>
+        <input type="text" id="adminId" name="adminId" required
+               autocomplete="username" autocapitalize="none" spellcheck="false"
+               placeholder="ravi">
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required
+               autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="btn btn--block btn--lg" id="signInBtn">Sign in</button>
+    </form>
+
+    <a class="gate__back" href="./index.html">Back to check-in</a>
+  </div>
+</main>
+
+<script src="./config.js"></script>
+<script src="./icon.js"></script>
+<script>
+(function () {
+  'use strict';
+  if (!window.ICON) return;
+  var ICON = window.ICON;
+
+  var form = document.getElementById('signInForm');
+  var msg = document.getElementById('msg');
+  var btn = document.getElementById('signInBtn');
+
+  // Only follow a same-page relative target, never an absolute URL.
+  function nextPage() {
+    var raw = new URLSearchParams(location.search).get('next') || 'admin.html';
+    return /^[a-z0-9_-]+\.html$/i.test(raw) ? './' + raw : './admin.html';
+  }
+
+  function say(text, good) {
+    msg.textContent = text;
+    msg.hidden = !text;
+    msg.className = 'msg ' + (good ? 'msg--good' : 'msg--bad');
+  }
+
+  // Already signed in? Skip the form.
+  ICON.auth.restore().then(function (staff) {
+    if (staff) location.replace(nextPage());
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    say('');
+
+    var id = document.getElementById('adminId').value.trim();
+    var pw = document.getElementById('password').value;
+
+    if (!id || !pw) return say('Enter your staff ID and password.');
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    var out = await ICON.auth.login(id, pw);
+
+    if (!out.ok) {
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+      document.getElementById('password').value = '';
+      document.getElementById('password').focus();
+      return say(out.error);
+    }
+
+    say('Signed in. Taking you through…', true);
+    location.replace(nextPage());
+  });
+})();
+</script>
+</body>
+</html>

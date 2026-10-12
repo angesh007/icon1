@@ -1,11 +1,10 @@
 /* ============================================================
    Fallback config — only needed if you are NOT using .env + Node.
 
-   Preferred route:   cp .env.example .env  →  npm run config
-   Manual route:      cp config.example.js config.js  →  edit below
+   Preferred:  cp .env.example .env   ->  npm run config
+   Manual:     cp config.example.js config.js  ->  edit below
 
-   Either way the result is a gitignored `config.js` that the
-   HTML pages load. Never commit it.
+   Either way the result is a gitignored `config.js`. Never commit it.
    ============================================================ */
 
 window.ICON_CONFIG = {

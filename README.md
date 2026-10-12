@@ -1,47 +1,47 @@
 # ICON — Live Salon Waitlist
 
-A three-screen walk-in waitlist for a hair salon, built as static HTML with
-[Supabase](https://supabase.com) Realtime. No build step, no framework.
+A walk-in waitlist for a hair salon, built as static HTML with
+[Supabase](https://supabase.com) Realtime. No framework, no build step beyond a
+tiny script that writes your keys into a config file.
+
+Everything is organised around one object: **the ticket**. Customers take a
+numbered ticket from their phone, the lobby TV shows who's up, and the front
+desk works the line.
 
 | Page | Who uses it | What it does |
 |---|---|---|
-| `index.html` | Customers | Shows the live wait time, lets people check in from their phone |
-| `admin.html` | Front desk / stylists | Register walk-ins, call clients to the chair, finish or remove them |
-| `tv.html` | Lobby TV | Full-screen board — who's in the chair, who's next, estimated wait |
+| `index.html` | Customers | Live wait, take a ticket, pick a time, watch their place update |
+| `tv.html` | Lobby TV | Now serving and up next, at wall scale |
+| `login.html` | Staff | Sign in with a staff ID and password |
+| `admin.html` | Front desk | Register walk-ins, call people to the chair, finish or remove them |
 
-All three stay in sync over a websocket. Check someone in on one screen and the
-other two update instantly.
+All screens stay in sync over a websocket.
 
 ---
 
 ## Quick start
 
 ```bash
-# 1. Install nothing — just get the files
-cd ICON
+# 1. Run the database setup — paste schema.sql into
+#    Supabase Dashboard -> SQL Editor -> New query -> Run
 
-# 2. Create the database (see step 2 below for where to paste schema.sql)
-
-# 3. Set your keys
+# 2. Set your keys
 cp .env.example .env
 #    ...open .env and fill in SUPABASE_URL and SUPABASE_KEY...
 
-# 4. Generate config.js from .env
+# 3. Generate config.js from .env
 npm run config
 
-# 5. Serve the folder
-npm start          # → http://localhost:3000
+# 4. Serve the folder
+npm start          # -> http://localhost:3000
 ```
 
-Then open:
+Then sign in at <http://localhost:3000/login.html> with the staff ID and
+password you set in step 9 of `schema.sql`.
 
-- <http://localhost:3000/index.html> — customer check-in
-- <http://localhost:3000/admin.html> — stylist console
-- <http://localhost:3000/tv.html> — lobby board
-
-> **You must serve over HTTP, not open the files directly.** Opening
-> `file:///.../index.html` breaks `config.js` loading and websockets. Any static
-> server works — `npm start`, `python3 -m http.server 3000`, or VS Code's Live Server.
+> **Serve over HTTP, don't open the files directly.** `file:///…` breaks
+> `config.js` loading and websockets. `npm start`, `python3 -m http.server 3000`
+> or VS Code Live Server all work.
 
 ---
 
@@ -49,46 +49,41 @@ Then open:
 
 ### 1. Create a Supabase project
 
-1. Go to <https://supabase.com/dashboard> and sign in.
-2. **New project** → give it a name, set a database password, pick a region
-   close to the salon.
-3. Wait ~2 minutes for it to provision.
+1. <https://supabase.com/dashboard> → **New project**.
+2. Name it, set a database password, pick a region near the salon.
+3. Wait ~2 minutes to provision.
 
-### 2. Create the tables
+### 2. Run `schema.sql`
 
-1. In your project, open **SQL Editor** in the left sidebar.
-2. Click **New query**.
-3. Paste the entire contents of [`schema.sql`](./schema.sql) and hit **Run**.
+**SQL Editor → New query →** paste all of [`schema.sql`](./schema.sql) **→ Run.**
 
-That creates `salons` and `waitlists`, adds the indexes, **turns on Realtime**,
-and applies permissive dev-mode security policies so the app works right away.
+It is safe to run on a fresh project *or* over an existing v1 install — see
+[Upgrading](#upgrading-from-v1). It is idempotent, so re-running is harmless.
 
-> Realtime is the step people miss. If your screens only refresh every 30
-> seconds instead of instantly, this is why — re-run `schema.sql`.
+Before you run it, scroll to **section 9** and change the admin password:
+
+```sql
+insert into public.admins (admin_id, password_hash, display_name, salon_id, role)
+values (
+  'admin',                                    -- the staff ID they type
+  crypt('ChangeMe123!', gen_salt('bf', 12)),  -- <- CHANGE THIS
+  'Front Desk', 1, 'owner'
+);
+```
+
+`crypt()` hashes it right there in the database, so the plain text is never
+stored anywhere.
 
 ### 3. Find your two keys
 
-Both live in your project's settings:
+| Variable | Where |
+|---|---|
+| `SUPABASE_URL` | Settings → **Data API** → *Project URL* |
+| `SUPABASE_KEY` | Settings → **API Keys** → *Publishable key* (older projects: *anon public*) |
 
-**`SUPABASE_URL`**
-> Dashboard → your project → **Settings** (gear icon) → **Data API** → **Project URL**
-
-Looks like `https://abcdefghijklmnop.supabase.co`
-
-**`SUPABASE_KEY`**
-> Dashboard → your project → **Settings** → **API Keys** → **Publishable key**
-
-Looks like `sb_publishable_xxxxxxxxxxxxx` (older projects label this
-**anon public** and it looks like a long `eyJhbGci...` JWT — either is fine).
-
-Direct link, replacing `<your-project-ref>`:
-`https://supabase.com/dashboard/project/<your-project-ref>/settings/api-keys`
+Direct link: `https://supabase.com/dashboard/project/<your-ref>/settings/api-keys`
 
 ### 4. Fill in `.env`
-
-```bash
-cp .env.example .env
-```
 
 ```env
 SUPABASE_URL=https://abcdefghijklmnop.supabase.co
@@ -105,19 +100,11 @@ ACTIVE_CHAIRS=1
 npm run config
 ```
 
-Browsers can't read `.env` files, so this script copies the values into
-`config.js`, which the HTML pages load with a `<script>` tag. Re-run it any time
-you change `.env`.
+Browsers can't read `.env`, so this writes the values into `config.js`, which the
+pages load with a `<script>` tag. Re-run it whenever `.env` changes. It also
+refuses to write a secret key into a browser file.
 
-It also validates what you pasted — it will refuse to write a secret key into a
-browser file.
-
-**No Node installed?** Skip the script:
-
-```bash
-cp config.example.js config.js
-# then edit config.js by hand
-```
+**No Node?** `cp config.example.js config.js` and edit it by hand.
 
 ---
 
@@ -125,19 +112,98 @@ cp config.example.js config.js
 
 | Key | Name in dashboard | Safe in the browser? |
 |---|---|---|
-| Publishable | **Publishable key** / anon public | **Yes** — it's designed for this |
+| Publishable | **Publishable key** / anon public | **Yes** — designed for it |
 | Secret | **Secret key** / service_role | **Never.** Bypasses all security |
 
-The publishable key is *meant* to ship in frontend code. What actually protects
-your data is Row Level Security, configured in `schema.sql`. The secret key
-ignores RLS entirely — if it reaches a browser, anyone can read and delete
-everything. It has no place in this project.
+The publishable key is meant to ship in frontend code. What protects your data is
+Row Level Security plus the database functions in `schema.sql` — not the secrecy
+of this key. **There are no other keys to add**: no API key, no admin key, no
+service key. Those two values are everything the app needs.
 
-Both `.env` and `config.js` are in `.gitignore`. Keep it that way.
+`.env` and `config.js` are both in `.gitignore`. Keep it that way.
 
 ---
 
-## Settings you can tune
+## How staff login works
+
+You asked for a custom `admins` table with a staff ID and password, and that's
+what this is — no email addresses, your own table. One thing is done differently
+than a naive version, deliberately:
+
+**The password is verified inside Postgres, not in the browser.** A page that
+compares passwords itself has to read the stored hash to do it, which means
+anyone can read your `admins` table, or simply skip the check in devtools. So
+instead:
+
+- `admins` and `admin_sessions` have **RLS on and no policies at all**. Every
+  direct query from a browser returns zero rows. Password hashes are unreachable.
+- `admin_login(staff_id, password)` is a `SECURITY DEFINER` function. It hashes
+  with `pgcrypto` bcrypt (cost 12), compares server-side, and on success returns
+  a random session token.
+- Every staff action — reading phone numbers, calling someone to the chair,
+  clearing the line — goes through a function that takes that token and checks
+  it. `waitlists` has **no insert, update or delete policy**, so there is no way
+  to change the queue from a browser except through those functions.
+
+Also built in:
+
+- The same "Incorrect staff ID or password" message whether the ID exists or not,
+  so the login can't be used to discover valid staff IDs.
+- Five wrong attempts locks the account for 15 minutes.
+- Sessions expire after 12 hours; signing out deletes the token server-side.
+- `stylist` can work the line. Only `manager` and `owner` can clear it.
+
+### Managing staff
+
+```sql
+-- add someone
+insert into public.admins (admin_id, password_hash, display_name, salon_id, role)
+values ('ravi', crypt('a-good-password', gen_salt('bf', 12)), 'Ravi', 1, 'stylist');
+
+-- reset a password
+update public.admins
+   set password_hash = crypt('new-password', gen_salt('bf', 12)),
+       failed_attempts = 0, locked_until = null
+ where lower(admin_id) = 'ravi';
+
+-- unlock after 5 bad attempts
+update public.admins set failed_attempts = 0, locked_until = null
+ where lower(admin_id) = 'ravi';
+```
+
+Staff can also change their own password in-app via
+`ICON.admin.changePassword(current, next)`.
+
+Staff IDs are case-insensitive — `Ravi` and `ravi` are the same login.
+
+---
+
+## The time section
+
+Two different things, both on the check-in form:
+
+**What the customer sees.** Position in line and an estimated clock time,
+recomputed live from the queue:
+
+```
+ceil(people_ahead / ACTIVE_CHAIRS) × MINUTES_PER_CLIENT
+```
+
+Six people across three chairs is two rounds — 30 minutes, not 90. Nothing is
+stored, so the estimate can't go stale.
+
+**What the customer adds.** An optional preferred time, offered as the next few
+half-hour slots after the current wait. Picking one stores `preferred_time` on
+the ticket and shows it to the front desk ("asked for 7:30 pm"). The default,
+*As soon as possible*, leaves it `NULL`.
+
+A preferred time is a request, not a booking — it doesn't reorder the queue. If
+you want real appointment slots with per-stylist availability, that's a different
+feature and a bigger change.
+
+---
+
+## Tuning
 
 In `.env`, then re-run `npm run config`:
 
@@ -147,92 +213,167 @@ In `.env`, then re-run `npm run config`:
 | `MINUTES_PER_CLIENT` | `15` | Average haircut length |
 | `ACTIVE_CHAIRS` | `1` | Chairs running now |
 
-The wait estimate is `ceil(people_waiting / ACTIVE_CHAIRS) × MINUTES_PER_CLIENT`.
-Six people across three chairs is two rounds, so 30 minutes — not 90.
-
 ---
 
 ## Project layout
 
 ```
 ICON/
-├── index.html           Customer check-in page
-├── admin.html           Stylist console
-├── tv.html              Lobby display board
-├── icon.js              Shared client, escaping, queue query, realtime
+├── index.html           Customer check-in and live ticket
+├── tv.html              Lobby board
+├── login.html           Staff sign-in
+├── admin.html           Front desk console
+├── icon.css             The whole design system
+├── icon.js              Client, auth, queue maths, realtime
 ├── config.example.js    Manual config template
 ├── config.js            GENERATED — gitignored
 ├── .env.example         Env template with key-finding instructions
 ├── .env                 Your keys — gitignored
-├── schema.sql           Tables, indexes, realtime, RLS policies
+├── schema.sql           Tables, functions, RLS, realtime, first admin
+├── vercel.json          Tells Vercel to run the config build
 ├── scripts/
-│   └── build-config.js  .env → config.js
+│   └── build-config.js  .env (or process.env) -> config.js
 └── package.json
 ```
 
-`icon.js` holds everything the three pages share: the Supabase client, HTML
-escaping, phone validation, the wait-time formula, the open-queue query, and the
-realtime subscription with its polling fallback. Edit behaviour there once
-instead of in three places.
+`icon.js` holds everything shared: the Supabase client, HTML escaping, phone
+formatting, the wait maths, the realtime subscription with its polling fallback,
+and the `ICON.auth` / `ICON.admin` wrappers around the database functions.
 
 ---
 
-## How the queue works
-
-Rows in `waitlists` move through four states:
+## Data model
 
 ```
-waiting ──[Call Client]──> in_chair ──[Finish]──> done
-   │                           │
-   └────────[Remove]───────────┴──────────────> cancelled
+salons ──┬── waitlists ─── waitlist_contacts   (phone numbers, staff-only)
+         └── admins ─── admin_sessions
 ```
 
-Nothing is ever hard-deleted — "Remove" and "Purge Queue" set `cancelled`, so you
-keep a full history for reporting. Only `waiting` and `in_chair` rows from the
-last 12 hours appear on screen.
+`waitlists` is the only table a browser reads directly, because Realtime needs
+table-level read access to deliver change events. **Realtime filters rows by RLS
+but not columns** — anyone who can see a row receives every column over the
+websocket. So phone numbers live in `waitlist_contacts`, which no browser can
+read at all; staff get them through `admin_queue()`.
 
-A unique index allows one active check-in per phone number per salon, so the same
-customer can't take two slots.
+A ticket moves through four states:
+
+```
+waiting ──[Call to chair]──> in_chair ──[Finished]──> done
+   │                             │
+   └─────────[Remove]────────────┴─────────────────> cancelled
+```
+
+Nothing is ever hard-deleted, so you keep a full day's history. Only `waiting`
+and `in_chair` rows from today appear on screen.
+
+Ticket numbers restart at 1 each day per salon, allocated under an advisory lock
+so two simultaneous check-ins can't collide. One active ticket per phone number
+per day.
 
 ---
 
-## Going to production
+## Upgrading from v1
 
-The dev-mode policies in `schema.sql` let anyone with your publishable key modify
-the queue. That's fine on localhost; it is not fine in a real salon, where
-`admin.html` is a public URL with a **Purge Queue** button on it.
+Run `schema.sql`. It detects the old shape and migrates in place:
 
-Before you go live:
+- adds `ticket_no`, `service_date` and `preferred_time` to `waitlists`
+- backfills `service_date` from `join_time`, and numbers existing tickets per day
+  in join order
+- creates `waitlist_contacts`, copies every `phone_number` across, then drops the
+  old column
+- drops the permissive v1 `dev open *` policies
+- creates `admins`, `admin_sessions` and all the functions
 
-1. **Add staff login.** Section 5 of `schema.sql` has the production RLS policies
-   and the `staff` table, commented out with step-by-step instructions. Enable
-   Email auth, turn off public sign-ups, create users manually, then swap the
-   `dev open *` policies for the staff-scoped ones.
-2. **Gate `admin.html`.** Add a session check at the top of its script:
-   ```js
-   const { data } = await ICON.db.auth.getSession();
-   if (!data.session) location.href = './login.html';
+No rows are deleted and it's safe to re-run. This was tested against a seeded v1
+database: all rows survived with correct per-day ticket numbers.
+
+Your old `admin.html` bookmark now redirects to `login.html`.
+
+---
+
+## Deploying to Vercel
+
+`config.js` is gitignored, so it isn't in your repo — Vercel generates it during
+the build. Two things make that work, both already in the project:
+
+- `vercel.json` sets the build command to `node scripts/build-config.js` and the
+  output directory to `.`
+- `package.json` has a matching `build` script
+
+`build-config.js` reads real environment variables first and falls back to `.env`,
+so the same script works locally and in a hosted build.
+
+### Steps
+
+1. Push to GitHub.
+2. Vercel → **Add New → Project**, import the repo, framework preset **Other**.
+   Leave the build settings alone; `vercel.json` handles them.
+3. **Settings → Environment Variables** — add these two, spelled exactly:
+
+   | Name | Value |
+   |---|---|
+   | `SUPABASE_URL` | `https://<your-ref>.supabase.co` |
+   | `SUPABASE_KEY` | your **publishable** key |
+
+   Tick **Production**, **Preview** and **Development** for both. Optionally add
+   `SALON_ID`, `MINUTES_PER_CLIENT`, `ACTIVE_CHAIRS`.
+4. **Deploy.** The build log should show:
+
    ```
-3. **Keep phone numbers off the TV.** `tv.html` already selects only
-   `customer_name` and `status`. Note that Supabase Realtime filters *rows* by
-   RLS but not *columns* — anyone who can select a row receives every column over
-   the websocket. If that's a concern, move `phone_number` to a staff-only table.
-4. **Rotate any key you've already committed.** Settings → API Keys → rotate.
+   ✓ Wrote config.js  (hosted build)
+     SUPABASE_URL : https://....supabase.co   [from environment]
+     SUPABASE_KEY : sb_publi…xxxx   [from environment]
+   ```
+
+> **Environment variables are read at build time.** Adding or editing one does
+> not fix a deployment that already finished — you must redeploy:
+> **Deployments → ⋯ → Redeploy**, with "Use existing Build Cache" unticked.
+
+### Verify
+
+Open `https://your-app.vercel.app/config.js`. You should see your
+`window.ICON_CONFIG = { … }`. A 404 means the build command didn't run — check
+the build log for the `✓ Wrote config.js` line.
+
+If a variable name is misspelled, the build log says so and lists the names it
+can actually see.
+
+### Netlify
+
+Build command `node scripts/build-config.js`, publish directory `.`, same two
+variables under **Site configuration → Environment variables**.
+
+### Lobby TV
+
+Point a browser at `tv.html` fullscreen (`F11`) with sleep disabled. A Raspberry
+Pi in kiosk mode works well. The board reconnects on its own and refreshes every
+30 seconds even if the websocket drops.
 
 ---
 
-## Deploying
+## Security notes
 
-It's a static folder — run `npm run config` first, then upload everything except
-`.env`, `node_modules` and `schema.sql`.
+What's in place:
 
-```bash
-npx vercel --prod          # or:
-npx netlify deploy --prod
-```
+- Password hashes, session tokens and phone numbers are unreachable from any
+  browser (RLS enabled, no policies, functions only).
+- The queue cannot be modified without a valid session token — there is no
+  insert/update/delete policy on `waitlists` at all.
+- Every value rendered to a page goes through `ICON.esc()`, so a customer who
+  checks in as `<img onerror=…>` shows up as text, not script.
+- The lobby board shows a first name and last initial, never a phone number or
+  cut notes.
+- Login is rate-limited and doesn't leak which staff IDs exist.
 
-For the lobby TV, point a browser at `tv.html` in fullscreen (`F11`) with
-auto-sleep disabled. A Raspberry Pi in kiosk mode works well.
+Worth knowing:
+
+- The session token is kept in `localStorage`. That's standard for an app with no
+  backend, but it means a browser extension or an XSS hole could read it. The
+  escaping above is what keeps that shut; keep it in place if you edit the pages.
+- `check_in` is open to the public by design, so someone could script fake
+  tickets. The one-per-phone-per-day rule limits it. If it becomes a problem, add
+  a captcha (Cloudflare Turnstile) in front of `check_in`.
+- Sessions last 12 hours and are not sliding. A long shift means signing in again.
 
 ---
 
@@ -241,46 +382,29 @@ auto-sleep disabled. A Raspberry Pi in kiosk mode works well.
 | What you see | Cause | Fix |
 |---|---|---|
 | Red bar: "config.js is missing or empty" | No `config.js` | `cp .env.example .env`, fill it in, `npm run config` |
-| Red bar: "supabase-js did not load" | No internet, or CDN blocked | Check connection; the three CDN `<script>` tags in `<head>` must load |
-| Red bar: "still contains placeholder values" | `config.js` wasn't edited | Put real values in `.env` and re-run `npm run config` |
-| Page loads, queue empty, console shows a 401/42501 | RLS policies missing | Re-run `schema.sql` |
-| Updates take 30s instead of being instant | Realtime not enabled | Re-run `schema.sql` (section 3), or Database → Replication → add `waitlists` |
-| "relation public.waitlists does not exist" | Schema never ran | Run `schema.sql` in the SQL Editor |
-| Check-in says "already on the waitlist" | Unique index working as intended | Finish or remove that customer first |
-| Everything blank and unstyled | Opened via `file://` | Serve over HTTP — `npm start` |
+| Red bar **only on Vercel** | `config.js` never generated in the build | Confirm `vercel.json` is committed, then **redeploy** |
+| Red bar: "supabase-js did not load" | No internet, or CDN blocked | Check the `<script>` tag in `<head>` |
+| Build log: "No .env file found" | Old `build-config.js` | Use the version that reads `process.env` |
+| Login says "Incorrect staff ID or password" with the right one | Admin row never created, or locked out | Run section 9 of `schema.sql`; check `locked_until` |
+| "function admin_login does not exist" | `schema.sql` didn't finish | Re-run it; check for errors in the SQL Editor |
+| Signed in, but the queue is empty and the console shows 42501 | Grants missing | Re-run section 7 of `schema.sql` |
+| Updates take 30s instead of being instant | Realtime not enabled | Re-run section 8, or Database → Replication → add `waitlists` |
+| "relation public.waitlists does not exist" | Schema never ran | Run `schema.sql` |
+| Check-in says "already has a ticket today" | Working as intended | Finish or remove that person first |
+| Everything unstyled | Opened via `file://` | Serve over HTTP — `npm start` |
 
 Every error also prints to the browser console with an `[ICON]` prefix.
 
 ---
 
-## What changed from the first version
+## Design
 
-The original wouldn't start. Fixed:
-
-- CDN `<script>` tags pointed at bare domains (`https://jsdelivr.net`,
-  `https://tailwindcss.com`, `https://cloudflare.com`) which return HTML, not
-  JavaScript — so `supabase` was undefined and Tailwind and Font Awesome never
-  loaded. Now pinned, real URLs.
-- `config.js` was referenced but didn't exist. Now generated from `.env`, with a
-  clear on-screen error if it's missing.
-- `index.html` was truncated mid-function, and `openBookingSlider()`,
-  `closeBookingSlider()`, `resetForm()` and the form submit handler were never
-  defined. All implemented.
-- `admin.html` had `\${...}` inside template literals, printing `${entry.id}`
-  literally and breaking the **Call Client** button. Rewritten with event
-  delegation instead of inline `onclick`.
-- Customer names and notes went into `innerHTML` unescaped — a stored XSS hole on
-  the admin console and the lobby TV. Everything now goes through `ICON.esc()`.
-- `tv.html` fetched phone numbers and clip notes to a public screen, and shadowed
-  the Supabase `client` variable in a `forEach`. Both fixed.
-- Queries were unfiltered `select('*')` over all history. Now scoped by salon,
-  status and a 12-hour window, with a supporting index.
-- Hard `delete()` on "Remove" and "Purge" destroyed history. Both now set status.
-- No error handling anywhere — failures were silent. Every call is checked and
-  surfaced in the UI.
-- Wait time ignored how many stylists were working. Now divides by `ACTIVE_CHAIRS`.
-- No phone validation, no duplicate prevention, no loading states, no reconnect
-  handling. All added.
+A ticket, not a dashboard. The palette is barber-pole DNA cooled off — enamel ink
+`#141A2E`, porcelain `#EDEEF0`, chrome, one barber red `#D8232A` reserved for
+"pay attention", one green `#0F9B6C` for "moving". Anton sets the ticket numerals
+and the wordmark; Archivo with tabular figures does everything else, so numbers
+don't wobble as they tick over. The only thing that animates on its own is a
+ticket being issued.
 
 ---
 

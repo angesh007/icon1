@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 /* ============================================================
-   Generates config.js from .env
-   Usage:  node scripts/build-config.js     (or: npm run config)
+   Generates config.js
 
-   Browsers cannot read .env files, so this writes the values into
-   a small JS file the HTML pages load via <script src="config.js">.
+   Reads values from, in priority order:
+     1. real environment variables  (Vercel / Netlify / CI)
+     2. a local .env file           (your laptop)
+
+   Browsers cannot read .env files or process.env, so this writes
+   the values into a small JS file the HTML pages load via
+   <script src="config.js">.
+
+   Local:   npm run config
+   Vercel:  runs automatically as the Build Command
    No dependencies — plain Node.
    ============================================================ */
 
@@ -17,59 +24,110 @@ const ROOT = path.join(__dirname, '..');
 const ENV_PATH = path.join(ROOT, '.env');
 const OUT_PATH = path.join(ROOT, 'config.js');
 
-/* ---------- read .env ---------- */
+const REQUIRED = ['SUPABASE_URL', 'SUPABASE_KEY'];
+const OPTIONAL = ['SALON_ID', 'MINUTES_PER_CLIENT', 'ACTIVE_CHAIRS'];
 
-if (!fs.existsSync(ENV_PATH)) {
-  console.error('\n  ✗ No .env file found.\n');
-  console.error('    Run this first:\n');
-  console.error('      cp .env.example .env\n');
-  console.error('    Then open .env and add your Supabase URL and key.\n');
-  process.exit(1);
+// Is this a hosted build? (Vercel, Netlify, or generic CI)
+const isCI = Boolean(
+  process.env.VERCEL || process.env.NETLIFY || process.env.CI || process.env.GITHUB_ACTIONS
+);
+
+/* ---------- 1. Load .env, if there is one ---------- */
+
+const fromFile = {};
+let hasEnvFile = false;
+
+if (fs.existsSync(ENV_PATH)) {
+  hasEnvFile = true;
+  fs.readFileSync(ENV_PATH, 'utf8')
+    .split(/\r?\n/)
+    .forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) return;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      if (/^(".*"|'.*')$/.test(value)) value = value.slice(1, -1);
+      if (value) fromFile[key] = value;
+    });
 }
 
-const env = {};
-fs.readFileSync(ENV_PATH, 'utf8')
-  .split(/\r?\n/)
-  .forEach((line) => {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) return;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) return;
-    const key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1).trim();
-    // strip surrounding quotes if present
-    if (/^(".*"|'.*')$/.test(value)) value = value.slice(1, -1);
-    env[key] = value;
-  });
+/* ---------- 2. Resolve each name ---------- */
 
-/* ---------- validate ---------- */
+const values = {};
+const origin = {};
+
+REQUIRED.concat(OPTIONAL).forEach((key) => {
+  if (process.env[key]) {
+    values[key] = process.env[key].trim();
+    origin[key] = 'environment';
+  } else if (fromFile[key]) {
+    values[key] = fromFile[key];
+    origin[key] = '.env file';
+  }
+});
+
+/* ---------- 3. Validate ---------- */
 
 const problems = [];
+const missing = REQUIRED.filter((key) => !values[key]);
 
-if (!env.SUPABASE_URL) {
-  problems.push('SUPABASE_URL is empty');
-} else if (!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$/i.test(env.SUPABASE_URL.replace(/\/$/, ''))) {
-  problems.push('SUPABASE_URL looks wrong — expected https://<project-ref>.supabase.co');
+if (missing.length) {
+  problems.push('Missing required variable(s): ' + missing.join(', '));
 }
 
-if (!env.SUPABASE_KEY) {
-  problems.push('SUPABASE_KEY is empty');
-} else if (/^sb_secret_/.test(env.SUPABASE_KEY) || /service_role/.test(env.SUPABASE_KEY)) {
+if (values.SUPABASE_URL &&
+    !/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$/i.test(values.SUPABASE_URL.replace(/\/$/, ''))) {
   problems.push(
-    'SUPABASE_KEY looks like a SECRET / service_role key. ' +
-    'That key bypasses Row Level Security and must never reach a browser. ' +
-    'Use the publishable (anon) key instead.'
+    'SUPABASE_URL looks wrong: "' + values.SUPABASE_URL + '"\n' +
+    '      Expected https://<project-ref>.supabase.co ' +
+    '(Settings -> Data API -> Project URL)'
+  );
+}
+
+if (values.SUPABASE_KEY &&
+    (/^sb_secret_/.test(values.SUPABASE_KEY) || /service_role/.test(values.SUPABASE_KEY))) {
+  problems.push(
+    'SUPABASE_KEY looks like a SECRET / service_role key.\n' +
+    '      That key bypasses Row Level Security and must never reach a browser.\n' +
+    '      Use the publishable (anon) key instead.'
   );
 }
 
 if (problems.length) {
-  console.error('\n  ✗ Cannot build config.js:\n');
+  console.error('\n  ✗ Cannot build config.js\n');
   problems.forEach((p) => console.error('    • ' + p));
+
+  if (missing.length) {
+    if (isCI) {
+      console.error('\n    This is a hosted build, so the values must come from your');
+      console.error('    hosting dashboard’s environment variables.\n');
+      console.error('    Vercel: Project -> Settings -> Environment Variables');
+      console.error('    Add these names EXACTLY (case-sensitive, no typos):\n');
+      REQUIRED.forEach((k) => console.error('      ' + k));
+      console.error('\n    Tick Production, Preview AND Development, then redeploy.');
+      // Deliberately loose, so near-misses like SUPBASE_URL show up too.
+      const seen = Object.keys(process.env).filter((k) => /SUP|BASE|SALON|CHAIR/i.test(k));
+      console.error('\n    Supabase-ish names this build can actually see: ' +
+        (seen.length ? seen.join(', ') : '(none)'));
+      if (seen.length && missing.length) {
+        console.error('    ← if a name above is misspelled, that’s your bug.');
+      }
+    } else if (!hasEnvFile) {
+      console.error('\n    No .env file found. Run:\n');
+      console.error('      cp .env.example .env\n');
+      console.error('    Then open .env and add your Supabase URL and key.');
+    } else {
+      console.error('\n    Found .env but those names are empty. Check spelling in .env.');
+    }
+  }
+
   console.error('');
   process.exit(1);
 }
 
-/* ---------- write config.js ---------- */
+/* ---------- 4. Write config.js ---------- */
 
 const num = (value, fallback) => {
   const n = parseInt(value, 10);
@@ -77,20 +135,29 @@ const num = (value, fallback) => {
 };
 
 const config = {
-  SUPABASE_URL: env.SUPABASE_URL.replace(/\/$/, ''),
-  SUPABASE_KEY: env.SUPABASE_KEY,
-  SALON_ID: num(env.SALON_ID, 1),
-  MINUTES_PER_CLIENT: num(env.MINUTES_PER_CLIENT, 15),
-  ACTIVE_CHAIRS: num(env.ACTIVE_CHAIRS, 1)
+  SUPABASE_URL: values.SUPABASE_URL.replace(/\/$/, ''),
+  SUPABASE_KEY: values.SUPABASE_KEY,
+  SALON_ID: num(values.SALON_ID, 1),
+  MINUTES_PER_CLIENT: num(values.MINUTES_PER_CLIENT, 15),
+  ACTIVE_CHAIRS: num(values.ACTIVE_CHAIRS, 1)
 };
 
 const banner =
   '/* AUTO-GENERATED by scripts/build-config.js — do not edit, do not commit.\n' +
-  '   Edit .env and re-run `npm run config` instead. */\n';
+  '   Local: edit .env and run `npm run config`.\n' +
+  '   Hosted: set environment variables in your hosting dashboard. */\n';
 
 fs.writeFileSync(OUT_PATH, banner + 'window.ICON_CONFIG = ' + JSON.stringify(config, null, 2) + ';\n');
 
-console.log('\n  ✓ Wrote config.js');
-console.log('    project : ' + config.SUPABASE_URL);
-console.log('    salon   : #' + config.SALON_ID +
-            '  (' + config.ACTIVE_CHAIRS + ' chair(s), ' + config.MINUTES_PER_CLIENT + ' min/client)\n');
+/* ---------- 5. Report ---------- */
+
+const masked = config.SUPABASE_KEY.length > 12
+  ? config.SUPABASE_KEY.slice(0, 8) + '…' + config.SUPABASE_KEY.slice(-4)
+  : '…';
+
+console.log('\n  ✓ Wrote config.js' + (isCI ? '  (hosted build)' : ''));
+console.log('    SUPABASE_URL : ' + config.SUPABASE_URL + '   [from ' + origin.SUPABASE_URL + ']');
+console.log('    SUPABASE_KEY : ' + masked + '   [from ' + origin.SUPABASE_KEY + ']');
+console.log('    salon #' + config.SALON_ID +
+            '  · ' + config.ACTIVE_CHAIRS + ' chair(s) · ' +
+            config.MINUTES_PER_CLIENT + ' min/client\n');

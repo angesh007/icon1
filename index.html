@@ -1,261 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICON Haircuts - Online Check-In &amp; Salons</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICON — Take a ticket</title>
+<meta name="description" content="Join the live waitlist at ICON Perimeter Center. See the wait, take a ticket, come in when it suits you.">
 
-    <!-- Core External Dependencies (pinned versions) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-    <script src="https://cdn.tailwindcss.com/3.4.3"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: { extend: { animation: { 'spin-slow': 'spin 6s linear infinite' } } }
-        };
-    </script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="./icon.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
+<body>
 
-    <!-- NAVIGATION HERO BANNER -->
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm px-6 py-4">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <span class="text-3xl font-black tracking-tighter text-teal-600">I C O N</span>
-                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Salons</span>
-            </div>
-            <div class="hidden md:flex items-center space-x-8 font-semibold text-sm text-slate-600">
-                <a href="#" class="text-teal-600 border-b-2 border-teal-600 pb-1">Find a Salon</a>
-                <a href="#" class="hover:text-teal-600 transition-colors">Services</a>
-                <a href="#" class="hover:text-teal-600 transition-colors">Products</a>
-                <a href="#" class="hover:text-teal-600 transition-colors">Promotions</a>
-            </div>
-            <a href="./tv.html" class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-md shadow-teal-600/10 transition-all">
-                Live Board
-            </a>
+<header class="bar">
+  <span class="wordmark">Icon</span>
+  <nav>
+    <a href="./index.html" aria-current="page">Check in</a>
+    <a href="./tv.html">Board</a>
+    <a href="./login.html">Staff</a>
+  </nav>
+</header>
+
+<main class="shell">
+  <div class="split">
+
+    <!-- ============ Left: the shop, the wait ============ -->
+    <section>
+      <h1 class="headline">Get in.<br>Get out.<br>Look great.</h1>
+      <p class="lede">
+        One chair, no appointments. Take a ticket from your phone and we'll
+        hold your place in line.
+      </p>
+
+      <div class="readout">
+        <div class="readout__item">
+          <div class="readout__value num"><span id="waitMins">--</span><span class="readout__unit"> min</span></div>
+          <span class="readout__key">Wait right now</span>
         </div>
-    </nav>
-
-    <!-- WEB ENGINE VIEW GRID -->
-    <main class="flex-1 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 overflow-hidden lg:h-[calc(100vh-73px)]">
-
-        <!-- LOCAL SALON SELECTOR COLUMN (5 COLS) -->
-        <section class="lg:col-span-5 border-r border-slate-200 bg-white flex flex-col h-full overflow-y-auto p-6 space-y-6">
-            <div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Get in. Get out. Look GREAT.&reg;</h1>
-                <p class="text-sm text-slate-500 mt-1">Select your nearby venue and grab a custom spot on our live waitlist instantly.</p>
-            </div>
-
-            <div class="relative">
-                <i class="fa-solid fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input type="text" readonly value="Sandy Springs / Dunwoody, GA" class="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium focus:outline-none text-slate-700">
-            </div>
-
-            <div class="space-y-4 flex-1">
-                <div class="border-2 border-teal-500 bg-teal-50/20 p-5 rounded-2xl shadow-sm flex flex-col justify-between space-y-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <span class="text-xs font-bold text-teal-600 uppercase tracking-widest bg-teal-100/50 px-2.5 py-1 rounded-md">Closest Salon</span>
-                            <h2 class="text-xl font-black text-slate-900 mt-2">ICON - Perimeter Center</h2>
-                            <p class="text-xs font-medium text-slate-500 mt-0.5"><i class="fa-solid fa-map-pin mr-1 text-slate-400"></i> 120 Perimeter Center Pl, Dunwoody, GA</p>
-                        </div>
-                        <div class="text-right">
-                            <p id="localWaitDisplay" class="text-3xl font-black text-slate-900">--</p>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Min Wait</p>
-                        </div>
-                    </div>
-
-                    <p id="localQueueMeta" class="text-xs font-semibold text-slate-500">Connecting to the live waitlist&hellip;</p>
-
-                    <button onclick="openBookingSlider()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-teal-600/10 transition-transform active:scale-[0.99] text-center text-sm flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-user-plus text-xs"></i> <span>Check In Online</span>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- VECTOR MAP COMPONENT PANEL (7 COLS) -->
-        <section class="lg:col-span-7 bg-slate-100 relative h-full hidden lg:block">
-            <div class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                <div class="bg-slate-900 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xl flex items-center space-x-2 border border-slate-700 z-10">
-                    <span class="w-2 h-2 bg-teal-400 rounded-full animate-ping"></span>
-                    <span>ICON Perimeter (Live Line)</span>
-                </div>
-                <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center border-4 border-white shadow-2xl mt-1 text-white text-sm">
-                    <i class="fa-solid fa-scissors"></i>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- ACCOUNT MANAGEMENT & SLIDER SYSTEM COMPONENT -->
-    <div id="bookingSlider" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 transition-opacity duration-300 opacity-0 pointer-events-none flex justify-end">
-        <div class="bg-white w-full max-w-md h-full shadow-2xl p-6 flex flex-col justify-between transform translate-x-full transition-transform duration-300 ease-out" id="sliderContent">
-            <div id="formWrapper">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-4">
-                    <h2 class="text-xl font-black text-slate-900">Online Check-In</h2>
-                    <button onclick="closeBookingSlider()" class="text-slate-400 hover:text-slate-600 p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
-                </div>
-
-                <form id="publicCheckInForm" class="space-y-5 mt-6">
-                    <div>
-                        <label for="pubName" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Your Full Name</label>
-                        <input type="text" id="pubName" required maxlength="80" placeholder="Alex Smith" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-slate-900 focus:outline-none focus:border-teal-500 focus:bg-white transition-all">
-                    </div>
-                    <div>
-                        <label for="pubPhone" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Mobile Phone Number</label>
-                        <input type="tel" id="pubPhone" required placeholder="(404) 555-0100" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-slate-900 focus:outline-none focus:border-teal-500 focus:bg-white transition-all">
-                    </div>
-                    <div>
-                        <label for="pubNotes" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Clip Notes (Haircut Rules)</label>
-                        <textarea id="pubNotes" maxlength="500" placeholder="e.g. #3 guard fade on sides, square back." rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-slate-900 focus:outline-none focus:border-teal-500 focus:bg-white transition-all resize-none"></textarea>
-                    </div>
-
-                    <p id="formError" class="hidden text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3"></p>
-
-                    <button type="submit" id="submitBtn" class="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-xl shadow-teal-600/10 transition-all text-sm">
-                        Confirm Salon Check-In
-                    </button>
-                </form>
-            </div>
-
-            <div id="successPanel" class="hidden text-center py-12 space-y-4 my-auto">
-                <div class="w-20 h-20 bg-emerald-50 text-emerald-500 border-2 border-emerald-200 rounded-full flex items-center justify-center mx-auto text-4xl shadow-inner animate-bounce">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
-                <h3 class="text-2xl font-black text-slate-900">You're on the list!</h3>
-                <p class="text-slate-500 text-sm px-6 leading-relaxed">Your reservation is confirmed. Head to the salon and monitor your position on our lobby TV screen.</p>
-                <button onclick="closeBookingSlider(); resetForm();" class="mt-8 bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 py-3 rounded-xl text-sm transition-colors">
-                    Back to Maps
-                </button>
-            </div>
-
-            <p class="text-[11px] text-slate-400 text-center leading-relaxed">ICON Platform Architecture Engine &bull; Real-Time Database Connection Protocol</p>
+        <div class="readout__item">
+          <div class="readout__value num" id="inLine">--</div>
+          <span class="readout__key">People in line</span>
         </div>
-    </div>
+        <div class="readout__item">
+          <div class="readout__value num" id="nextFree">--:--</div>
+          <span class="readout__key">Next chair free</span>
+        </div>
+      </div>
 
-    <!-- CENTRAL COUPLING CONTROLLER SCRIPT -->
-    <script src="./config.js"></script>
-    <script src="./icon.js"></script>
-    <script>
-        (function () {
-            'use strict';
-            if (!window.ICON) return; // icon.js already showed a setup error
+      <div class="prose">
+        <h2 style="font-size: var(--t-lg); margin-bottom: var(--s2);">ICON Perimeter Center</h2>
+        <p class="muted" style="margin: 0;">
+          120 Perimeter Center Pl, Dunwoody, GA<br>
+          <span id="shopState">Checking if we're open…</span>
+        </p>
+      </div>
+    </section>
 
-            var slider = document.getElementById('bookingSlider');
-            var content = document.getElementById('sliderContent');
-            var entryForm = document.getElementById('publicCheckInForm');
-            var formWrapper = document.getElementById('formWrapper');
-            var successPanel = document.getElementById('successPanel');
-            var waitDisplay = document.getElementById('localWaitDisplay');
-            var queueMeta = document.getElementById('localQueueMeta');
-            var formError = document.getElementById('formError');
-            var submitBtn = document.getElementById('submitBtn');
+    <!-- ============ Right: the ticket ============ -->
+    <aside>
 
-            /* ---------- Slider controls (globals for onclick) ---------- */
+      <!-- (a) No ticket yet -->
+      <div id="paneTake">
+        <div class="ticket">
+          <div class="ticket__head">
+            <span class="wordmark" style="font-size: var(--t-sm);">Icon</span>
+            <span class="label">Today</span>
+          </div>
+          <div class="ticket__number is-waiting num">--</div>
+          <p class="ticket__caption">No ticket yet.</p>
+          <div class="ticket__tear"></div>
+          <div class="ticket__stub">
+            <button class="btn btn--block btn--lg" id="takeBtn">Take a ticket</button>
+          </div>
+        </div>
+      </div>
 
-            window.openBookingSlider = function () {
-                slider.classList.remove('opacity-0', 'pointer-events-none');
-                requestAnimationFrame(function () {
-                    content.classList.remove('translate-x-full');
-                });
-                document.getElementById('pubName').focus();
-            };
+      <!-- (b) Check-in form -->
+      <form id="paneForm" class="ticket" hidden>
+        <div class="ticket__head">
+          <span class="label">Who's coming in?</span>
+          <button type="button" class="btn btn--danger" id="cancelBtn"
+                  style="color: var(--on-ink-dim); font-size: var(--t-xs);">Cancel</button>
+        </div>
 
-            window.closeBookingSlider = function () {
-                content.classList.add('translate-x-full');
-                slider.classList.add('opacity-0', 'pointer-events-none');
-            };
+        <div class="ticket__stub">
+          <p class="msg msg--bad" id="formMsg" hidden></p>
 
-            window.resetForm = function () {
-                entryForm.reset();
-                hideError();
-                formWrapper.classList.remove('hidden');
-                successPanel.classList.add('hidden');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Confirm Salon Check-In';
-            };
+          <div class="field">
+            <label for="name">Your name</label>
+            <input type="text" id="name" name="name" required maxlength="80"
+                   autocomplete="name" placeholder="Alex Smith">
+          </div>
 
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') window.closeBookingSlider();
-            });
+          <div class="field">
+            <label for="phone">Mobile number
+              <span class="help">So we can text you when the chair's ready.</span>
+            </label>
+            <input type="tel" id="phone" name="phone" required
+                   autocomplete="tel" placeholder="(404) 555-0100">
+          </div>
 
-            /* ---------- Error display ---------- */
+          <div class="field">
+            <label for="notes">How do you want it cut?
+              <span class="help">Optional. Guard numbers, length, anything we should know.</span>
+            </label>
+            <textarea id="notes" name="notes" maxlength="500"
+                      placeholder="#3 guard on the sides, square back, leave the top"></textarea>
+          </div>
 
-            function showError(msg) {
-                formError.textContent = msg;
-                formError.classList.remove('hidden');
-            }
-            function hideError() {
-                formError.classList.add('hidden');
-            }
+          <div class="field">
+            <label id="whenLabel">When do you want to come in?</label>
+            <div class="slots" id="slots" role="group" aria-labelledby="whenLabel"></div>
+            <span class="help" id="slotHelp" style="margin-top: var(--s2);"></span>
+          </div>
 
-            /* ---------- Live wait time ---------- */
+          <button type="submit" class="btn btn--block btn--lg" id="submitBtn">Confirm my ticket</button>
+        </div>
+      </form>
 
-            async function calculateTime() {
-                var res = await window.ICON.openQueue('id,status');
-                if (res.error) {
-                    console.error('[ICON] wait lookup failed:', res.error);
-                    queueMeta.textContent = 'Live waitlist unavailable right now.';
-                    return;
-                }
-                var rows = res.data || [];
-                var waiting = rows.filter(function (r) { return r.status === 'waiting'; }).length;
-                var inChair = rows.filter(function (r) { return r.status === 'in_chair'; }).length;
+      <!-- (c) Live ticket -->
+      <div id="paneTicket" hidden>
+        <div class="ticket" id="ticketCard">
+          <div class="ticket__head">
+            <span class="wordmark" style="font-size: var(--t-sm);">Icon</span>
+            <span class="label" id="ticketState">In line</span>
+          </div>
+          <div class="ticket__number num" id="ticketNo">--</div>
+          <p class="ticket__caption" id="ticketCaption"></p>
+          <div class="ticket__tear"></div>
+          <div class="ticket__stub">
+            <dl style="margin: 0 0 var(--s4);">
+              <div class="ticket__row"><dt>Name</dt><dd id="tName"></dd></div>
+              <div class="ticket__row"><dt>Position</dt><dd id="tPos"></dd></div>
+              <div class="ticket__row"><dt>Estimated time</dt><dd id="tEta"></dd></div>
+              <div class="ticket__row" id="tWantedRow" hidden><dt>You asked for</dt><dd id="tWanted"></dd></div>
+              <div class="ticket__row" id="tNotesRow" hidden><dt>Cut</dt><dd id="tNotes"></dd></div>
+            </dl>
+            <button class="btn btn--quiet btn--block" id="dropBtn">Give up my place</button>
+          </div>
+        </div>
+        <p class="muted" style="font-size: var(--t-xs); text-align: center; margin-top: var(--s3);">
+          Keep this page open and your place updates on its own.
+        </p>
+      </div>
 
-                waitDisplay.textContent = window.ICON.estimateWaitMinutes(waiting);
-                queueMeta.textContent = waiting === 0
-                    ? 'No one waiting — walk straight in.'
-                    : waiting + (waiting === 1 ? ' person' : ' people') + ' in line · ' + inChair + ' in the chair';
-            }
+    </aside>
+  </div>
+</main>
 
-            /* ---------- Check-in submit ---------- */
+<script src="./config.js"></script>
+<script src="./icon.js"></script>
+<script>
+(function () {
+  'use strict';
+  if (!window.ICON) return;
+  var ICON = window.ICON;
 
-            entryForm.addEventListener('submit', async function (e) {
-                e.preventDefault();
-                hideError();
+  var paneTake = document.getElementById('paneTake');
+  var paneForm = document.getElementById('paneForm');
+  var paneTicket = document.getElementById('paneTicket');
+  var formMsg = document.getElementById('formMsg');
+  var submitBtn = document.getElementById('submitBtn');
+  var slotsBox = document.getElementById('slots');
+  var slotHelp = document.getElementById('slotHelp');
 
-                var name = document.getElementById('pubName').value.trim();
-                var phoneRaw = document.getElementById('pubPhone').value;
-                var notes = document.getElementById('pubNotes').value.trim();
+  var chosenTime = null;   // null = as soon as possible
+  var lastRows = [];
 
-                if (name.length < 2) return showError('Please enter your full name.');
-                if (!window.ICON.isValidPhone(phoneRaw)) {
-                    return showError('Please enter a valid mobile number (10–15 digits).');
-                }
+  /* ---------- Panes ---------- */
 
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Checking you in…';
+  function show(which) {
+    paneTake.hidden = which !== 'take';
+    paneForm.hidden = which !== 'form';
+    paneTicket.hidden = which !== 'ticket';
+  }
 
-                var result = await window.ICON.db.from(window.ICON.TABLE).insert([{
-                    salon_id: window.ICON.SALON_ID,
-                    customer_name: name,
-                    phone_number: window.ICON.normalisePhone(phoneRaw),
-                    clip_notes: notes || null,
-                    status: 'waiting'
-                }]);
+  function say(message) {
+    formMsg.textContent = message;
+    formMsg.hidden = !message;
+  }
 
-                if (result.error) {
-                    console.error('[ICON] check-in failed:', result.error);
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Confirm Salon Check-In';
-                    return showError(
-                        result.error.code === '23505' || /already/i.test(result.error.message)
-                            ? 'That number is already on the waitlist.'
-                            : 'Check-in failed: ' + result.error.message
-                    );
-                }
+  /* ---------- Time slots ---------- */
 
-                formWrapper.classList.add('hidden');
-                successPanel.classList.remove('hidden');
-                calculateTime();
-            });
+  function buildSlots(waitingCount) {
+    var slots = ICON.timeSlots(waitingCount, 4);
+    var html = '<button type="button" class="slot" data-when="asap" aria-pressed="true">As soon as possible</button>';
+    slots.forEach(function (d) {
+      html += '<button type="button" class="slot" data-when="' + d.toISOString() + '" aria-pressed="false">' +
+              ICON.esc(ICON.fmtTime(d)) + '</button>';
+    });
+    slotsBox.innerHTML = html;
+    updateSlotHelp();
+  }
 
-            /* ---------- Boot ---------- */
+  function updateSlotHelp() {
+    slotHelp.textContent = chosenTime
+      ? 'We’ll keep your place and aim for ' + ICON.fmtTime(chosenTime) + '. Arrive a few minutes early.'
+      : 'You keep your place in line and we’ll take you as soon as the chair is free.';
+  }
 
-            window.ICON.subscribeQueue('public-time-sync', calculateTime);
-        })();
-    </script>
+  slotsBox.addEventListener('click', function (e) {
+    var btn = e.target.closest('.slot');
+    if (!btn) return;
+    Array.prototype.forEach.call(slotsBox.querySelectorAll('.slot'), function (b) {
+      b.setAttribute('aria-pressed', String(b === btn));
+    });
+    chosenTime = btn.dataset.when === 'asap' ? null : btn.dataset.when;
+    updateSlotHelp();
+  });
+
+  /* ---------- Live queue ---------- */
+
+  async function refresh() {
+    var res = await ICON.openQueue();
+    if (res.error) {
+      console.error('[ICON]', res.error);
+      document.getElementById('shopState').textContent = 'Live waitlist unavailable right now.';
+      return;
+    }
+
+    var rows = res.data || [];
+    lastRows = rows;
+
+    var waiting = rows.filter(function (r) { return r.status === 'waiting'; });
+    var inChair = rows.filter(function (r) { return r.status === 'in_chair'; });
+
+    document.getElementById('waitMins').textContent = ICON.estimateWaitMinutes(waiting.length);
+    document.getElementById('inLine').textContent = waiting.length;
+    document.getElementById('nextFree').textContent =
+      ICON.fmtTime(ICON.etaFor(Math.max(1, waiting.length)));
+
+    document.getElementById('shopState').textContent =
+      waiting.length === 0 && inChair.length === 0
+        ? 'Open · nobody waiting, walk straight in'
+        : 'Open · ' + waiting.length + (waiting.length === 1 ? ' person' : ' people') +
+          ' in line, ' + inChair.length + ' in the chair';
+
+    if (paneForm.hidden === false) buildSlots(waiting.length);
+    paintTicket(rows);
+  }
+
+  /* ---------- My ticket ---------- */
+
+  function paintTicket(rows) {
+    var mine = ICON.myTicket();
+    if (!mine) { if (paneForm.hidden) show('take'); return; }
+
+    var row = rows.filter(function (r) { return Number(r.id) === Number(mine.entry_id); })[0];
+
+    // Gone from the open queue — either finished or removed.
+    if (!row) {
+      ICON.forgetTicket();
+      show('take');
+      return;
+    }
+
+    show('ticket');
+
+    document.getElementById('ticketNo').textContent = ICON.padTicket(row.ticket_no);
+    document.getElementById('tName').textContent = row.customer_name;
+
+    var numEl = document.getElementById('ticketNo');
+    var stateEl = document.getElementById('ticketState');
+    var captionEl = document.getElementById('ticketCaption');
+    var dropBtn = document.getElementById('dropBtn');
+
+    if (row.status === 'in_chair') {
+      numEl.classList.remove('is-waiting');
+      stateEl.textContent = 'In the chair';
+      captionEl.innerHTML = '<strong>You’re up.</strong> Head to the chair.';
+      document.getElementById('tPos').textContent = 'In the chair';
+      document.getElementById('tEta').textContent = 'Now';
+      dropBtn.hidden = true;
+    } else {
+      var pos = ICON.positionOf(rows, mine.entry_id);
+      var eta = ICON.etaFor(pos);
+
+      numEl.classList.add('is-waiting');
+      stateEl.textContent = 'In line';
+      captionEl.innerHTML = pos === 1
+        ? '<strong>You’re next.</strong> Stay close by.'
+        : 'You’re <strong>' + pos + ordinalSuffix(pos) + '</strong> in line.';
+      document.getElementById('tPos').textContent = pos + ordinalSuffix(pos) + ' in line';
+      document.getElementById('tEta').textContent = 'about ' + ICON.fmtTime(eta);
+      dropBtn.hidden = false;
+    }
+
+    var wantedRow = document.getElementById('tWantedRow');
+    if (row.preferred_time) {
+      wantedRow.hidden = false;
+      document.getElementById('tWanted').textContent = ICON.fmtTime(row.preferred_time);
+    } else {
+      wantedRow.hidden = true;
+    }
+
+    var notesRow = document.getElementById('tNotesRow');
+    if (mine.notes) {
+      notesRow.hidden = false;
+      document.getElementById('tNotes').textContent = mine.notes;
+    } else {
+      notesRow.hidden = true;
+    }
+  }
+
+  function ordinalSuffix(n) {
+    if (n % 100 >= 11 && n % 100 <= 13) return 'th';
+    return ['th', 'st', 'nd', 'rd'][n % 10] || 'th';
+  }
+
+  /* ---------- Actions ---------- */
+
+  document.getElementById('takeBtn').addEventListener('click', function () {
+    say('');
+    chosenTime = null;
+    buildSlots(lastRows.filter(function (r) { return r.status === 'waiting'; }).length);
+    show('form');
+    document.getElementById('name').focus();
+  });
+
+  document.getElementById('cancelBtn').addEventListener('click', function () {
+    say('');
+    show(ICON.myTicket() ? 'ticket' : 'take');
+  });
+
+  paneForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    say('');
+
+    var name = document.getElementById('name').value.trim();
+    var phone = document.getElementById('phone').value;
+    var notes = document.getElementById('notes').value.trim();
+
+    if (name.length < 2) return say('Enter your full name.');
+    if (!ICON.isValidPhone(phone)) return say('Enter a mobile number with 10 to 15 digits.');
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Taking your ticket…';
+
+    var out = await ICON.checkIn(name, phone, notes, chosenTime);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Confirm my ticket';
+
+    if (!out.ok) return say(out.error);
+
+    paneForm.reset();
+    await refresh();
+    var card = document.getElementById('ticketCard');
+    card.classList.add('is-new');
+    setTimeout(function () { card.classList.remove('is-new'); }, 600);
+  });
+
+  document.getElementById('dropBtn').addEventListener('click', function () {
+    if (!confirm('Give up your place in line?')) return;
+    // Customers cannot write to the queue; the desk removes them.
+    // Forgetting locally lets them take a fresh ticket.
+    ICON.forgetTicket();
+    show('take');
+    refresh();
+  });
+
+  /* ---------- Boot ---------- */
+
+  ICON.subscribeQueue('public-queue', refresh);
+})();
+</script>
 </body>
 </html>
