@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICON - Stylist Control Console</title>
+
+    <!-- Core External Dependencies (pinned versions) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.3"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
+    <nav class="bg-slate-800 border-b border-slate-700 p-4 shadow-xl">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-black tracking-wider text-teal-400">ICON <span class="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Stylist Console</span></h1>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <span id="linkDot" class="w-2 h-2 bg-amber-400 rounded-full animate-ping"></span>
+                    <span id="linkLabel" class="text-xs text-slate-400 font-mono">Connecting&hellip;</span>
+                </div>
+                <a href="./tv.html" target="_blank" class="text-xs text-slate-400 hover:text-teal-400 font-semibold transition-colors">
+                    <i class="fa-solid fa-tv mr-1"></i> Lobby Board
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl h-fit">
+            <h2 class="text-lg font-bold mb-4 text-slate-200 border-b border-slate-700 pb-2">Walk-In Desk Registration</h2>
+            <form id="customerForm" class="space-y-4">
+                <div>
+                    <label for="custName" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Customer Full Name</label>
+                    <input type="text" id="custName" required maxlength="80" placeholder="John Doe" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-teal-400 transition-colors">
+                </div>
+                <div>
+                    <label for="custPhone" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Mobile Phone Number</label>
+                    <input type="tel" id="custPhone" required placeholder="(404) 555-0199" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-teal-400 transition-colors">
+                </div>
+                <div>
+                    <label for="custNotes" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Clip Notes (Haircut Details)</label>
+                    <textarea id="custNotes" maxlength="500" placeholder="e.g., #4 guard fade, trim top." rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-teal-400 transition-colors resize-none"></textarea>
+                </div>
+
+                <p id="adminError" class="hidden text-xs font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3"></p>
+
+                <button type="submit" id="registerBtn" class="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all">
+                    Register Client
+                </button>
+            </form>
+        </div>
+
+        <div class="lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                <h2 class="text-lg font-bold text-slate-200">Active Lobby Stations Queue</h2>
+                <button onclick="purgeQueue()" class="text-xs text-rose-400 font-semibold hover:underline">Purge Queue</button>
+            </div>
+            <div id="adminQueueContainer" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./icon.js"></script>
+    <script>
+        (function () {
+            'use strict';
+            if (!window.ICON) return;
+
+            var ICON = window.ICON;
+            var formLayout = document.getElementById('customerForm');
+            var container = document.getElementById('adminQueueContainer');
+            var errorBox = document.getElementById('adminError');
+            var registerBtn = document.getElementById('registerBtn');
+            var linkDot = document.getElementById('linkDot');
+            var linkLabel = document.getElementById('linkLabel');
+
+            function showError(msg) {
+                errorBox.textContent = msg;
+                errorBox.classList.remove('hidden');
+            }
+            function hideError() {
+                errorBox.classList.add('hidden');
+            }
+
+            function setLink(ok, text) {
+                linkDot.className = 'w-2 h-2 rounded-full ' + (ok ? 'bg-emerald-400 animate-ping' : 'bg-rose-500');
+                linkLabel.textContent = text;
+            }
+
+            /* ---------- Render the queue ---------- */
+
+            async function renderActiveState() {
+                var res = await ICON.openQueue('id,customer_name,phone_number,clip_notes,status,join_time');
+
+                if (res.error) {
+                    console.error('[ICON]', res.error);
+                    setLink(false, 'Connection error');
+                    showError('Could not load the queue: ' + res.error.message);
+                    return;
+                }
+
+                hideError();
+                setLink(true, 'Live Session Uplink Active');
+
+                var data = res.data || [];
+                container.innerHTML = '';
+
+                if (data.length === 0) {
+                    container.innerHTML =
+                        '<div class="text-center text-slate-500 py-12 border border-dashed border-slate-700 rounded-xl">' +
+                        'No active customers in the shop.</div>';
+                    return;
+                }
+
+                // Queue position counts only the people actually waiting.
+                var waitingSeen = 0;
+                var fragment = document.createDocumentFragment();
+
+                data.forEach(function (entry) {
+                    var activeSession = entry.status === 'in_chair';
+                    if (!activeSession) waitingSeen += 1;
+
+                    var segment = document.createElement('div');
+                    segment.className =
+                        'p-4 rounded-xl border flex justify-between items-center transition-all ' +
+                        (activeSession
+                            ? 'bg-emerald-950/20 border-emerald-500/30'
+                            : 'bg-slate-900 border-slate-700');
+
+                    var name = ICON.esc(entry.customer_name);
+                    var phone = ICON.esc(entry.phone_number);
+                    var notes = entry.clip_notes ? ICON.esc(entry.clip_notes) : '';
+                    var id = Number(entry.id);
+
+                    segment.innerHTML =
+                        '<div class="space-y-1">' +
+                            '<div class="flex items-center space-x-2">' +
+                                '<h3 class="font-bold text-lg tracking-wide text-slate-200">' + name + '</h3>' +
+                                '<span class="text-xs font-mono text-slate-500">' + phone + '</span>' +
+                            '</div>' +
+                            (notes
+                                ? '<p class="text-xs text-amber-400/80 bg-amber-500/5 px-2 py-1 rounded border border-amber-500/10 w-fit">' +
+                                  '📋 Clip Notes: ' + notes + '</p>'
+                                : '') +
+                            '<p class="text-xs font-semibold ' +
+                                (activeSession ? 'text-emerald-400' : 'text-slate-400') + '">' +
+                                (activeSession
+                                    ? '🟢 Styling Session Live'
+                                    : '⏳ Waiting (Queue Position: ' + waitingSeen + ')') +
+                            '</p>' +
+                        '</div>' +
+                        '<div class="flex space-x-2">' +
+                            (!activeSession
+                                ? '<button data-action="call" data-id="' + id + '" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">Call Client</button>'
+                                : '<button data-action="finish" data-id="' + id + '" class="bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">Finish</button>') +
+                            '<button data-action="remove" data-id="' + id + '" class="bg-slate-800 text-slate-300 border border-slate-700 hover:border-rose-500/40 hover:text-rose-400 px-3 py-1.5 rounded-lg text-xs transition-all">Remove</button>' +
+                        '</div>';
+
+                    fragment.appendChild(segment);
+                });
+
+                container.appendChild(fragment);
+            }
+
+            /* ---------- Queue actions (event delegation) ---------- */
+
+            container.addEventListener('click', async function (e) {
+                var btn = e.target.closest('button[data-action]');
+                if (!btn) return;
+
+                var id = Number(btn.dataset.id);
+                var action = btn.dataset.action;
+                btn.disabled = true;
+
+                var patch = null;
+                if (action === 'call') {
+                    patch = { status: 'in_chair', called_at: new Date().toISOString() };
+                } else if (action === 'finish') {
+                    patch = { status: 'done', finished_at: new Date().toISOString() };
+                } else if (action === 'remove') {
+                    patch = { status: 'cancelled', finished_at: new Date().toISOString() };
+                }
+
+                var res = await ICON.db.from(ICON.TABLE).update(patch).eq('id', id);
+                if (res.error) {
+                    console.error('[ICON]', res.error);
+                    showError('Action failed: ' + res.error.message);
+                    btn.disabled = false;
+                    return;
+                }
+                renderActiveState();
+            });
+
+            /* ---------- Walk-in registration ---------- */
+
+            formLayout.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                hideError();
+
+                var name = document.getElementById('custName').value.trim();
+                var phoneRaw = document.getElementById('custPhone').value;
+                var notes = document.getElementById('custNotes').value.trim();
+
+                if (name.length < 2) return showError('Enter the customer’s full name.');
+                if (!ICON.isValidPhone(phoneRaw)) return showError('Enter a valid mobile number (10–15 digits).');
+
+                registerBtn.disabled = true;
+                registerBtn.textContent = 'Registering…';
+
+                var res = await ICON.db.from(ICON.TABLE).insert([{
+                    salon_id: ICON.SALON_ID,
+                    customer_name: name,
+                    phone_number: ICON.normalisePhone(phoneRaw),
+                    clip_notes: notes || null,
+                    status: 'waiting'
+                }]);
+
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register Client';
+
+                if (res.error) {
+                    console.error('[ICON]', res.error);
+                    return showError(
+                        res.error.code === '23505'
+                            ? 'That number is already on the waitlist.'
+                            : 'Registration failed: ' + res.error.message
+                    );
+                }
+
+                formLayout.reset();
+                renderActiveState();
+            });
+
+            /* ---------- Purge ---------- */
+
+            window.purgeQueue = async function () {
+                if (!confirm('Close out every client currently in the shop?')) return;
+
+                var res = await ICON.db
+                    .from(ICON.TABLE)
+                    .update({ status: 'cancelled', finished_at: new Date().toISOString() })
+                    .eq('salon_id', ICON.SALON_ID)
+                    .in('status', ['waiting', 'in_chair']);
+
+                if (res.error) {
+                    console.error('[ICON]', res.error);
+                    return showError('Purge failed: ' + res.error.message);
+                }
+                renderActiveState();
+            };
+
+            /* ---------- Boot ---------- */
+
+            ICON.subscribeQueue('receptionist-sync', renderActiveState);
+        })();
+    </script>
+</body>
+</html>

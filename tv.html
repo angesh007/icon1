@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICON - Live Waitlist Board</title>
+
+    <!-- Core Engine Scripts (pinned versions) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.3"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: { extend: { animation: { 'spin-slow': 'spin 6s linear infinite' } } }
+        };
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen overflow-hidden select-none">
+
+    <!-- OVERHEAD DISPLAY HEADER -->
+    <header class="bg-slate-900 border-b-4 border-teal-500 p-6 flex justify-between items-center shadow-2xl">
+        <div class="flex items-center space-x-4">
+            <div class="bg-teal-500 text-slate-950 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg shadow-teal-500/20">
+                <i class="fa-solid fa-scissors animate-spin-slow"></i>
+            </div>
+            <div>
+                <h1 class="text-4xl font-black tracking-widest text-white">I C O N</h1>
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mt-0.5">Lobby Queue Dashboard &bull; Perimeter Center</p>
+            </div>
+        </div>
+        <div class="text-right bg-slate-950 px-8 py-3 rounded-2xl border border-slate-800 shadow-inner flex items-center space-x-6">
+            <div>
+                <p class="text-[10px] uppercase font-black tracking-widest text-slate-500">Estimated Lobby Wait</p>
+                <p id="tvGlobalWait" class="text-4xl font-black text-teal-400">-- Mins</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- LIVE MONITORING DASHBOARD GRID -->
+    <main class="grid grid-cols-2 gap-8 p-8 h-[calc(100vh-120px)] bg-gradient-to-b from-slate-950 to-slate-900">
+
+        <!-- LEFT BLOCK: STYLIST APPOINTMENT CHAIRS -->
+        <section class="bg-slate-900/40 border-2 border-emerald-500/10 p-6 rounded-3xl flex flex-col shadow-2xl backdrop-blur-md">
+            <h2 class="text-2xl font-black text-emerald-400 mb-6 flex items-center tracking-wide uppercase border-b border-slate-800 pb-4">
+                <span class="inline-block w-3 h-3 bg-emerald-400 rounded-full mr-3 animate-ping"></span>
+                Now in Stylist Chair
+            </h2>
+            <div id="tvChairContainer" class="space-y-4 flex-1 overflow-y-auto pr-2">
+                <!-- Javascript injects active client containers here -->
+            </div>
+        </section>
+
+        <!-- RIGHT BLOCK: ROW QUEUE EXPECTANCY -->
+        <section class="bg-slate-900/40 border-2 border-teal-500/10 p-6 rounded-3xl flex flex-col shadow-2xl backdrop-blur-md">
+            <h2 class="text-2xl font-black text-teal-400 mb-6 tracking-wide uppercase border-b border-slate-800 pb-4 flex items-center">
+                <i class="fa-solid fa-users-rectangle mr-3 text-teal-500/70"></i>
+                Lobby Queue Order
+            </h2>
+            <div id="tvQueueContainer" class="space-y-4 flex-1 overflow-y-auto pr-2">
+                <!-- Javascript injects line placement containers here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- PIPELINE LOGIC LINK LAYER -->
+    <script src="./config.js"></script>
+    <script src="./icon.js"></script>
+    <script>
+        (function () {
+            'use strict';
+            if (!window.ICON) return;
+
+            var ICON = window.ICON;
+            var chairSection = document.getElementById('tvChairContainer');
+            var queueSection = document.getElementById('tvQueueContainer');
+            var waitTimeDisplay = document.getElementById('tvGlobalWait');
+
+            function emptyState(icon, message) {
+                return '<div class="h-full flex flex-col items-center justify-center text-slate-500 font-bold ' +
+                    'border-4 border-dashed border-slate-800/80 rounded-2xl p-6 text-center space-y-2">' +
+                    '<i class="fa-solid ' + icon + ' text-3xl text-slate-700"></i>' +
+                    '<p class="text-xl">' + message + '</p></div>';
+            }
+
+            async function syncDisplayUI() {
+                // Public screen: name + status only. No phone numbers, no clip notes.
+                var res = await ICON.openQueue('id,customer_name,status,join_time');
+
+                if (res.error) {
+                    console.error('[ICON] Real-time network connection error:', res.error);
+                    waitTimeDisplay.textContent = '-- Mins';
+                    chairSection.innerHTML = emptyState('fa-triangle-exclamation', 'Reconnecting to the salon system…');
+                    queueSection.innerHTML = '';
+                    return;
+                }
+
+                var data = res.data || [];
+                var activeChairs = data.filter(function (row) { return row.status === 'in_chair'; });
+                var pendingQueue = data.filter(function (row) { return row.status === 'waiting'; });
+
+                // Wait estimate accounts for how many chairs are actually running.
+                waitTimeDisplay.textContent = ICON.estimateWaitMinutes(pendingQueue.length) + ' Mins';
+
+                // 1. Render active styling sessions
+                if (activeChairs.length === 0) {
+                    chairSection.innerHTML = emptyState('fa-chair', 'Stylists Ready For Next Client');
+                } else {
+                    chairSection.innerHTML = activeChairs.map(function (row, pointer) {
+                        return '<div class="bg-gradient-to-r from-emerald-950/20 to-slate-900 border-2 border-emerald-500/20 p-6 rounded-2xl flex justify-between items-center shadow-lg transform scale-[1.01] transition-transform animate-fade-in">' +
+                            '<span class="text-3xl font-black text-white tracking-wide">' + ICON.esc(row.customer_name) + '</span>' +
+                            '<span class="text-xs bg-emerald-500/10 text-emerald-400 font-black border border-emerald-500/30 px-4 py-2 rounded-xl tracking-widest uppercase flex items-center space-x-1.5">' +
+                                '<span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>' +
+                                '<span>Station ' + (pointer + 1) + '</span>' +
+                            '</span>' +
+                        '</div>';
+                    }).join('');
+                }
+
+                // 2. Render lobby wait queues
+                if (pendingQueue.length === 0) {
+                    queueSection.innerHTML = emptyState('fa-face-smile', 'Lobby is Completely Clear');
+                } else {
+                    queueSection.innerHTML = pendingQueue.map(function (row, orderIndex) {
+                        return '<div class="bg-slate-900 border-2 border-slate-800/60 p-5 rounded-2xl flex justify-between items-center shadow-md animate-fade-in">' +
+                            '<div class="flex items-center space-x-5">' +
+                                '<span class="text-xl font-black text-slate-400 bg-slate-950 border border-slate-800 w-12 h-12 rounded-xl flex items-center justify-center shadow-inner font-mono">' + (orderIndex + 1) + '</span>' +
+                                '<span class="text-2xl font-extrabold text-slate-200 tracking-wide">' + ICON.esc(row.customer_name) + '</span>' +
+                            '</div>' +
+                            '<span class="text-xs font-black tracking-widest text-teal-400/50 uppercase bg-teal-500/5 border border-teal-500/10 px-3 py-1.5 rounded-lg">In Line</span>' +
+                        '</div>';
+                    }).join('');
+                }
+            }
+
+            ICON.subscribeQueue('tv-dashboard-sync', syncDisplayUI);
+        })();
+    </script>
+</body>
+</html>

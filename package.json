@@ -1,0 +1,13 @@
+{
+  "name": "icon-waitlist",
+  "version": "1.0.0",
+  "description": "ICON Haircuts — live salon waitlist. Static HTML + Supabase Realtime.",
+  "private": true,
+  "scripts": {
+    "config": "node scripts/build-config.js",
+    "start": "npm run config && npx --yes serve@14 . -l 3000",
+    "serve": "npx --yes serve@14 . -l 3000"
+  },
+  "keywords": ["supabase", "realtime", "waitlist", "salon"],
+  "license": "MIT"
+}
