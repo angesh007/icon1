@@ -11,6 +11,34 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="./icon.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<!-- Vendored QR encoder (MIT, already in the repo for admin.html). Drawn on
+     the device, so a booking reference never goes to a QR service. -->
+<script src="./vendor/qrcode.js"></script>
+<style>
+  /* The booking pass QR. Scoped here so icon.css stays untouched. */
+  .pass { text-align: center; padding: var(--s4) 0 var(--s2); }
+  .pass__code {
+    display: inline-block;
+    background: var(--paper);
+    padding: var(--s3);
+    border: 1px solid rgba(20, 26, 46, 0.12);
+    border-radius: 10px;
+    line-height: 0;
+  }
+  .pass__code svg { display: block; width: 9.5rem; height: 9.5rem; }
+  .pass__ref {
+    margin: var(--s3) 0 0;
+    font-size: var(--t-xs);
+    color: var(--on-paper-dim);
+  }
+  .pass__ref strong {
+    display: block;
+    font-size: var(--t-md);
+    letter-spacing: 0.12em;
+    color: var(--on-paper);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
 </head>
 <body>
 
@@ -46,6 +74,7 @@
     category: null,     // chosen category slug
     browsing: false,    // true until a shop is picked
     calMonth: null,     // first of the month shown in the booking calendar
+    scanned: null,      // a booking opened by scanning its QR (?ref=)
     route: null,        // 'queue' | 'book'
     step: 0,
     audience: null,     // 'men' | 'women' | 'kids' | null
@@ -72,6 +101,27 @@
   /* ---------- Boot ---------- */
 
   (async function start() {
+    // Scanned a booking QR? Show that booking and stop. Done before the
+    // shop lookup because the code alone identifies everything we need.
+    var ref = new URLSearchParams(location.search).get('ref');
+    if (ref) {
+      var got = await ICON.book.status(ref);
+      if (got.ok) {
+        S.scanned = got.data;
+        document.getElementById('brand').textContent = got.data.shop || 'Icon';
+        document.title = 'Booking \u00b7 ' + (got.data.shop || 'Icon');
+        document.getElementById('navBoard').style.display = 'none';
+        renderScanned(got.data);
+        return;
+      }
+      // Bad or expired code: say so, then carry on to the normal flow.
+      root.innerHTML =
+        '<div class="empty"><strong>Booking not found</strong>' +
+        'That code didn\u2019t match a booking. It may have been cancelled, ' +
+        'or the link was mistyped.</div>';
+      return;
+    }
+
     var out = await ICON.shop.resolve();
 
     // No ?shop= and more than one shop: open the directory.
@@ -910,9 +960,62 @@
     });
   }
 
+  /* ---------- The booking pass ---------- */
+
+  // The link the QR carries. Scanning it reopens this exact booking,
+  // which is what makes the code worth printing rather than decorative.
+  function passUrl(code, slug) {
+    var base = location.origin + location.pathname;
+    return base + '?shop=' + encodeURIComponent(slug || (S.shop && S.shop.slug) || '') +
+           '&ref=' + encodeURIComponent(code);
+  }
+
+  // Markup for the pass block. The SVG is injected afterwards by drawPass(),
+  // because the encoder needs a real element to write into.
+  function passBlock(code) {
+    return '<div class="pass">' +
+      '<div class="pass__code" id="passCode"></div>' +
+      '<p class="pass__ref">Show this at the counter' +
+        '<strong>' + ICON.esc(String(code).slice(0, 6).toUpperCase()) + '</strong>' +
+      '</p>' +
+    '</div>';
+  }
+
+  function drawPass(code, slug) {
+    var box = document.getElementById('passCode');
+    if (!box) return;
+
+    // No library, no blank hole: fall back to the reference on its own.
+    if (typeof window.qrcode !== 'function') {
+      box.parentNode.removeChild(box);
+      console.warn('[ICON] vendor/qrcode.js did not load; showing the reference only.');
+      return;
+    }
+
+    try {
+      var url = passUrl(code, slug);
+      var q = window.qrcode(0, 'M');   // 0 = auto size, M = survives a bit of wear
+      q.addData(url);
+      q.make();
+      box.innerHTML = q.createSvgTag({ cellSize: 4, margin: 1, scalable: true });
+      var svg = box.querySelector('svg');
+      if (svg) {
+        svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-label',
+          'QR code for booking reference ' + String(code).slice(0, 6).toUpperCase());
+      }
+    } catch (err) {
+      console.error('[ICON] could not draw the booking QR:', err);
+      box.parentNode.removeChild(box);
+    }
+  }
+
   /* ---------- Booking confirmation ---------- */
 
   function renderBooking(b) {
+    // Older stored bookings predate shop_slug; fall back to the open shop.
+    if (!b.shop_slug && S.shop) b.shop_slug = S.shop.slug;
+
     root.innerHTML =
       '<div class="ticket">' +
         '<div class="ticket__head">' +
@@ -930,8 +1033,8 @@
             row2('Service', b.service) +
             (b.price_minor > 0 ? row2('Price', ICON.fmtMoney(b.price_minor, S.shop.currency)) : '') +
             row2('Ends', ICON.fmtTime(b.ends_at)) +
-            row2('Reference', String(b.lookup_code).slice(0, 6).toUpperCase()) +
           '</dl>' +
+          passBlock(b.lookup_code) +
           '<button class="btn btn--quiet btn--block" data-act="cancelBooking">Cancel this booking</button>' +
         '</div>' +
       '</div>' +
@@ -940,9 +1043,55 @@
         '<button class="step__back" data-act="restart" style="display:inline;padding:0;">' +
         'Book something else</button></p>';
 
+    drawPass(b.lookup_code, b.shop_slug);
+
     root.querySelectorAll('[data-act]').forEach(function (el) {
       el.addEventListener('click', onAction);
     });
+  }
+
+  /* ---------- A scanned booking ---------- */
+  // Reached by scanning the QR (?ref=<code>), typically by the desk on a
+  // different device. Read-only: it shows the booking without touching
+  // whatever booking this browser has of its own.
+
+  function renderScanned(d) {
+    var cur = d.currency || '\u20b9';
+    var live = d.status === 'booked' || d.status === 'arrived' || d.status === 'in_chair';
+
+    root.innerHTML =
+      '<div class="ticket">' +
+        '<div class="ticket__head">' +
+          '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
+          '<span class="label">' + ICON.esc(statusLabel(d.status)) + '</span>' +
+        '</div>' +
+        '<div class="ticket__number num' + (live ? '' : ' is-waiting') +
+          '" style="font-size:clamp(2.4rem,10vw,3.6rem);padding-top:var(--s5);">' +
+          ICON.esc(ICON.fmtTime(d.starts_at)) + '</div>' +
+        '<p class="ticket__caption"><strong>' + ICON.esc(ICON.fmtDate(d.starts_at)) + '</strong>' +
+          ' at ' + ICON.esc(d.shop || '') + '</p>' +
+        '<div class="ticket__tear"></div>' +
+        '<div class="ticket__stub">' +
+          '<dl style="margin:0 0 var(--s4);">' +
+            row2('Name', d.customer_name) +
+            (d.service ? row2('Service', d.service) : '') +
+            (d.price_minor > 0 ? row2('Price', ICON.fmtMoney(d.price_minor, cur)) : '') +
+            row2('Ends', ICON.fmtTime(d.ends_at)) +
+            (d.staff ? row2('With', d.staff) : '') +
+            (d.notes ? row2('Notes', d.notes) : '') +
+            row2('Status', statusLabel(d.status)) +
+          '</dl>' +
+          '<a class="btn btn--quiet btn--block" href="./index.html?shop=' +
+            encodeURIComponent(d.shop_slug || '') + '">Open the shop page</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function statusLabel(st) {
+    return ({
+      booked: 'Booked', arrived: 'Arrived', in_chair: 'In the chair',
+      done: 'Finished', cancelled: 'Cancelled', no_show: 'No show'
+    })[st] || st;
   }
 
   function renderClosed() {
