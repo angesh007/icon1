@@ -6,7 +6,7 @@
 <title>ICON — Book or join the queue</title>
 <!-- Bump this when the file changes. Check it with View Source, or read the
      banner this page logs to the console, to confirm what is actually live. -->
-<meta name="icon-build" content="3.2-pass">
+<meta name="icon-build" content="3.3-qr">
 <meta name="description" content="See the live wait, join the queue, or book a slot for later.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +17,21 @@
 <!-- Vendored QR encoder (MIT, already in the repo for admin.html). Drawn on
      the device, so a booking reference never goes to a QR service. -->
 <script src="./vendor/qrcode.js"></script>
+<script>
+  /* The vendor/ folder does not always survive a deploy, and a 404 here used to
+     mean no QR anywhere with no way to tell that from a stale page. So: if the
+     local copy didn't define window.qrcode, pull the same pinned library from
+     the CDN. Everything that draws a code waits on this promise. */
+  window.ICON_QR_READY = (typeof window.qrcode === 'function')
+    ? Promise.resolve(true)
+    : new Promise(function (resolve) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+        s.onload  = function () { resolve(typeof window.qrcode === 'function'); };
+        s.onerror = function () { resolve(false); };
+        document.head.appendChild(s);
+      });
+</script>
 <style>
   /* ============================================================
      The pass: booking confirmation and walk-in ticket.
@@ -1060,6 +1075,14 @@
         // Position as a picture, so it reads without doing arithmetic.
         pipsFor(isUp, ahead) +
 
+        // A walk-in has no booking reference, so this code carries the shop's
+        // link: show it to a friend and they land straight on this shop.
+        passBlock(null, {
+          id: 'ticketQr',
+          caption: 'Scan to open this shop — book again or share it',
+          ref: (S.shop && S.shop.name) || 'ICON'
+        }) +
+
         '<div class="ticket__tear"></div>' +
 
         '<div class="ticket__stub">' +
@@ -1083,6 +1106,8 @@
 
       '<p class="foot">This updates on its own. Keep the page open.</p>';
 
+    drawQr('ticketQr', shopUrl(), 'QR code to open this shop');
+
     root.querySelectorAll('[data-act]').forEach(function (el) {
       el.addEventListener('click', onAction);
     });
@@ -1098,11 +1123,20 @@
            '&ref=' + encodeURIComponent(code);
   }
 
-  function passBlock(code) {
+  // The walk-in equivalent. A walk-in has no lookup code, so its QR carries
+  // the shop's own link: scanning it reopens this shop to book or re-join,
+  // which is the useful thing to hand someone off a paper ticket.
+  function shopUrl(slug) {
+    var base = location.origin + location.pathname;
+    return base + '?shop=' + encodeURIComponent(slug || (S.shop && S.shop.slug) || '');
+  }
+
+  function passBlock(code, opts) {
+    opts = opts || {};
     return '<div class="pass">' +
-      '<div id="passCode"></div>' +
-      '<p class="pass__ref">Show this at the counter' +
-        '<strong>' + ICON.esc(String(code).slice(0, 6).toUpperCase()) + '</strong>' +
+      '<div id="' + (opts.id || 'passCode') + '"></div>' +
+      '<p class="pass__ref">' + ICON.esc(opts.caption || 'Show this at the counter') +
+        '<strong>' + ICON.esc(opts.ref || String(code).slice(0, 6).toUpperCase()) + '</strong>' +
       '</p>' +
     '</div>';
   }
@@ -1110,8 +1144,8 @@
   // Draws the code into #passCode. On failure it says WHY on screen: a
   // silently missing QR is indistinguishable from a stale deployment, and
   // that ambiguity costs more than the ugly message does.
-  function drawPass(code, slug) {
-    var box = document.getElementById('passCode');
+  function drawQr(boxId, url, label) {
+    var box = document.getElementById(boxId);
     if (!box) return;
 
     function fail(reason, hint) {
@@ -1122,29 +1156,42 @@
       console.error('[ICON] QR not drawn: ' + reason);
     }
 
-    if (typeof window.qrcode !== 'function') {
-      return fail(
-        'The QR library did not load, so the reference below is all we can show.',
-        'Missing file: vendor/qrcode.js — commit the vendor/ folder and redeploy.'
-      );
-    }
+    // Show something immediately; the library may still be arriving.
+    box.className = '';
+    box.innerHTML = '<p class="pass__fallback">Drawing code…</p>';
 
-    try {
-      var q = window.qrcode(0, 'M');   // 0 = auto size, M = survives print wear
-      q.addData(passUrl(code, slug));
-      q.make();
-      box.className = 'pass__code';
-      box.innerHTML = q.createSvgTag({ cellSize: 4, margin: 1, scalable: true });
-      var svg = box.querySelector('svg');
-      if (svg) {
-        svg.setAttribute('role', 'img');
-        svg.setAttribute('aria-label',
-          'QR code for booking reference ' + String(code).slice(0, 6).toUpperCase());
+    var ready = window.ICON_QR_READY ||
+      Promise.resolve(typeof window.qrcode === 'function');
+
+    ready.then(function (ok) {
+      if (!ok || typeof window.qrcode !== 'function') {
+        return fail(
+          'The QR library could not be loaded, so the reference below is all we can show.',
+          'vendor/qrcode.js is missing and the CDN copy was blocked too.'
+        );
       }
-    } catch (err) {
-      console.error(err);
-      fail('The code could not be generated on this device.', String(err && err.message || err));
-    }
+      try {
+        var q = window.qrcode(0, 'M');   // 0 = auto size, M = survives print wear
+        q.addData(url);
+        q.make();
+        box.className = 'pass__code';
+        box.innerHTML = q.createSvgTag({ cellSize: 4, margin: 1, scalable: true });
+        var svg = box.querySelector('svg');
+        if (svg) {
+          svg.setAttribute('role', 'img');
+          svg.setAttribute('aria-label', label || 'QR code');
+        }
+      } catch (err) {
+        console.error(err);
+        fail('The code could not be generated on this device.',
+             String(err && err.message || err));
+      }
+    });
+  }
+
+  function drawPass(code, slug) {
+    drawQr('passCode', passUrl(code, slug),
+      'QR code for booking reference ' + String(code).slice(0, 6).toUpperCase());
   }
 
   /* ---------- Add to calendar ---------- */
