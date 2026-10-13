@@ -61,8 +61,21 @@ alter table public.salons add column if not exists horizon_days   int not null d
 -- v3.0 would stay on the old 14-day window. Lift only those still sitting
 -- on that exact default; anything an owner has deliberately set is left be.
 update public.salons set horizon_days = 30 where horizon_days = 14;
-alter table public.salons add column if not exists currency       text not null default '₹';
+alter table public.salons add column if not exists currency       text not null default '€';
 alter table public.salons add column if not exists contact_phone  text;
+
+-- ---- currency (v3.3) ---------------------------------------------------
+-- The symbol is per shop, so one deployment can run shops in different
+-- currencies; this is only the default a brand-new shop starts on.
+--
+-- `add column if not exists` above does nothing on an install that already
+-- has the column, so the default has to be set again explicitly, and
+-- existing rows have to be moved by hand. Both lines are safe to re-run.
+--
+-- If you want a shop back on rupees, change it in the owner console
+-- (Shop tab) or run:  update public.salons set currency = '₹' where slug = '<slug>';
+alter table public.salons alter column currency set default '€';
+update public.salons set currency = '€' where currency = '₹';
 
 -- kind is a label for the customer screen, not a feature switch:
 -- both the queue and the calendar are available to every shop.
@@ -471,6 +484,70 @@ create policy "queue public read" on public.waitlists
 
 
 -- ============================================================
+-- 9b. Clear out the previous versions of every function
+--
+-- WHY THIS EXISTS
+--   `create or replace function` cannot change a function's output row
+--   type. Upgrading an older install therefore fails with:
+--
+--     ERROR 42P13: cannot change return type of existing function
+--     DETAIL: Row type defined by OUT parameters is different.
+--     HINT:  Use DROP FUNCTION admin_queue(uuid) first.
+--
+--   admin_queue returned 9 columns in v2 and returns 12 in v3, so it
+--   trips this. The same applies to anything `returns table`.
+--
+--   Adding a parameter is the other trap: that creates a SECOND
+--   overload rather than replacing the first, and PostgREST then cannot
+--   choose between ambiguous candidates when the app calls it.
+--
+--   So: drop every overload of every function this script owns, then
+--   recreate them below. Dropping a function also drops its grants,
+--   which is why section 11 re-grants everything at the end.
+--
+--   Data is untouched — these are functions, not tables.
+-- ============================================================
+
+do $$
+declare
+  r record;
+begin
+  for r in
+    select p.oid::regprocedure as sig
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.prokind = 'f'
+       and p.proname = any (array[
+         -- session plumbing
+         '_admin_from_token', '_admin_salon', '_require_manager',
+         -- auth
+         'admin_login', 'admin_session', 'admin_logout', 'admin_change_password',
+         -- public directory + shop
+         'shop_by_slug', 'shop_list', 'category_list',
+         -- availability + booking
+         'available_slots', 'availability_calendar', 'book_appointment',
+         'appointment_status', 'cancel_appointment', 'check_in',
+         -- staff: the line
+         'admin_queue', 'admin_register_walkin', 'admin_set_status', 'admin_purge',
+         -- staff: the calendar
+         'admin_appointments', 'admin_appointment_counts',
+         'admin_set_appointment_status', 'admin_book',
+         -- owner: services, team, hours, shop
+         'admin_services', 'admin_service_save', 'admin_service_retire',
+         'admin_staff', 'admin_staff_save', 'admin_staff_retire',
+         'admin_hours', 'admin_hours_save',
+         'admin_closures', 'admin_closure_set',
+         'admin_shop', 'admin_shop_save'
+       ])
+  loop
+    execute 'drop function if exists ' || r.sig::text;
+    raise notice 'dropped old %', r.sig;
+  end loop;
+end $$;
+
+
+-- ============================================================
 -- 10. Functions
 -- ============================================================
 
@@ -684,13 +761,6 @@ begin
   end if;
   return v;
 end $$;
-
-
-create or replace function public.shop_list()
-returns table (id bigint, slug text, name text, kind text, address text, is_open boolean)
-language sql security definer stable set search_path = public, pg_temp as $$
-  select id, slug, name, kind, address, is_open from public.salons order by name;
-$$;
 
 
 -- ---------- 10d. availability ----------
@@ -1437,12 +1507,8 @@ begin
 end $$;
 
 
--- Adding p_category gave this a new signature, so the v3.0 twelve-argument
--- version has to go explicitly: `create or replace` would leave both in
--- place and PostgREST cannot choose between ambiguous candidates.
-drop function if exists public.admin_shop_save(
-  uuid, text, text, text, boolean, boolean, integer, integer, integer, integer, integer, text);
-
+-- p_category made this a new signature. Section 9b has already removed
+-- every older overload, so there is no ambiguity left for PostgREST.
 create or replace function public.admin_shop_save(
   p_token uuid,
   p_name text, p_address text, p_kind text, p_is_open boolean,
@@ -1507,9 +1573,7 @@ language sql security definer stable set search_path = public, pg_temp as $$
 $$;
 
 
--- Replaces the v3 signature, which took no arguments.
-drop function if exists public.shop_list();
-
+-- The v3.0 version of this took no arguments; section 9b removed it.
 create or replace function public.shop_list(p_category text default null)
 returns table (
   id bigint, slug text, name text, kind text, category text,
