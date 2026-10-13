@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ICON — Book or join the queue</title>
+<!-- Bump this when the file changes. Check it with View Source, or read the
+     banner this page logs to the console, to confirm what is actually live. -->
+<meta name="icon-build" content="3.2-pass">
 <meta name="description" content="See the live wait, join the queue, or book a slot for later.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,28 +18,128 @@
      the device, so a booking reference never goes to a QR service. -->
 <script src="./vendor/qrcode.js"></script>
 <style>
-  /* The booking pass QR. Scoped here so icon.css stays untouched. */
-  .pass { text-align: center; padding: var(--s4) 0 var(--s2); }
-  .pass__code {
-    display: inline-block;
-    background: var(--paper);
-    padding: var(--s3);
-    border: 1px solid rgba(20, 26, 46, 0.12);
-    border-radius: 10px;
-    line-height: 0;
+  /* ============================================================
+     The pass: booking confirmation and walk-in ticket.
+     Scoped here so icon.css stays untouched.
+     ============================================================ */
+
+  /* A status chip in the ticket head, so state reads at a glance */
+  .chip {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--on-ink);
   }
-  .pass__code svg { display: block; width: 9.5rem; height: 9.5rem; }
-  .pass__ref {
-    margin: var(--s3) 0 0;
-    font-size: var(--t-xs);
+  .chip--go   { background: rgba(15, 155, 108, 0.22); color: #6EE7B7; }
+  .chip--wait { background: rgba(168, 175, 184, 0.18); color: #CBD3DD; }
+  .chip--off  { background: rgba(216, 35, 42, 0.2);  color: #FCA5A5; }
+
+  /* Date band under the head: the day, stated once, clearly */
+  .band {
+    background: var(--ink-raised);
+    color: var(--on-ink);
+    text-align: center;
+    padding: var(--s2) var(--s4);
+    font-size: var(--t-sm);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .band span { color: var(--on-ink-dim); font-weight: 400; }
+
+  /* The hero time/number already comes from .ticket__number in icon.css;
+     this just tightens the block underneath it. */
+  .hero__sub {
+    text-align: center;
+    margin: 0;
+    padding: 0 var(--s4) var(--s5);
+    font-size: var(--t-sm);
     color: var(--on-paper-dim);
   }
+  .hero__sub strong { color: var(--on-paper); }
+
+  /* ---------- queue progress pips ---------- */
+  /* Position as a picture: filled = people ahead, hollow = you. */
+  .pips {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    padding: 0 var(--s4) var(--s4);
+  }
+  .pips i {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--chrome);
+    display: block;
+  }
+  .pips i.is-me {
+    width: 13px; height: 13px;
+    background: transparent;
+    border: 3px solid var(--signal);
+  }
+  .pips i.is-chair { background: var(--go); }
+
+  /* ---------- the QR block ---------- */
+  .pass { text-align: center; padding: var(--s5) 0 var(--s3); }
+
+  .pass__code {
+    display: inline-block;
+    background: #fff;
+    padding: var(--s3);
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px rgba(20, 26, 46, 0.1), 0 8px 20px -14px rgba(20, 26, 46, 0.55);
+    line-height: 0;
+  }
+  .pass__code svg { display: block; width: 10.5rem; height: 10.5rem; }
+
+  .pass__ref { margin: var(--s4) 0 0; font-size: var(--t-xs); color: var(--on-paper-dim); }
   .pass__ref strong {
     display: block;
-    font-size: var(--t-md);
-    letter-spacing: 0.12em;
+    margin-top: 2px;
+    font-size: var(--t-lg);
+    font-weight: 700;
+    letter-spacing: 0.18em;
     color: var(--on-paper);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* When the encoder cannot run, say so instead of leaving a hole. */
+  .pass__fallback {
+    display: inline-block;
+    max-width: 17rem;
+    padding: var(--s3) var(--s4);
+    border: 1px dashed var(--signal);
+    border-radius: 10px;
+    background: var(--signal-dim);
+    color: #7E1317;
+    font-size: var(--t-xs);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: left;
+  }
+  .pass__fallback code {
+    display: block;
+    margin-top: var(--s1);
+    font-size: 11px;
+    opacity: 0.85;
+  }
+
+  /* ---------- actions at the foot of the stub ---------- */
+  .acts { display: grid; gap: var(--s2); margin-top: var(--s4); }
+  @media (min-width: 26rem) { .acts--two { grid-template-columns: 1fr 1fr; } }
+
+  /* Footnote under the card */
+  .foot {
+    margin: var(--s3) 0 0;
+    font-size: var(--t-xs);
+    text-align: center;
+    color: var(--on-paper-dim);
+    line-height: 1.6;
   }
 </style>
 </head>
@@ -790,6 +893,12 @@
       return render();
     }
 
+    if (act === 'addCal') {
+      var bk = ICON.book.mine();
+      if (bk) downloadIcs(bk);
+      return;
+    }
+
     if (act === 'restart') return restart();
 
     if (act === 'dropTicket') {
@@ -924,36 +1033,55 @@
 
     var isUp = row.status === 'in_chair';
     var pos = isUp ? 0 : ICON.queue.positionOf(S.rows, mine.entry_id);
+    var ahead = Math.max(0, pos - 1);
 
     root.innerHTML =
       '<div class="ticket" id="tk">' +
         '<div class="ticket__head">' +
           '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
-          '<span class="label">' + (isUp ? 'In the chair' : 'In line') + '</span>' +
+          '<span class="chip ' + (isUp ? 'chip--go' : 'chip--wait') + '">' +
+            (isUp ? 'In the chair' : 'In line') + '</span>' +
         '</div>' +
+
+        '<div class="band">Ticket for today' +
+          (mine.service_name ? ' <span>' + ICON.esc(mine.service_name) + '</span>' : '') +
+        '</div>' +
+
         '<div class="ticket__number num' + (isUp ? '' : ' is-waiting') + '">' +
           ICON.padTicket(row.ticket_no) + '</div>' +
-        '<p class="ticket__caption">' +
-          (isUp ? '<strong>You’re up.</strong> Head to the chair.'
-                : pos === 1 ? '<strong>You’re next.</strong> Stay close by.'
-                : 'You’re <strong>' + pos + ordinal(pos) + '</strong> in line.') +
+
+        '<p class="hero__sub">' +
+          (isUp ? '<strong>You\u2019re up.</strong> Head to the chair.'
+                : pos === 1 ? '<strong>You\u2019re next.</strong> Stay close by.'
+                : '<strong>' + pos + ordinal(pos) + ' in line.</strong> About ' +
+                  ICON.fmtTime(ICON.queue.etaFor(pos))) +
         '</p>' +
+
+        // Position as a picture, so it reads without doing arithmetic.
+        pipsFor(isUp, ahead) +
+
         '<div class="ticket__tear"></div>' +
+
         '<div class="ticket__stub">' +
-          '<dl style="margin:0 0 var(--s4);">' +
+          '<dl style="margin:0;">' +
             row2('Name', row.customer_name) +
             (mine.service_name ? row2('Service', mine.service_name) : '') +
-            row2('Position', isUp ? 'In the chair' : pos + ordinal(pos) + ' in line') +
+            row2(isUp ? 'Started' : 'Ahead of you',
+                 isUp ? ICON.fmtTime(row.called_at)
+                      : (ahead === 0 ? 'Nobody \u2014 you\u2019re next'
+                                     : ahead + (ahead === 1 ? ' person' : ' people'))) +
             row2('Estimated', isUp ? 'Now' : 'about ' + ICON.fmtTime(ICON.queue.etaFor(pos))) +
             (row.preferred_time ? row2('You said', ICON.fmtTime(row.preferred_time)) : '') +
             (mine.notes ? row2('Notes', mine.notes) : '') +
           '</dl>' +
           (isUp ? '' :
-            '<button class="btn btn--quiet btn--block" data-act="dropTicket">Give up my place</button>') +
+            '<div class="acts">' +
+              '<button class="btn btn--quiet" data-act="dropTicket">Give up my place</button>' +
+            '</div>') +
         '</div>' +
       '</div>' +
-      '<p class="muted" style="font-size:var(--t-xs);text-align:center;margin-top:var(--s3);">' +
-        'This updates on its own. Keep the page open.</p>';
+
+      '<p class="foot">This updates on its own. Keep the page open.</p>';
 
     root.querySelectorAll('[data-act]').forEach(function (el) {
       el.addEventListener('click', onAction);
@@ -970,33 +1098,42 @@
            '&ref=' + encodeURIComponent(code);
   }
 
-  // Markup for the pass block. The SVG is injected afterwards by drawPass(),
-  // because the encoder needs a real element to write into.
   function passBlock(code) {
     return '<div class="pass">' +
-      '<div class="pass__code" id="passCode"></div>' +
+      '<div id="passCode"></div>' +
       '<p class="pass__ref">Show this at the counter' +
         '<strong>' + ICON.esc(String(code).slice(0, 6).toUpperCase()) + '</strong>' +
       '</p>' +
     '</div>';
   }
 
+  // Draws the code into #passCode. On failure it says WHY on screen: a
+  // silently missing QR is indistinguishable from a stale deployment, and
+  // that ambiguity costs more than the ugly message does.
   function drawPass(code, slug) {
     var box = document.getElementById('passCode');
     if (!box) return;
 
-    // No library, no blank hole: fall back to the reference on its own.
+    function fail(reason, hint) {
+      box.className = '';
+      box.innerHTML =
+        '<p class="pass__fallback"><strong>No QR code.</strong> ' + ICON.esc(reason) +
+        (hint ? '<code>' + ICON.esc(hint) + '</code>' : '') + '</p>';
+      console.error('[ICON] QR not drawn: ' + reason);
+    }
+
     if (typeof window.qrcode !== 'function') {
-      box.parentNode.removeChild(box);
-      console.warn('[ICON] vendor/qrcode.js did not load; showing the reference only.');
-      return;
+      return fail(
+        'The QR library did not load, so the reference below is all we can show.',
+        'Missing file: vendor/qrcode.js — commit the vendor/ folder and redeploy.'
+      );
     }
 
     try {
-      var url = passUrl(code, slug);
-      var q = window.qrcode(0, 'M');   // 0 = auto size, M = survives a bit of wear
-      q.addData(url);
+      var q = window.qrcode(0, 'M');   // 0 = auto size, M = survives print wear
+      q.addData(passUrl(code, slug));
       q.make();
+      box.className = 'pass__code';
       box.innerHTML = q.createSvgTag({ cellSize: 4, margin: 1, scalable: true });
       var svg = box.querySelector('svg');
       if (svg) {
@@ -1005,8 +1142,58 @@
           'QR code for booking reference ' + String(code).slice(0, 6).toUpperCase());
       }
     } catch (err) {
-      console.error('[ICON] could not draw the booking QR:', err);
-      box.parentNode.removeChild(box);
+      console.error(err);
+      fail('The code could not be generated on this device.', String(err && err.message || err));
+    }
+  }
+
+  /* ---------- Add to calendar ---------- */
+  // A plain .ics built here, so it works with no server and no account.
+
+  function icsEscape(t) {
+    return String(t || '').replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  }
+
+  function icsStamp(d) {
+    // UTC basic format: 20261021T093000Z
+    return new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  }
+
+  function downloadIcs(b) {
+    var shopName = (S.shop && S.shop.name) || 'ICON';
+    var lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//ICON//booking//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      'UID:' + b.lookup_code + '@icon',
+      'DTSTAMP:' + icsStamp(new Date()),
+      'DTSTART:' + icsStamp(b.starts_at),
+      'DTEND:' + icsStamp(b.ends_at),
+      'SUMMARY:' + icsEscape((b.service || 'Appointment') + ' at ' + shopName),
+      'DESCRIPTION:' + icsEscape(
+        'Booking reference ' + String(b.lookup_code).slice(0, 6).toUpperCase() +
+        '\nOpen your booking: ' + passUrl(b.lookup_code, b.shop_slug)),
+      'URL:' + passUrl(b.lookup_code, b.shop_slug),
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ];
+
+    try {
+      var blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'icon-booking.ics';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    } catch (err) {
+      console.error('[ICON] could not build the calendar file:', err);
+      alert('Could not create the calendar file on this device.');
     }
   }
 
@@ -1016,30 +1203,51 @@
     // Older stored bookings predate shop_slug; fall back to the open shop.
     if (!b.shop_slug && S.shop) b.shop_slug = S.shop.slug;
 
+    var mins = Math.max(1, Math.round(
+      (new Date(b.ends_at) - new Date(b.starts_at)) / 60000));
+    var soon = new Date(b.starts_at) - Date.now();
+    var isToday = ICON.fmtDate(b.starts_at) === 'Today';
+
     root.innerHTML =
       '<div class="ticket">' +
         '<div class="ticket__head">' +
           '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
-          '<span class="label">Booked</span>' +
+          '<span class="chip chip--go">Booked</span>' +
         '</div>' +
-        '<div class="ticket__number num" style="font-size:clamp(2.4rem,10vw,3.6rem);padding-top:var(--s5);">' +
+
+        bandFor(b.starts_at) +
+
+        '<div class="ticket__number num" ' +
+          'style="font-size:clamp(2.6rem,11vw,4rem);padding:var(--s5) var(--s4) var(--s2);">' +
           ICON.esc(ICON.fmtTime(b.starts_at)) + '</div>' +
-        '<p class="ticket__caption"><strong>' + ICON.esc(ICON.fmtDate(b.starts_at)) + '</strong>' +
-          ' at ' + ICON.esc(S.shop.name) + '</p>' +
+
+        '<p class="hero__sub">' +
+          '<strong>' + ICON.esc(b.service || 'Appointment') + '</strong>' +
+          ' \u00b7 ' + mins + ' min \u00b7 ends ' + ICON.esc(ICON.fmtTime(b.ends_at)) +
+          (isToday && soon > 0
+            ? '<br>In about ' + Math.max(1, Math.round(soon / 60000)) + ' min'
+            : '') +
+        '</p>' +
+
         '<div class="ticket__tear"></div>' +
+
         '<div class="ticket__stub">' +
-          '<dl style="margin:0 0 var(--s4);">' +
-            row2('Name', b.name) +
-            row2('Service', b.service) +
-            (b.price_minor > 0 ? row2('Price', ICON.fmtMoney(b.price_minor, S.shop.currency)) : '') +
-            row2('Ends', ICON.fmtTime(b.ends_at)) +
-          '</dl>' +
           passBlock(b.lookup_code) +
-          '<button class="btn btn--quiet btn--block" data-act="cancelBooking">Cancel this booking</button>' +
+          '<dl style="margin:var(--s4) 0 0;">' +
+            row2('Name', b.name) +
+            (b.price_minor > 0
+              ? row2('Price', ICON.fmtMoney(b.price_minor, S.shop && S.shop.currency))
+              : '') +
+            row2('Where', (S.shop && S.shop.name) || '') +
+          '</dl>' +
+          '<div class="acts acts--two">' +
+            '<button class="btn" data-act="addCal">Add to calendar</button>' +
+            '<button class="btn btn--quiet" data-act="cancelBooking">Cancel booking</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
-      '<p class="muted" style="font-size:var(--t-xs);text-align:center;margin-top:var(--s3);">' +
-        'Show this page when you arrive. ' +
+
+      '<p class="foot">Keep this on your phone \u2014 the desk can scan it.<br>' +
         '<button class="step__back" data-act="restart" style="display:inline;padding:0;">' +
         'Book something else</button></p>';
 
@@ -1118,6 +1326,36 @@
   }
 
   /* ---------- Bits ---------- */
+
+  // fmtDate already collapses to "Today"/"Tomorrow", so only add the
+  // absolute date when it would say something different.
+  function bandFor(when) {
+    var rel = ICON.fmtDate(when);
+    var abs = ICON.fmtDate(when, { absolute: true });
+    return '<div class="band">' + ICON.esc(rel) +
+      (rel === abs ? '' : ' <span>' + ICON.esc(abs) + '</span>') +
+      '</div>';
+  }
+
+  // One pip per person ahead, then a ring for you. Long queues are capped
+  // so the row cannot wrap into a wall of dots.
+  function pipsFor(isUp, ahead) {
+    if (isUp) return '<div class="pips"><i class="is-chair"></i></div>';
+
+    var CAP = 12;
+    var shown = Math.min(ahead, CAP);
+    var dots = '';
+    for (var i = 0; i < shown; i++) dots += '<i></i>';
+
+    return '<div class="pips" role="img" aria-label="' +
+      (ahead === 0 ? 'You are next' : ahead + ' ahead of you') + '">' +
+      dots + '<i class="is-me"></i>' +
+      (ahead > CAP
+        ? '<span class="muted" style="font-size:var(--t-xs);margin-left:4px;">+' +
+          (ahead - CAP) + '</span>'
+        : '') +
+    '</div>';
+  }
 
   function row2(k, v) {
     return '<div class="ticket__row"><dt>' + ICON.esc(k) + '</dt><dd>' + ICON.esc(v) + '</dd></div>';
