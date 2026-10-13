@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ICON — Take a ticket</title>
-<meta name="description" content="Join the live waitlist at ICON Perimeter Center. See the wait, take a ticket, come in when it suits you.">
+<title>ICON — Book or join the queue</title>
+<meta name="description" content="See the live wait, join the queue, or book a slot for later.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,138 +15,16 @@
 <body>
 
 <header class="bar">
-  <span class="wordmark">Icon</span>
+  <span class="wordmark" id="brand">Icon</span>
   <nav>
-    <a href="./index.html" aria-current="page">Check in</a>
-    <a href="./tv.html">Board</a>
+    <a href="#" id="navBoard">Board</a>
     <a href="./login.html">Staff</a>
   </nav>
 </header>
 
 <main class="shell">
-  <div class="split">
-
-    <!-- ============ Left: the shop, the wait ============ -->
-    <section>
-      <h1 class="headline">Get in.<br>Get out.<br>Look great.</h1>
-      <p class="lede">
-        One chair, no appointments. Take a ticket from your phone and we'll
-        hold your place in line.
-      </p>
-
-      <div class="readout">
-        <div class="readout__item">
-          <div class="readout__value num"><span id="waitMins">--</span><span class="readout__unit"> min</span></div>
-          <span class="readout__key">Wait right now</span>
-        </div>
-        <div class="readout__item">
-          <div class="readout__value num" id="inLine">--</div>
-          <span class="readout__key">People in line</span>
-        </div>
-        <div class="readout__item">
-          <div class="readout__value num" id="nextFree">--:--</div>
-          <span class="readout__key">Next chair free</span>
-        </div>
-      </div>
-
-      <div class="prose">
-        <h2 style="font-size: var(--t-lg); margin-bottom: var(--s2);">ICON Perimeter Center</h2>
-        <p class="muted" style="margin: 0;">
-          120 Perimeter Center Pl, Dunwoody, GA<br>
-          <span id="shopState">Checking if we're open…</span>
-        </p>
-      </div>
-    </section>
-
-    <!-- ============ Right: the ticket ============ -->
-    <aside>
-
-      <!-- (a) No ticket yet -->
-      <div id="paneTake">
-        <div class="ticket">
-          <div class="ticket__head">
-            <span class="wordmark" style="font-size: var(--t-sm);">Icon</span>
-            <span class="label">Today</span>
-          </div>
-          <div class="ticket__number is-waiting num">--</div>
-          <p class="ticket__caption">No ticket yet.</p>
-          <div class="ticket__tear"></div>
-          <div class="ticket__stub">
-            <button class="btn btn--block btn--lg" id="takeBtn">Take a ticket</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- (b) Check-in form -->
-      <form id="paneForm" class="ticket" hidden>
-        <div class="ticket__head">
-          <span class="label">Who's coming in?</span>
-          <button type="button" class="btn btn--danger" id="cancelBtn"
-                  style="color: var(--on-ink-dim); font-size: var(--t-xs);">Cancel</button>
-        </div>
-
-        <div class="ticket__stub">
-          <p class="msg msg--bad" id="formMsg" hidden></p>
-
-          <div class="field">
-            <label for="name">Your name</label>
-            <input type="text" id="name" name="name" required maxlength="80"
-                   autocomplete="name" placeholder="Alex Smith">
-          </div>
-
-          <div class="field">
-            <label for="phone">Mobile number
-              <span class="help">So we can text you when the chair's ready.</span>
-            </label>
-            <input type="tel" id="phone" name="phone" required
-                   autocomplete="tel" placeholder="(404) 555-0100">
-          </div>
-
-          <div class="field">
-            <label for="notes">How do you want it cut?
-              <span class="help">Optional. Guard numbers, length, anything we should know.</span>
-            </label>
-            <textarea id="notes" name="notes" maxlength="500"
-                      placeholder="#3 guard on the sides, square back, leave the top"></textarea>
-          </div>
-
-          <div class="field">
-            <label id="whenLabel">When do you want to come in?</label>
-            <div class="slots" id="slots" role="group" aria-labelledby="whenLabel"></div>
-            <span class="help" id="slotHelp" style="margin-top: var(--s2);"></span>
-          </div>
-
-          <button type="submit" class="btn btn--block btn--lg" id="submitBtn">Confirm my ticket</button>
-        </div>
-      </form>
-
-      <!-- (c) Live ticket -->
-      <div id="paneTicket" hidden>
-        <div class="ticket" id="ticketCard">
-          <div class="ticket__head">
-            <span class="wordmark" style="font-size: var(--t-sm);">Icon</span>
-            <span class="label" id="ticketState">In line</span>
-          </div>
-          <div class="ticket__number num" id="ticketNo">--</div>
-          <p class="ticket__caption" id="ticketCaption"></p>
-          <div class="ticket__tear"></div>
-          <div class="ticket__stub">
-            <dl style="margin: 0 0 var(--s4);">
-              <div class="ticket__row"><dt>Name</dt><dd id="tName"></dd></div>
-              <div class="ticket__row"><dt>Position</dt><dd id="tPos"></dd></div>
-              <div class="ticket__row"><dt>Estimated time</dt><dd id="tEta"></dd></div>
-              <div class="ticket__row" id="tWantedRow" hidden><dt>You asked for</dt><dd id="tWanted"></dd></div>
-              <div class="ticket__row" id="tNotesRow" hidden><dt>Cut</dt><dd id="tNotes"></dd></div>
-            </dl>
-            <button class="btn btn--quiet btn--block" id="dropBtn">Give up my place</button>
-          </div>
-        </div>
-        <p class="muted" style="font-size: var(--t-xs); text-align: center; margin-top: var(--s3);">
-          Keep this page open and your place updates on its own.
-        </p>
-      </div>
-
-    </aside>
+  <div id="root" class="wizard">
+    <p class="muted" style="text-align:center;padding:var(--s7) 0;">Loading the shop…</p>
   </div>
 </main>
 
@@ -157,214 +35,949 @@
   'use strict';
   if (!window.ICON) return;
   var ICON = window.ICON;
+  var root = document.getElementById('root');
 
-  var paneTake = document.getElementById('paneTake');
-  var paneForm = document.getElementById('paneForm');
-  var paneTicket = document.getElementById('paneTicket');
-  var formMsg = document.getElementById('formMsg');
-  var submitBtn = document.getElementById('submitBtn');
-  var slotsBox = document.getElementById('slots');
-  var slotHelp = document.getElementById('slotHelp');
+  /* ---------- State ---------- */
 
-  var chosenTime = null;   // null = as soon as possible
-  var lastRows = [];
+  var S = {
+    shop: null,
+    categories: [],     // directory, when no ?shop= was given
+    shops: [],
+    category: null,     // chosen category slug
+    browsing: false,    // true until a shop is picked
+    calMonth: null,     // first of the month shown in the booking calendar
+    route: null,        // 'queue' | 'book'
+    step: 0,
+    audience: null,     // 'men' | 'women' | 'kids' | null
+    service: null,
+    staffId: null,
+    day: null,          // 'YYYY-MM-DD'
+    slot: null,         // ISO string
+    comeBack: null,     // queue route: preferred time or null
+    name: '',
+    phone: '',
+    notes: '',
+    rows: [],           // live queue
+    slots: [],
+    calendar: [],
+    busy: false,
+    error: ''
+  };
 
-  /* ---------- Panes ---------- */
-
-  function show(which) {
-    paneTake.hidden = which !== 'take';
-    paneForm.hidden = which !== 'form';
-    paneTicket.hidden = which !== 'ticket';
-  }
-
-  function say(message) {
-    formMsg.textContent = message;
-    formMsg.hidden = !message;
-  }
-
-  /* ---------- Time slots ---------- */
-
-  function buildSlots(waitingCount) {
-    var slots = ICON.timeSlots(waitingCount, 4);
-    var html = '<button type="button" class="slot" data-when="asap" aria-pressed="true">As soon as possible</button>';
-    slots.forEach(function (d) {
-      html += '<button type="button" class="slot" data-when="' + d.toISOString() + '" aria-pressed="false">' +
-              ICON.esc(ICON.fmtTime(d)) + '</button>';
-    });
-    slotsBox.innerHTML = html;
-    updateSlotHelp();
-  }
-
-  function updateSlotHelp() {
-    slotHelp.textContent = chosenTime
-      ? 'We’ll keep your place and aim for ' + ICON.fmtTime(chosenTime) + '. Arrive a few minutes early.'
-      : 'You keep your place in line and we’ll take you as soon as the chair is free.';
-  }
-
-  slotsBox.addEventListener('click', function (e) {
-    var btn = e.target.closest('.slot');
-    if (!btn) return;
-    Array.prototype.forEach.call(slotsBox.querySelectorAll('.slot'), function (b) {
-      b.setAttribute('aria-pressed', String(b === btn));
-    });
-    chosenTime = btn.dataset.when === 'asap' ? null : btn.dataset.when;
-    updateSlotHelp();
-  });
-
-  /* ---------- Live queue ---------- */
-
-  async function refresh() {
-    var res = await ICON.openQueue();
-    if (res.error) {
-      console.error('[ICON]', res.error);
-      document.getElementById('shopState').textContent = 'Live waitlist unavailable right now.';
-      return;
-    }
-
-    var rows = res.data || [];
-    lastRows = rows;
-
-    var waiting = rows.filter(function (r) { return r.status === 'waiting'; });
-    var inChair = rows.filter(function (r) { return r.status === 'in_chair'; });
-
-    document.getElementById('waitMins').textContent = ICON.estimateWaitMinutes(waiting.length);
-    document.getElementById('inLine').textContent = waiting.length;
-    document.getElementById('nextFree').textContent =
-      ICON.fmtTime(ICON.etaFor(Math.max(1, waiting.length)));
-
-    document.getElementById('shopState').textContent =
-      waiting.length === 0 && inChair.length === 0
-        ? 'Open · nobody waiting, walk straight in'
-        : 'Open · ' + waiting.length + (waiting.length === 1 ? ' person' : ' people') +
-          ' in line, ' + inChair.length + ' in the chair';
-
-    if (paneForm.hidden === false) buildSlots(waiting.length);
-    paintTicket(rows);
-  }
-
-  /* ---------- My ticket ---------- */
-
-  function paintTicket(rows) {
-    var mine = ICON.myTicket();
-    if (!mine) { if (paneForm.hidden) show('take'); return; }
-
-    var row = rows.filter(function (r) { return Number(r.id) === Number(mine.entry_id); })[0];
-
-    // Gone from the open queue — either finished or removed.
-    if (!row) {
-      ICON.forgetTicket();
-      show('take');
-      return;
-    }
-
-    show('ticket');
-
-    document.getElementById('ticketNo').textContent = ICON.padTicket(row.ticket_no);
-    document.getElementById('tName').textContent = row.customer_name;
-
-    var numEl = document.getElementById('ticketNo');
-    var stateEl = document.getElementById('ticketState');
-    var captionEl = document.getElementById('ticketCaption');
-    var dropBtn = document.getElementById('dropBtn');
-
-    if (row.status === 'in_chair') {
-      numEl.classList.remove('is-waiting');
-      stateEl.textContent = 'In the chair';
-      captionEl.innerHTML = '<strong>You’re up.</strong> Head to the chair.';
-      document.getElementById('tPos').textContent = 'In the chair';
-      document.getElementById('tEta').textContent = 'Now';
-      dropBtn.hidden = true;
-    } else {
-      var pos = ICON.positionOf(rows, mine.entry_id);
-      var eta = ICON.etaFor(pos);
-
-      numEl.classList.add('is-waiting');
-      stateEl.textContent = 'In line';
-      captionEl.innerHTML = pos === 1
-        ? '<strong>You’re next.</strong> Stay close by.'
-        : 'You’re <strong>' + pos + ordinalSuffix(pos) + '</strong> in line.';
-      document.getElementById('tPos').textContent = pos + ordinalSuffix(pos) + ' in line';
-      document.getElementById('tEta').textContent = 'about ' + ICON.fmtTime(eta);
-      dropBtn.hidden = false;
-    }
-
-    var wantedRow = document.getElementById('tWantedRow');
-    if (row.preferred_time) {
-      wantedRow.hidden = false;
-      document.getElementById('tWanted').textContent = ICON.fmtTime(row.preferred_time);
-    } else {
-      wantedRow.hidden = true;
-    }
-
-    var notesRow = document.getElementById('tNotesRow');
-    if (mine.notes) {
-      notesRow.hidden = false;
-      document.getElementById('tNotes').textContent = mine.notes;
-    } else {
-      notesRow.hidden = true;
-    }
-  }
-
-  function ordinalSuffix(n) {
-    if (n % 100 >= 11 && n % 100 <= 13) return 'th';
-    return ['th', 'st', 'nd', 'rd'][n % 10] || 'th';
-  }
-
-  /* ---------- Actions ---------- */
-
-  document.getElementById('takeBtn').addEventListener('click', function () {
-    say('');
-    chosenTime = null;
-    buildSlots(lastRows.filter(function (r) { return r.status === 'waiting'; }).length);
-    show('form');
-    document.getElementById('name').focus();
-  });
-
-  document.getElementById('cancelBtn').addEventListener('click', function () {
-    say('');
-    show(ICON.myTicket() ? 'ticket' : 'take');
-  });
-
-  paneForm.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    say('');
-
-    var name = document.getElementById('name').value.trim();
-    var phone = document.getElementById('phone').value;
-    var notes = document.getElementById('notes').value.trim();
-
-    if (name.length < 2) return say('Enter your full name.');
-    if (!ICON.isValidPhone(phone)) return say('Enter a mobile number with 10 to 15 digits.');
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Taking your ticket…';
-
-    var out = await ICON.checkIn(name, phone, notes, chosenTime);
-
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Confirm my ticket';
-
-    if (!out.ok) return say(out.error);
-
-    paneForm.reset();
-    await refresh();
-    var card = document.getElementById('ticketCard');
-    card.classList.add('is-new');
-    setTimeout(function () { card.classList.remove('is-new'); }, 600);
-  });
-
-  document.getElementById('dropBtn').addEventListener('click', function () {
-    if (!confirm('Give up your place in line?')) return;
-    // Customers cannot write to the queue; the desk removes them.
-    // Forgetting locally lets them take a fresh ticket.
-    ICON.forgetTicket();
-    show('take');
-    refresh();
-  });
+  var AUDIENCE_LABEL = { men: 'Men', women: 'Women', kids: 'Kids', unisex: 'Everyone' };
+  var CATEGORY_LABEL = {
+    hair: 'Hair', beard: 'Beard', nails: 'Nails', skin: 'Skin', spa: 'Spa', other: 'Other'
+  };
 
   /* ---------- Boot ---------- */
 
-  ICON.subscribeQueue('public-queue', refresh);
+  (async function start() {
+    var out = await ICON.shop.resolve();
+
+    // No ?shop= and more than one shop: open the directory.
+    if (!out.ok && out.browse) {
+      S.browsing = true;
+      S.shops = out.shops || [];
+      var cats = await ICON.shop.categories();
+      S.categories = cats.ok ? cats.data : [];
+      document.getElementById('navBoard').style.display = 'none';
+      renderBrowse();
+      return;
+    }
+
+    if (!out.ok) {
+      root.innerHTML =
+        '<div class="empty"><strong>Shop not found</strong>' +
+        ICON.esc(out.error) + '<br><br>Check the link or scan the QR code at the counter again.</div>';
+      return;
+    }
+
+    openShop(out.shop);
+  })();
+
+  function openShop(shopRow) {
+    S.shop = shopRow;
+    S.browsing = false;
+    document.getElementById('brand').textContent = S.shop.name;
+    document.title = S.shop.name + ' — Book or join the queue';
+    var board = document.getElementById('navBoard');
+    board.style.display = '';
+    board.href = './tv.html?shop=' + encodeURIComponent(S.shop.slug);
+    ICON.queue.subscribe('customer-queue', refreshQueue);
+  }
+
+  async function refreshQueue() {
+    if (S.browsing || !S.shop) return;
+    var res = await ICON.queue.open();
+    if (!res.error) S.rows = res.data || [];
+    render();
+  }
+
+  /* ---------- Directory: categories, then shops ---------- */
+
+  var CATEGORY_ART = {
+    'barbers':    '\u2702\uFE0F',
+    'nail-salon': '\u1F485',
+    'car-wash':   '\u1F697'
+  };
+
+  function renderBrowse() {
+    if (!S.category) return renderCategories();
+    return renderShops();
+  }
+
+  function renderCategories() {
+    var cats = S.categories.filter(function (c) { return Number(c.shop_count) > 0; });
+
+    root.innerHTML =
+      '<h1 class="step__title">What do you need?</h1>' +
+      '<p class="step__hint">Pick a category, then the shop nearest you.</p>' +
+      (cats.length === 0
+        ? '<div class="empty"><strong>Nothing open</strong>No shops are taking customers right now.</div>'
+        : '<div class="choices">' + cats.map(function (c) {
+            return '<button class="choice choice--lead" data-act="cat" data-slug="' +
+              ICON.esc(c.slug) + '">' +
+              '<span class="choice__label">' + ICON.esc(c.name) + '</span>' +
+              '<span class="choice__note">' + ICON.esc(c.tagline || '') +
+                (c.tagline ? ' \u00b7 ' : '') + c.shop_count +
+                (Number(c.shop_count) === 1 ? ' shop' : ' shops') + '</span>' +
+            '</button>';
+          }).join('') + '</div>');
+
+    bind();
+  }
+
+  function renderShops() {
+    var cat = S.categories.filter(function (c) { return c.slug === S.category; })[0];
+    var list = S.shops.filter(function (x) { return x.category === S.category; });
+
+    root.innerHTML =
+      '<button class="step__back" data-act="backCat">\u2190 All categories</button>' +
+      '<h1 class="step__title">' + ICON.esc(cat ? cat.name : 'Shops') + '</h1>' +
+      '<p class="step__hint">' + list.length +
+        (list.length === 1 ? ' shop' : ' shops') + '</p>' +
+      (list.length === 0
+        ? '<div class="empty"><strong>None here yet</strong>Try another category.</div>'
+        : '<div class="choices">' + list.map(function (x) {
+            var bits = [];
+            if (x.staff_count) bits.push(x.staff_count + (Number(x.staff_count) === 1 ? ' person' : ' people'));
+            if (x.service_count) bits.push(x.service_count + ' services');
+            if (x.from_price_minor) {
+              bits.push('from ' + ICON.fmtMoney(x.from_price_minor, x.currency));
+            }
+            return '<button class="choice" data-act="shop" data-slug="' + ICON.esc(x.slug) + '"' +
+              (x.is_open ? '' : ' disabled') + '>' +
+              '<span class="choice__label">' + ICON.esc(x.name) +
+                (x.is_open ? '' : ' <span class="tag">closed</span>') + '</span>' +
+              (x.address ? '<span class="choice__note">' + ICON.esc(x.address) + '</span>' : '') +
+              (bits.length ? '<span class="choice__note">' + ICON.esc(bits.join(' \u00b7 ')) + '</span>' : '') +
+            '</button>';
+          }).join('') + '</div>');
+
+    bind();
+  }
+
+  function bind() {
+    root.querySelectorAll('[data-act]').forEach(function (el) {
+      el.addEventListener('click', onAction);
+    });
+  }
+
+  /* ---------- Derived ---------- */
+
+  function waiting() { return S.rows.filter(function (r) { return r.status === 'waiting'; }); }
+  function inChair() { return S.rows.filter(function (r) { return r.status === 'in_chair'; }); }
+  function waitMins() { return ICON.queue.estimate(waiting().length); }
+
+  function servicesFor(aud) {
+    var all = S.shop.services || [];
+    if (!aud) return all;
+    return all.filter(function (s) { return s.audience === aud || s.audience === 'unisex'; });
+  }
+
+  function audienceOptions() {
+    var seen = {};
+    (S.shop.services || []).forEach(function (s) { seen[s.audience] = true; });
+    var out = ['men', 'women', 'kids'].filter(function (a) { return seen[a]; });
+    // Nothing but unisex services? Then there is no audience step to show.
+    return out;
+  }
+
+  /* ---------- Navigation ---------- */
+
+  // Steps per route. Audience step is skipped when there's nothing to choose.
+  function steps() {
+    var list = ['route'];
+    if (!S.route) return list;
+    if (audienceOptions().length > 1) list.push('audience');
+    list.push('service');
+    if (S.route === 'book') list.push('when');
+    list.push('details');
+    return list;
+  }
+
+  function stepName() { return steps()[S.step] || 'details'; }
+
+  function go(delta) {
+    var max = steps().length - 1;
+    S.step = Math.min(max, Math.max(0, S.step + delta));
+    S.error = '';
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function restart() {
+    S.route = null; S.step = 0; S.audience = null; S.service = null;
+    S.staffId = null; S.day = null; S.slot = null; S.comeBack = null;
+    S.error = '';
+    render();
+  }
+
+  /* ---------- Render ---------- */
+
+  function render() {
+    if (S.browsing) return renderBrowse();
+
+    var mine = ICON.ticket.mine();
+    var booked = ICON.book.mine();
+
+    if (mine) return renderTicket(mine);
+    if (booked) return renderBooking(booked);
+    if (!S.shop.is_open) return renderClosed();
+
+    var name = stepName();
+    var html = trail();
+
+    if (name === 'route')    html += stepRoute();
+    if (name === 'audience') html += stepAudience();
+    if (name === 'service')  html += stepService();
+    if (name === 'when')     html += stepWhen();
+    if (name === 'details')  html += stepDetails();
+
+    root.innerHTML = html;
+    wire(name);
+  }
+
+  function trail() {
+    var all = steps();
+    if (all.length < 2) return '';
+    return '<div class="trail">' + all.map(function (_, i) {
+      return '<span class="' + (i < S.step ? 'is-done' : i === S.step ? 'is-here' : '') + '"></span>';
+    }).join('') + '</div>';
+  }
+
+  function backBtn(label) {
+    return '<button class="step__back" data-act="back">← ' + ICON.esc(label || 'Back') + '</button>';
+  }
+
+  function errorBox() {
+    return S.error ? '<p class="msg msg--bad">' + ICON.esc(S.error) + '</p>' : '';
+  }
+
+  /* ---------- Step: queue or book ---------- */
+
+  function stepRoute() {
+    var w = waiting().length;
+    var c = inChair().length;
+    var openNow = isOpenNow();
+
+    return '' +
+      '<h1 class="step__title">' + ICON.esc(S.shop.name) + '</h1>' +
+      '<p class="step__hint">' +
+        (S.shop.address ? ICON.esc(S.shop.address) + ' &middot; ' : '') +
+        (openNow ? 'Open now' : 'Closed right now') +
+      '</p>' +
+
+      '<div class="readout">' +
+        '<div class="readout__item">' +
+          '<div class="readout__value num">' + waitMins() + '<span class="readout__unit"> min</span></div>' +
+          '<span class="readout__key">Wait right now</span></div>' +
+        '<div class="readout__item">' +
+          '<div class="readout__value num">' + w + '</div>' +
+          '<span class="readout__key">' + (w === 1 ? 'Person' : 'People') + ' in line</span></div>' +
+        '<div class="readout__item">' +
+          '<div class="readout__value num">' + c + '</div>' +
+          '<span class="readout__key">In the chair</span></div>' +
+      '</div>' +
+
+      '<div class="choices">' +
+        '<button class="choice choice--lead is-queue" data-act="route" data-route="queue"' +
+          (openNow ? '' : ' disabled') + '>' +
+          '<span class="choice__label">Join the queue now</span>' +
+          '<span class="choice__note">' +
+            (openNow
+              ? (w === 0 ? 'Nobody waiting — walk straight in' :
+                 'About ' + waitMins() + ' min, you’ll be ' + (w + 1) + ordinal(w + 1) + ' in line')
+              : 'The shop is closed right now') +
+          '</span>' +
+        '</button>' +
+        '<button class="choice choice--lead is-book" data-act="route" data-route="book">' +
+          '<span class="choice__label">Book a slot for later</span>' +
+          '<span class="choice__note">Pick a day and a time that suits you</span>' +
+        '</button>' +
+      '</div>' +
+
+      '<p class="muted" style="font-size:var(--t-xs);margin-top:var(--s5);text-align:center;">' +
+        'Already have a booking? It shows up here automatically on the phone you booked with.' +
+      '</p>';
+  }
+
+  function isOpenNow() {
+    if (!S.shop.is_open) return false;
+    var now = new Date();
+    var h = (S.shop.hours || []).filter(function (x) { return x.weekday === now.getDay(); })[0];
+    if (!h || !h.is_open) return false;
+    var mins = now.getHours() * 60 + now.getMinutes();
+    return mins >= toMins(h.opens_at) && mins < toMins(h.closes_at);
+  }
+
+  function toMins(hhmm) {
+    var p = String(hhmm || '0:0').split(':');
+    return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0);
+  }
+
+  /* ---------- Step: who is it for ---------- */
+
+  function stepAudience() {
+    var opts = audienceOptions();
+    return '' +
+      backBtn() +
+      '<h1 class="step__title">Who’s it for?</h1>' +
+      '<p class="step__hint">So we show you the right services and prices.</p>' +
+      '<div class="choices choices--two">' +
+        opts.map(function (a) {
+          var n = servicesFor(a).length;
+          return '<button class="choice" data-act="audience" data-aud="' + a + '"' +
+            (S.audience === a ? ' aria-pressed="true"' : '') + '>' +
+            '<span class="choice__label">' + AUDIENCE_LABEL[a] + '</span>' +
+            '<span class="choice__note">' + n + ' service' + (n === 1 ? '' : 's') + '</span>' +
+          '</button>';
+        }).join('') +
+      '</div>';
+  }
+
+  /* ---------- Step: which service ---------- */
+
+  function stepService() {
+    var list = servicesFor(S.audience);
+    if (list.length === 0) {
+      return backBtn() +
+        '<h1 class="step__title">Nothing listed yet</h1>' +
+        '<div class="empty"><strong>No services here</strong>' +
+        'The shop hasn’t added services for this yet. Ask at the counter.</div>';
+    }
+
+    // Group by category so a long nail menu stays readable.
+    var groups = {};
+    list.forEach(function (s) { (groups[s.category] = groups[s.category] || []).push(s); });
+
+    var html = backBtn() +
+      '<h1 class="step__title">What do you want?</h1>' +
+      '<p class="step__hint">Prices and times are what the shop set.</p>';
+
+    Object.keys(groups).forEach(function (cat) {
+      if (Object.keys(groups).length > 1) {
+        html += '<h2 style="font-size:var(--t-sm);margin:var(--s5) 0 var(--s2);">' +
+                ICON.esc(CATEGORY_LABEL[cat] || cat) + '</h2>';
+      }
+      html += '<div class="menu">' + groups[cat].map(function (s) {
+        return '<button class="menu__item" data-act="service" data-id="' + s.id + '"' +
+          (S.service && S.service.id === s.id ? ' aria-pressed="true"' : '') + '>' +
+          '<span><span class="menu__name">' + ICON.esc(s.name) + '</span>' +
+          '<span class="menu__meta">' + s.duration_minutes + ' min' +
+            (s.audience !== 'unisex' ? ' &middot; ' + AUDIENCE_LABEL[s.audience] : '') +
+          '</span></span>' +
+          '<span class="menu__price">' +
+            (s.price_minor > 0 ? ICON.esc(ICON.fmtMoney(s.price_minor, S.shop.currency)) : '—') +
+          '</span></button>';
+      }).join('') + '</div>';
+    });
+
+    return html;
+  }
+
+  /* ---------- Step: when (booking route) ---------- */
+
+  function stepWhen() {
+    var html = backBtn() +
+      '<h1 class="step__title">When suits you?</h1>' +
+      '<p class="step__hint">' +
+        ICON.esc(S.service ? S.service.name + ' · ' + S.service.duration_minutes + ' min' : '') +
+      '</p>' +
+      errorBox();
+
+    // Month calendar, so today and every date in the booking window are
+    // reachable — a horizontal strip hid anything past the next fortnight.
+    html += monthCalendar();
+
+    // Staff picker, only when there is a real choice
+    var team = S.shop.staff || [];
+    if (team.length > 1) {
+      html += '<div class="field"><label>With someone in particular?</label><div class="slots">' +
+        '<button type="button" class="slot" data-act="staff" data-id=""' +
+          (S.staffId ? '' : ' aria-pressed="true"') + '>Anyone</button>' +
+        team.map(function (t) {
+          return '<button type="button" class="slot" data-act="staff" data-id="' + t.id + '"' +
+            (String(S.staffId) === String(t.id) ? ' aria-pressed="true"' : '') + '>' +
+            ICON.esc(t.name) + '</button>';
+        }).join('') + '</div></div>';
+    }
+
+    // Slot grid for the chosen day
+    if (S.day) {
+      html += '<h2 style="font-size:var(--t-sm);margin:var(--s5) 0 var(--s2);">' +
+              ICON.esc(ICON.fmtDate(S.day + 'T00:00:00')) + '</h2>';
+      if (S.slots === null) {
+        html += '<p class="muted" style="font-size:var(--t-sm);">Loading times…</p>';
+      } else if (S.slots.length === 0) {
+        html += '<div class="empty"><strong>No times left</strong>Try another day.</div>';
+      } else {
+        // Morning / afternoon / evening, so a 12-hour shop isn't one long wall.
+        var buckets = [
+          { head: 'Morning', from: 0, to: 12, items: [] },
+          { head: 'Afternoon', from: 12, to: 17, items: [] },
+          { head: 'Evening', from: 17, to: 24, items: [] }
+        ];
+        S.slots.forEach(function (s) {
+          var h = new Date(s.starts_at).getHours();
+          var b = buckets.filter(function (x) { return h >= x.from && h < x.to; })[0];
+          if (b) b.items.push(s);
+        });
+
+        html += buckets.filter(function (b) { return b.items.length; }).map(function (b) {
+          return '<div class="slotgroup">' +
+            '<div class="slotgroup__head">' + b.head + ' \u00b7 ' + b.items.length + ' free</div>' +
+            '<div class="slotgrid">' + b.items.map(function (s) {
+              return '<button class="timeslot" data-act="slot" data-at="' + s.starts_at + '"' +
+                (S.slot === s.starts_at ? ' aria-pressed="true"' : '') + '>' +
+                ICON.esc(ICON.fmtTime(s.starts_at)) + '</button>';
+            }).join('') + '</div></div>';
+        }).join('');
+      }
+    }
+
+    return html;
+  }
+
+  /* ---------- Month calendar ---------- */
+
+  function firstOfMonth(d) {
+    var x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x;
+  }
+
+  function monthCalendar() {
+    if (!S.calMonth) S.calMonth = firstOfMonth(new Date());
+
+    var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'];
+
+    var first = S.calMonth;
+    var year = first.getFullYear(), month = first.getMonth();
+    var pad = new Date(year, month, 1).getDay();
+    var daysIn = new Date(year, month + 1, 0).getDate();
+
+    var todayKey = ICON.dateKey(new Date());
+    var lastKey = ICON.dateKey(ICON.addDays(new Date(), S.shop.horizon_days || 30));
+
+    // free-slot counts, keyed by date
+    var free = {};
+    S.calendar.forEach(function (d) {
+      free[String(d.on_date).slice(0, 10)] = Number(d.free_slots) || 0;
+    });
+
+    // Can we step back/forward a month and still be inside the window?
+    var prevMonth = new Date(year, month - 1, 1);
+    var prevEnd = new Date(year, month, 0);
+    var canPrev = ICON.dateKey(prevEnd) >= todayKey;
+    var canNext = ICON.dateKey(new Date(year, month + 1, 1)) <= lastKey;
+
+    var cells = '';
+    for (var i = 0; i < pad; i++) cells += '<button class="cal__cell" disabled></button>';
+
+    for (var d = 1; d <= daysIn; d++) {
+      var key = ICON.dateKey(new Date(year, month, d));
+      var inWindow = key >= todayKey && key <= lastKey;
+      var n = free[key];
+      var known = n !== undefined;
+      var bookable = inWindow && (!known || n > 0);
+
+      cells += '<button class="cal__cell' + (key === todayKey ? ' is-today' : '') + '"' +
+        ' data-act="calDay" data-date="' + key + '"' +
+        (S.day === key ? ' aria-pressed="true"' : '') +
+        (bookable ? '' : ' disabled') +
+        ' aria-label="' + key + (known ? ', ' + n + ' slots free' : '') + '">' +
+        '<span class="cal__num">' + d + '</span>' +
+        (known && n > 0
+          ? '<span class="cal__count">' + n + '</span>'
+          : known ? '<span class="cal__count">\u2014</span>' : '') +
+        '</button>';
+    }
+
+    return '<div class="cal">' +
+      '<div class="cal__head">' +
+        '<button class="btn btn--quiet" data-act="calMonth" data-d="-1"' +
+          (canPrev ? '' : ' disabled') + ' aria-label="Previous month">\u2190</button>' +
+        '<span class="cal__month">' + MONTHS[month] + ' ' + year + '</span>' +
+        '<button class="btn btn--quiet" data-act="calMonth" data-d="1"' +
+          (canNext ? '' : ' disabled') + ' aria-label="Next month">\u2192</button>' +
+      '</div>' +
+      '<div class="cal__grid">' +
+        ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(function (x) {
+          return '<div class="cal__dow">' + x + '</div>';
+        }).join('') + cells +
+      '</div>' +
+      '<p class="muted" style="font-size:var(--t-xs);margin-top:var(--s3);">' +
+        (S.calendar.length === 0
+          ? 'Checking the diary\u2026'
+          : 'The number is how many times are free. You can book up to ' +
+            (S.shop.horizon_days || 30) + ' days ahead.') +
+      '</p>' +
+    '</div>';
+  }
+
+  /* ---------- Step: details ---------- */
+
+  function stepDetails() {
+    var needPhone = !!S.shop.phone_required;
+    var html = backBtn() +
+      '<h1 class="step__title">Almost done</h1>' +
+      '<p class="step__hint">Just your name, and anything we should know.</p>' +
+      errorBox() +
+      recap() +
+      // novalidate: keep `required` for screen readers, but let our own
+      // checks produce the styled message instead of a native bubble.
+      '<form id="finalForm" novalidate>' +
+        '<div class="field">' +
+          '<label for="fName">Your name</label>' +
+          '<input type="text" id="fName" required maxlength="80" autocomplete="name" ' +
+            'placeholder="Alex" value="' + ICON.esc(S.name) + '">' +
+        '</div>' +
+        '<div class="field">' +
+          '<label for="fPhone">Mobile number' +
+            '<span class="help">' + (needPhone
+              ? 'This shop needs a number so they can call you.'
+              : 'Optional — only if you want a reminder.') + '</span>' +
+          '</label>' +
+          '<input type="tel" id="fPhone"' + (needPhone ? ' required' : '') +
+            ' autocomplete="tel" placeholder="98450 00000" value="' + ICON.esc(S.phone) + '">' +
+        '</div>' +
+        '<div class="field">' +
+          '<label for="fNotes">Anything else?<span class="help">Optional.</span></label>' +
+          '<textarea id="fNotes" maxlength="500" placeholder="' +
+            (S.route === 'queue' ? '#3 guard on the sides, square back' : 'Running 5 min late is fine') +
+            '">' + ICON.esc(S.notes) + '</textarea>' +
+        '</div>';
+
+    // Queue route: optional "come back at" time
+    if (S.route === 'queue') {
+      var slots = ICON.queue.timeSlots(waiting().length, 4);
+      html += '<div class="field">' +
+        '<label id="cbLabel">When will you get here?</label>' +
+        '<div class="slots" role="group" aria-labelledby="cbLabel">' +
+          '<button type="button" class="slot" data-act="comeback" data-at=""' +
+            (S.comeBack ? '' : ' aria-pressed="true"') + '>Right now</button>' +
+          slots.map(function (d) {
+            var iso = d.toISOString();
+            return '<button type="button" class="slot" data-act="comeback" data-at="' + iso + '"' +
+              (S.comeBack === iso ? ' aria-pressed="true"' : '') + '>' +
+              ICON.esc(ICON.fmtTime(d)) + '</button>';
+          }).join('') +
+        '</div>' +
+        '<span class="help" style="margin-top:var(--s2);">' +
+          (S.comeBack
+            ? 'We’ll keep your place and expect you around ' + ICON.esc(ICON.fmtTime(S.comeBack)) + '.'
+            : 'You keep your place and we take you as the chair frees up.') +
+        '</span></div>';
+    }
+
+    html += '<button type="submit" class="btn btn--block btn--lg" id="goBtn"' +
+      (S.busy ? ' disabled' : '') + '>' +
+      (S.busy ? 'Working…' : (S.route === 'queue' ? 'Join the queue' : 'Confirm booking')) +
+      '</button></form>';
+
+    return html;
+  }
+
+  function recap() {
+    var rows = [];
+    if (S.service) {
+      rows.push(['Service', S.service.name + ' · ' + S.service.duration_minutes + ' min']);
+      if (S.service.price_minor > 0) {
+        rows.push(['Price', ICON.fmtMoney(S.service.price_minor, S.shop.currency)]);
+      }
+    }
+    if (S.route === 'book' && S.slot) {
+      rows.push(['When', ICON.fmtDate(S.slot) + ', ' + ICON.fmtTime(S.slot)]);
+    }
+    if (S.route === 'queue') {
+      rows.push(['Wait', 'about ' + waitMins() + ' min']);
+    }
+    if (S.staffId) {
+      var t = (S.shop.staff || []).filter(function (x) { return String(x.id) === String(S.staffId); })[0];
+      if (t) rows.push(['With', t.name]);
+    }
+    if (rows.length === 0) return '';
+
+    return '<div class="recap"><dl>' + rows.map(function (r) {
+      return '<div class="ticket__row"><dt>' + ICON.esc(r[0]) + '</dt><dd>' + ICON.esc(r[1]) + '</dd></div>';
+    }).join('') + '</dl></div>';
+  }
+
+  /* ---------- Wiring ---------- */
+
+  function wire(name) {
+    root.querySelectorAll('[data-act]').forEach(function (el) {
+      el.addEventListener('click', onAction);
+    });
+
+    var form = document.getElementById('finalForm');
+    if (form) {
+      form.addEventListener('submit', submit);
+      ['fName', 'fPhone', 'fNotes'].forEach(function (id) {
+        var i = document.getElementById(id);
+        if (!i) return;
+        i.addEventListener('input', function () {
+          if (id === 'fName') S.name = i.value;
+          if (id === 'fPhone') S.phone = i.value;
+          if (id === 'fNotes') S.notes = i.value;
+        });
+      });
+    }
+
+    if (name === 'when' && S.calendar.length === 0) loadCalendar();
+  }
+
+  async function onAction(e) {
+    var el = e.currentTarget;
+    var act = el.dataset.act;
+
+    if (act === 'cat') {
+      S.category = el.dataset.slug;
+      return renderBrowse();
+    }
+
+    if (act === 'backCat') {
+      S.category = null;
+      return renderBrowse();
+    }
+
+    if (act === 'shop') {
+      var out = await ICON.shop.resolve(el.dataset.slug);
+      if (!out.ok) { S.error = out.error; return renderBrowse(); }
+      // Keep the shop in the URL so a refresh or a shared link lands here.
+      history.replaceState({}, '', '?shop=' + encodeURIComponent(out.shop.slug));
+      restart();
+      openShop(out.shop);
+      return;
+    }
+
+    if (act === 'back') {
+      // Step 0 with a directory behind us goes back to the shop list.
+      if (S.step === 0) {
+        if (S.shops.length > 1 && !ICON.shop.slugFromUrl()) {
+          S.browsing = true;
+          return renderBrowse();
+        }
+        return;
+      }
+      return go(-1);
+    }
+
+    if (act === 'route') {
+      S.route = el.dataset.route;
+      S.calendar = [];
+      // One audience or none? Skip straight past that question.
+      if (audienceOptions().length === 1) S.audience = audienceOptions()[0];
+      return go(1);
+    }
+
+    if (act === 'audience') {
+      S.audience = el.dataset.aud;
+      S.service = null;
+      return go(1);
+    }
+
+    if (act === 'service') {
+      var id = Number(el.dataset.id);
+      S.service = (S.shop.services || []).filter(function (s) { return s.id === id; })[0] || null;
+      S.day = null; S.slot = null; S.slots = []; S.calendar = [];
+      return go(1);
+    }
+
+    if (act === 'staff') {
+      S.staffId = el.dataset.id || null;
+      S.slot = null;
+      if (S.day) await loadSlots();
+      S.calendar = [];
+      await loadCalendar();
+      return;
+    }
+
+    if (act === 'calDay') {
+      S.day = el.dataset.date;
+      S.slot = null;
+      S.slots = null;
+      render();
+      return loadSlots();
+    }
+
+    if (act === 'calMonth') {
+      var m = new Date(S.calMonth);
+      m.setMonth(m.getMonth() + Number(el.dataset.d));
+      S.calMonth = firstOfMonth(m);
+      render();
+      return loadCalendar({ keepDay: true });
+    }
+
+    if (act === 'slot') {
+      S.slot = el.dataset.at;
+      render();
+      return go(1);
+    }
+
+    if (act === 'comeback') {
+      S.comeBack = el.dataset.at || null;
+      return render();
+    }
+
+    if (act === 'restart') return restart();
+
+    if (act === 'dropTicket') {
+      if (!confirm('Give up your place in line?')) return;
+      ICON.ticket.forget();
+      restart();
+      return refreshQueue();
+    }
+
+    if (act === 'cancelBooking') {
+      if (!confirm('Cancel this booking?')) return;
+      var b = ICON.book.mine();
+      if (!b) return restart();
+      var out = await ICON.book.cancel(b.lookup_code);
+      if (!out.ok) { S.error = out.error; return render(); }
+      restart();
+    }
+  }
+
+  // Fetches free-slot counts for the month on screen, clamped to today and
+  // the shop's booking window so we never ask for dates it won't sell.
+  async function loadCalendar(opts) {
+    if (!S.calMonth) S.calMonth = firstOfMonth(new Date());
+
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var monthStart = new Date(S.calMonth);
+    var monthEnd = new Date(S.calMonth.getFullYear(), S.calMonth.getMonth() + 1, 0);
+    var from = monthStart < today ? today : monthStart;
+
+    var horizonEnd = ICON.addDays(today, S.shop.horizon_days || 30);
+    var to = monthEnd > horizonEnd ? horizonEnd : monthEnd;
+
+    var days = Math.floor((to - from) / 86400000) + 1;
+    if (days < 1) { S.calendar = []; return render(); }
+
+    var out = await ICON.book.calendar(
+      ICON.dateKey(from),
+      Math.min(days, 60),
+      S.service && S.service.id
+    );
+
+    if (!out.ok) { S.error = out.error; return render(); }
+
+    S.calendar = out.data;
+
+    // Land on the first day with room, so a tap on a time is the next thing.
+    if (!S.day && !(opts && opts.keepDay)) {
+      var firstFree = out.data.filter(function (d) { return Number(d.free_slots) > 0; })[0];
+      if (firstFree) {
+        S.day = String(firstFree.on_date).slice(0, 10);
+        S.slots = null;
+        render();
+        return loadSlots();
+      }
+    }
+    render();
+  }
+
+  async function loadSlots() {
+    var out = await ICON.book.slots(S.day, S.service && S.service.id, S.staffId);
+    S.slots = out.ok ? out.data : [];
+    if (!out.ok) S.error = out.error;
+    render();
+  }
+
+  /* ---------- Submit ---------- */
+
+  async function submit(e) {
+    e.preventDefault();
+    S.error = '';
+
+    S.name = (document.getElementById('fName') || {}).value || S.name;
+    S.phone = (document.getElementById('fPhone') || {}).value || '';
+    S.notes = (document.getElementById('fNotes') || {}).value || '';
+
+    if (String(S.name).trim().length < 2) {
+      S.error = 'Enter your name.';
+      return render();
+    }
+
+    var hasPhone = String(S.phone).trim().length > 0;
+    if (S.shop.phone_required && !hasPhone) {
+      S.error = 'This shop needs a mobile number.';
+      return render();
+    }
+    if (hasPhone && !ICON.isValidPhone(S.phone)) {
+      S.error = 'That number doesn’t look right. Use 10 to 15 digits, or clear it.';
+      return render();
+    }
+
+    S.busy = true; render();
+
+    var out;
+    if (S.route === 'queue') {
+      out = await ICON.queue.join({
+        name: S.name.trim(), phone: S.phone, notes: S.notes,
+        preferredTime: S.comeBack,
+        serviceId: S.service && S.service.id,
+        serviceName: S.service && S.service.name,
+        staffId: S.staffId
+      });
+    } else {
+      if (!S.slot) { S.busy = false; S.error = 'Pick a time first.'; return render(); }
+      out = await ICON.book.create({
+        serviceId: S.service && S.service.id,
+        startsAt: S.slot, name: S.name.trim(), phone: S.phone,
+        notes: S.notes, staffId: S.staffId
+      });
+    }
+
+    S.busy = false;
+
+    if (!out.ok) {
+      S.error = out.error;
+      // The slot went while they were typing — send them back to pick again.
+      if (/just been taken/i.test(out.error)) {
+        S.slot = null; S.slots = null;
+        S.step = steps().indexOf('when');
+        loadSlots();
+      }
+      return render();
+    }
+
+    await refreshQueue();
+  }
+
+  /* ---------- Live ticket (queue route) ---------- */
+
+  function renderTicket(mine) {
+    var row = S.rows.filter(function (r) { return Number(r.id) === Number(mine.entry_id); })[0];
+    if (!row) { ICON.ticket.forget(); return restart(); }
+
+    var isUp = row.status === 'in_chair';
+    var pos = isUp ? 0 : ICON.queue.positionOf(S.rows, mine.entry_id);
+
+    root.innerHTML =
+      '<div class="ticket" id="tk">' +
+        '<div class="ticket__head">' +
+          '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
+          '<span class="label">' + (isUp ? 'In the chair' : 'In line') + '</span>' +
+        '</div>' +
+        '<div class="ticket__number num' + (isUp ? '' : ' is-waiting') + '">' +
+          ICON.padTicket(row.ticket_no) + '</div>' +
+        '<p class="ticket__caption">' +
+          (isUp ? '<strong>You’re up.</strong> Head to the chair.'
+                : pos === 1 ? '<strong>You’re next.</strong> Stay close by.'
+                : 'You’re <strong>' + pos + ordinal(pos) + '</strong> in line.') +
+        '</p>' +
+        '<div class="ticket__tear"></div>' +
+        '<div class="ticket__stub">' +
+          '<dl style="margin:0 0 var(--s4);">' +
+            row2('Name', row.customer_name) +
+            (mine.service_name ? row2('Service', mine.service_name) : '') +
+            row2('Position', isUp ? 'In the chair' : pos + ordinal(pos) + ' in line') +
+            row2('Estimated', isUp ? 'Now' : 'about ' + ICON.fmtTime(ICON.queue.etaFor(pos))) +
+            (row.preferred_time ? row2('You said', ICON.fmtTime(row.preferred_time)) : '') +
+            (mine.notes ? row2('Notes', mine.notes) : '') +
+          '</dl>' +
+          (isUp ? '' :
+            '<button class="btn btn--quiet btn--block" data-act="dropTicket">Give up my place</button>') +
+        '</div>' +
+      '</div>' +
+      '<p class="muted" style="font-size:var(--t-xs);text-align:center;margin-top:var(--s3);">' +
+        'This updates on its own. Keep the page open.</p>';
+
+    root.querySelectorAll('[data-act]').forEach(function (el) {
+      el.addEventListener('click', onAction);
+    });
+  }
+
+  /* ---------- Booking confirmation ---------- */
+
+  function renderBooking(b) {
+    root.innerHTML =
+      '<div class="ticket">' +
+        '<div class="ticket__head">' +
+          '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
+          '<span class="label">Booked</span>' +
+        '</div>' +
+        '<div class="ticket__number num" style="font-size:clamp(2.4rem,10vw,3.6rem);padding-top:var(--s5);">' +
+          ICON.esc(ICON.fmtTime(b.starts_at)) + '</div>' +
+        '<p class="ticket__caption"><strong>' + ICON.esc(ICON.fmtDate(b.starts_at)) + '</strong>' +
+          ' at ' + ICON.esc(S.shop.name) + '</p>' +
+        '<div class="ticket__tear"></div>' +
+        '<div class="ticket__stub">' +
+          '<dl style="margin:0 0 var(--s4);">' +
+            row2('Name', b.name) +
+            row2('Service', b.service) +
+            (b.price_minor > 0 ? row2('Price', ICON.fmtMoney(b.price_minor, S.shop.currency)) : '') +
+            row2('Ends', ICON.fmtTime(b.ends_at)) +
+            row2('Reference', String(b.lookup_code).slice(0, 6).toUpperCase()) +
+          '</dl>' +
+          '<button class="btn btn--quiet btn--block" data-act="cancelBooking">Cancel this booking</button>' +
+        '</div>' +
+      '</div>' +
+      '<p class="muted" style="font-size:var(--t-xs);text-align:center;margin-top:var(--s3);">' +
+        'Show this page when you arrive. ' +
+        '<button class="step__back" data-act="restart" style="display:inline;padding:0;">' +
+        'Book something else</button></p>';
+
+    root.querySelectorAll('[data-act]').forEach(function (el) {
+      el.addEventListener('click', onAction);
+    });
+  }
+
+  function renderClosed() {
+    root.innerHTML =
+      '<h1 class="step__title">' + ICON.esc(S.shop.name) + '</h1>' +
+      '<div class="empty"><strong>Closed right now</strong>' +
+        (S.shop.contact_phone
+          ? 'Call ' + ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + ' if you need us.'
+          : 'Check back during opening hours.') +
+      '</div>' +
+      hoursTable();
+  }
+
+  function hoursTable() {
+    var hours = S.shop.hours || [];
+    if (!hours.length) return '';
+    return '<div class="rows" style="margin-top:var(--s5);">' + hours.map(function (h) {
+      return '<div class="rowitem"><div class="rowitem__main">' +
+        '<div class="rowitem__name">' + ICON.fmtDay(h.weekday, true) + '</div></div>' +
+        '<div class="muted" style="font-size:var(--t-sm);">' +
+          (h.is_open ? ICON.esc(h.opens_at) + ' – ' + ICON.esc(h.closes_at) : 'Closed') +
+        '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  /* ---------- Bits ---------- */
+
+  function row2(k, v) {
+    return '<div class="ticket__row"><dt>' + ICON.esc(k) + '</dt><dd>' + ICON.esc(v) + '</dd></div>';
+  }
+
+  function ordinal(n) {
+    if (n % 100 >= 11 && n % 100 <= 13) return 'th';
+    return ['th', 'st', 'nd', 'rd'][n % 10] || 'th';
+  }
 })();
 </script>
 </body>

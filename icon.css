@@ -116,14 +116,32 @@ a { color: inherit; }
 .bar {
   background: var(--ink);
   color: var(--on-ink);
-  padding: var(--s3) var(--s5);
+  padding: var(--s3) var(--s4);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s4);
+  gap: var(--s3);
+  /* The owner console puts four items in here; on a phone they must wrap
+     onto a second line rather than push the page sideways. */
+  flex-wrap: wrap;
 }
 
-.bar nav { display: flex; align-items: center; gap: var(--s5); }
+.bar nav {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+@media (min-width: 46rem) { .bar { padding: var(--s3) var(--s5); } }
+
+/* Under this width the signed-in name is the first thing to go: the
+   buttons it sits beside matter more than the label. */
+@media (max-width: 30rem) {
+  .bar nav { gap: var(--s3); }
+  .bar nav > span.muted { display: none; }
+}
 
 .bar a {
   font-size: var(--t-sm);
@@ -153,6 +171,8 @@ a { color: inherit; }
 }
 @media (min-width: 62rem) {
   .split { grid-template-columns: 1fr 24rem; gap: var(--s8); }
+  /* The calendar needs real room on both sides. */
+  .split--even { grid-template-columns: 1fr 1fr; gap: var(--s7); }
 }
 
 /* ---------- The ticket -------------------------------------- */
@@ -353,6 +373,15 @@ textarea { resize: vertical; min-height: 4.5rem; }
 }
 .btn--quiet:hover { background: rgba(20, 26, 46, 0.05); }
 
+/* The shared disabled style fills the button, which on a quiet button
+   reads as MORE prominent than the enabled one beside it. Fade instead. */
+.btn--quiet:disabled,
+.btn--quiet:disabled:hover {
+  background: transparent;
+  color: var(--chrome);
+  border-color: rgba(20, 26, 46, 0.12);
+}
+
 .btn--danger { background: transparent; color: var(--signal); border-color: transparent; padding: 0.4rem 0; }
 .btn--danger:hover { background: transparent; text-decoration: underline; }
 
@@ -473,6 +502,22 @@ textarea { resize: vertical; min-height: 4.5rem; }
   gap: var(--s5);
   padding: var(--s4) var(--s6);
   border-bottom: 3px solid var(--signal);
+  flex-wrap: wrap;
+}
+
+/* The board is built for a wall, but the customer page links to it, so it
+   has to survive a phone. `.board` clips rather than scrolls, which would
+   otherwise hide the wait figure off the right edge entirely. */
+@media (max-width: 46rem) {
+  .board { overflow-y: auto; overflow-x: hidden; }
+  .board__head { padding: var(--s4); gap: var(--s3); }
+  .board__head .wordmark { font-size: var(--t-lg); }
+  .board__nav { flex-wrap: wrap; gap: var(--s3); }
+  .board__wait { text-align: left; }
+  .board__wait .v { font-size: var(--t-2xl); }
+  .board__body { grid-template-columns: 1fr; }
+  .board__col { padding: var(--s4); }
+  .serving__no { font-size: 3rem; }
 }
 .board__head .wordmark { font-size: var(--t-2xl); }
 .board__where { font-size: var(--t-sm); color: var(--on-ink-dim); margin-top: 2px; }
@@ -606,4 +651,466 @@ textarea { resize: vertical; min-height: 4.5rem; }
 .sr {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ============================================================
+   v3 additions — wizard, calendar, tabs, QR
+   ============================================================ */
+
+/* ---------- Step wizard ------------------------------------- */
+
+.wizard { max-width: 34rem; margin: 0 auto; }
+
+/* Progress as a row of ticks, not numbered markers: the steps are a
+   path being walked, and the count changes with the chosen route. */
+.trail {
+  display: flex;
+  gap: var(--s1);
+  margin-bottom: var(--s5);
+}
+.trail span {
+  height: 3px;
+  flex: 1;
+  background: rgba(20, 26, 46, 0.14);
+  border-radius: 2px;
+  transition: background 0.25s;
+}
+.trail span.is-done { background: var(--ink); }
+.trail span.is-here { background: var(--signal); }
+
+.step__back {
+  background: none;
+  border: 0;
+  padding: var(--s2) 0;
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--on-paper-dim);
+  cursor: pointer;
+  margin-bottom: var(--s2);
+}
+.step__back:hover { color: var(--on-paper); }
+
+.step__title {
+  font-family: var(--display);
+  font-size: clamp(1.9375rem, 6vw, 2.4375rem);
+  line-height: 1;
+  text-transform: uppercase;
+  margin-bottom: var(--s2);
+}
+.step__hint { color: var(--on-paper-dim); font-size: var(--t-sm); margin: 0 0 var(--s5); }
+
+/* ---------- Big tappable choices ---------------------------- */
+
+.choices { display: grid; gap: var(--s3); }
+.choices--two { grid-template-columns: 1fr 1fr; }
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s1);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  padding: var(--s4);
+  background: var(--paper);
+  border: 1px solid rgba(20, 26, 46, 0.18);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.08s, box-shadow 0.15s;
+}
+.choice:hover {
+  border-color: var(--ink);
+  box-shadow: 0 6px 18px -12px rgba(20, 26, 46, 0.5);
+}
+.choice:active { transform: translateY(1px); }
+.choice[aria-pressed="true"] { border-color: var(--ink); border-width: 2px; padding: calc(var(--s4) - 1px); }
+.choice:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.choice__label { font-weight: 600; font-size: var(--t-lg); }
+.choice__note { font-size: var(--t-sm); color: var(--on-paper-dim); }
+
+/* A choice that leads somewhere, with a strong lead line */
+.choice--lead { border-left: 3px solid var(--ink); }
+.choice--lead.is-queue { border-left-color: var(--go); }
+.choice--lead.is-book { border-left-color: var(--signal); }
+
+/* ---------- Service rows ------------------------------------ */
+
+.menu { border-top: 2px solid var(--ink); }
+
+.menu__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--s3);
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  padding: var(--s4) var(--s2);
+  background: none;
+  border: 0;
+  border-bottom: var(--edge);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.menu__item:hover { background: rgba(20, 26, 46, 0.04); }
+.menu__item[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.menu__item[aria-pressed="true"] .menu__meta { color: var(--on-ink-dim); }
+
+.menu__name { font-weight: 600; font-size: var(--t-md); }
+.menu__meta { font-size: var(--t-xs); color: var(--on-paper-dim); margin-top: 2px; }
+.menu__price { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- Day strip + slot grid --------------------------- */
+
+.daystrip {
+  display: flex;
+  gap: var(--s2);
+  overflow-x: auto;
+  padding-bottom: var(--s2);
+  margin-bottom: var(--s4);
+  scrollbar-width: thin;
+}
+
+.day {
+  flex: none;
+  width: 4.25rem;
+  padding: var(--s3) var(--s2);
+  font: inherit;
+  text-align: center;
+  background: var(--paper);
+  border: 1px solid rgba(20, 26, 46, 0.18);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.day:hover:not(:disabled) { border-color: var(--ink); }
+.day[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.day:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* These are spans, so they must be told to stack — inline flow puts the
+   weekday, date and free count on one line and they collide. */
+.day__dow, .day__num, .day__free { display: block; }
+
+.day__dow { font-size: var(--t-xs); color: var(--on-paper-dim); line-height: 1.3; }
+.day[aria-pressed="true"] .day__dow { color: var(--on-ink-dim); }
+.day__num { font-family: var(--display); font-size: var(--t-xl); line-height: 1.1; }
+.day__free { font-size: 10px; color: var(--go); font-weight: 600; line-height: 1.3; }
+.day[aria-pressed="true"] .day__free { color: #6EE7B7; }
+.day__free.is-none { color: var(--chrome-ink); }
+
+.slotgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.25rem, 1fr));
+  gap: var(--s2);
+}
+
+.timeslot {
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0.65rem 0.3rem;
+  background: var(--paper);
+  border: 1px solid rgba(20, 26, 46, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.timeslot:hover { border-color: var(--ink); }
+.timeslot[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+
+/* ---------- Summary line on the review step ----------------- */
+
+.recap {
+  background: var(--paper);
+  border-radius: 10px;
+  padding: var(--s4);
+  margin-bottom: var(--s5);
+  border: var(--edge);
+}
+.recap dl { margin: 0; }
+.recap .ticket__row:first-child { padding-top: 0; }
+
+/* ---------- Tabs (owner console) ---------------------------- */
+
+.tabs {
+  display: flex;
+  gap: var(--s1);
+  overflow-x: auto;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: var(--s5);
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  flex: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: var(--t-sm);
+  padding: var(--s3) var(--s4);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  color: var(--on-paper-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: var(--on-paper); }
+.tab[aria-selected="true"] { color: var(--on-paper); border-bottom-color: var(--signal); }
+
+/* ---------- Editable list rows (services, team, hours) ------ */
+
+.rows { border-top: 2px solid var(--ink); }
+
+.rowitem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--s3);
+  align-items: center;
+  padding: var(--s3) var(--s2);
+  border-bottom: var(--edge);
+}
+.rowitem.is-off { opacity: 0.5; }
+.rowitem__main { min-width: 0; }
+.rowitem__name { font-weight: 600; }
+.rowitem__meta { font-size: var(--t-xs); color: var(--on-paper-dim); margin-top: 2px; }
+.rowitem__actions { display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: flex-end; }
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(20, 26, 46, 0.08);
+  color: var(--on-paper-dim);
+  margin-right: var(--s1);
+}
+.tag--men   { background: #DDE7FA; color: #1E3A6E; }
+.tag--women { background: #FBE2EC; color: #7A1E46; }
+.tag--kids  { background: #FFF0D6; color: #7A5209; }
+.tag--unisex{ background: #E2F3EC; color: #0A5E42; }
+
+/* Compact inline form for adding a service / person */
+.miniform {
+  display: grid;
+  gap: var(--s3);
+  padding: var(--s4);
+  background: var(--paper);
+  border: var(--edge);
+  border-radius: 10px;
+  margin-bottom: var(--s5);
+}
+@media (min-width: 46rem) {
+  .miniform--wide { grid-template-columns: 2fr 1fr 1fr 1fr auto; align-items: end; }
+}
+.miniform .field { margin: 0; }
+
+/* Hours editor */
+.hourrow {
+  display: grid;
+  grid-template-columns: 3.5rem auto 1fr;
+  gap: var(--s3);
+  align-items: center;
+  padding: var(--s3) var(--s2);
+  border-bottom: var(--edge);
+}
+.hourrow__day { font-weight: 600; }
+.hourrow__times {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.hourrow__times input { width: 6.5rem; min-width: 0; }
+
+/* Two time fields, a word and a button do not fit beside a day name on a
+   phone, so the times drop to their own line. */
+@media (max-width: 34rem) {
+  .hourrow { grid-template-columns: 1fr auto; row-gap: var(--s2); }
+  .hourrow__times { grid-column: 1 / -1; }
+  .hourrow__times input { flex: 1 1 5.5rem; width: auto; }
+}
+.hourrow.is-closed .hourrow__times { opacity: 0.45; }
+
+/* Toggle */
+.toggle { display: inline-flex; align-items: center; gap: var(--s2); cursor: pointer; font-size: var(--t-sm); }
+.toggle input { width: 1.1rem; height: 1.1rem; accent-color: var(--ink); cursor: pointer; }
+
+/* ---------- Appointment list -------------------------------- */
+
+.appt {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  gap: var(--s4);
+  align-items: center;
+  padding: var(--s4) var(--s2);
+  border-bottom: var(--edge);
+}
+.appt.is-cancelled { opacity: 0.45; }
+.appt.is-cancelled .appt__name { text-decoration: line-through; }
+.appt.is-now { background: var(--go-dim); }
+
+.appt__time {
+  font-family: var(--display);
+  font-size: var(--t-lg);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.appt__name { font-weight: 600; font-size: var(--t-md); }
+.appt__meta { font-size: var(--t-xs); color: var(--on-paper-dim); margin-top: 2px; }
+.appt__actions { display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 40rem) {
+  .appt { grid-template-columns: 4rem 1fr; }
+  .appt__actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* The rows sit in a side column, so they have to respond to the column's
+   width rather than the window's: a viewport media query leaves them
+   squashed on a wide screen. */
+.apptwrap { container-type: inline-size; }
+
+@container (max-width: 32rem) {
+  .appt {
+    grid-template-columns: 1fr;
+    gap: var(--s2);
+    padding: var(--s4) var(--s2);
+  }
+  .appt__time { font-size: var(--t-md); }
+  .appt__actions { justify-content: flex-start; }
+}
+
+/* ---------- Month calendar ---------------------------------- */
+
+.cal { margin-bottom: var(--s5); }
+
+.cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+.cal__month { font-weight: 600; font-size: var(--t-lg); }
+
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--s1);
+}
+.cal__dow {
+  text-align: center;
+  font-size: var(--t-xs);
+  color: var(--on-paper-dim);
+  padding-bottom: var(--s1);
+}
+
+.cal__cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font: inherit;
+  background: var(--paper);
+  border: 1px solid rgba(20, 26, 46, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.cal__cell:hover:not(:disabled) { border-color: var(--ink); }
+.cal__cell[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.cal__cell:disabled { background: transparent; border-color: transparent; cursor: default; }
+.cal__cell.is-today { border-color: var(--signal); }
+
+.cal__num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: var(--t-sm); }
+.cal__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--go); }
+.cal__cell[aria-pressed="true"] .cal__dot { background: #6EE7B7; }
+.cal__count { font-size: 10px; color: var(--on-paper-dim); font-variant-numeric: tabular-nums; }
+.cal__cell[aria-pressed="true"] .cal__count { color: var(--on-ink-dim); }
+
+/* ---------- QR panel ---------------------------------------- */
+
+.qrwrap {
+  display: grid;
+  gap: var(--s5);
+  align-items: start;
+}
+@media (min-width: 46rem) { .qrwrap { grid-template-columns: auto 1fr; } }
+
+.qrcard {
+  background: var(--paper);
+  padding: var(--s5);
+  border-radius: var(--radius-ticket);
+  border: var(--edge);
+  text-align: center;
+  width: fit-content;
+}
+.qrcard svg { display: block; width: 13rem; height: 13rem; }
+.qrcard__cap {
+  margin-top: var(--s3);
+  font-size: var(--t-xs);
+  color: var(--on-paper-dim);
+  max-width: 13rem;
+}
+
+.urlbox {
+  display: flex;
+  gap: var(--s2);
+  align-items: stretch;
+}
+.urlbox input {
+  font-size: var(--t-sm);
+  background: var(--porcelain);
+}
+
+/* Print just the QR, for a counter sign */
+@media print {
+  body { background: #fff; }
+  .bar, .tabs, .btn, .step__back, .urlbox { display: none !important; }
+  .qrcard { border: 0; box-shadow: none; }
+  .qrcard svg { width: 60vw; height: 60vw; }
+}
+
+/* ---------- Board header (back nav on the TV page) ---------- */
+
+.board__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+}
+.board__nav a {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--on-ink-dim);
+  text-decoration: none;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-control);
+  transition: color 0.15s, border-color 0.15s;
+}
+.board__nav a:hover { color: var(--on-ink); border-color: var(--chrome); }
+
+/* Hide the chrome when the board is actually on a wall */
+.board.is-kiosk .board__nav { display: none; }
+
+/* ---------- Shop switcher ----------------------------------- */
+
+.shoppick { display: grid; gap: var(--s3); max-width: 28rem; margin: 0 auto; }
+
+/* Slot grid, grouped by part of the day so a long list stays scannable */
+.slotgroup + .slotgroup { margin-top: var(--s4); }
+.slotgroup__head {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--on-paper-dim);
+  margin-bottom: var(--s2);
 }

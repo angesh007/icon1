@@ -1,47 +1,132 @@
-# ICON — Live Salon Waitlist
+# ICON — Salon queue & bookings
 
-A walk-in waitlist for a hair salon, built as static HTML with
-[Supabase](https://supabase.com) Realtime. No framework, no build step beyond a
-tiny script that writes your keys into a config file.
+A walk-in queue **and** an appointment calendar for local service shops, built as
+static HTML with [Supabase](https://supabase.com). One deployment serves many
+shops across several categories; each shop gets its own link and QR code.
 
-Everything is organised around one object: **the ticket**. Customers take a
-numbered ticket from their phone, the lobby TV shows who's up, and the front
-desk works the line.
+```
+ICON
+├── barbers       -> Fade Factory, The Barber Room, Crown Cuts
+├── nail-salon    -> Polish Bar, Luxe Nails, The Nail Studio
+└── car-wash      -> Shine Express, Aqua Detail, Foam Garage
+```
 
-| Page | Who uses it | What it does |
+A customer arriving without a shop in the URL browses that tree: category, then
+shop, then book. A customer scanning a shop's QR code lands straight on it and
+never sees the directory.
+
+| Page | Who | What it does |
 |---|---|---|
-| `index.html` | Customers | Live wait, take a ticket, pick a time, watch their place update |
-| `tv.html` | Lobby TV | Now serving and up next, at wall scale |
+| `index.html` | Customers | Tap through: queue now or book later, who it's for, service, time |
+| `tv.html` | Lobby screen | Now serving and up next, with a back link and kiosk mode |
 | `login.html` | Staff | Sign in with a staff ID and password |
-| `admin.html` | Front desk | Register walk-ins, call people to the chair, finish or remove them |
+| `admin.html` | Shop owner | Line, calendar, services, team, hours, QR code, settings |
 
-All screens stay in sync over a websocket.
+Everything is organised around one object: the ticket. Walk-ins get a number;
+bookings get a time.
 
 ---
 
 ## Quick start
 
 ```bash
-# 1. Run the database setup — paste schema.sql into
-#    Supabase Dashboard -> SQL Editor -> New query -> Run
+# 1. Database: paste schema.sql into Supabase -> SQL Editor -> Run
+#    EDIT SECTION 13 FIRST — change the default admin password
 
-# 2. Set your keys
-cp .env.example .env
-#    ...open .env and fill in SUPABASE_URL and SUPABASE_KEY...
+# 2. Demo data (optional, recommended for testing):
+#    paste seed-demo.sql -> Run.  Nine shops with their own teams.
 
-# 3. Generate config.js from .env
+# 3. Keys
+cp .env.example .env     # fill in SUPABASE_URL and SUPABASE_KEY
 npm run config
 
-# 4. Serve the folder
-npm start          # -> http://localhost:3000
+# 4. Serve
+npm start                # -> http://localhost:3000
 ```
 
-Then sign in at <http://localhost:3000/login.html> with the staff ID and
-password you set in step 9 of `schema.sql`.
+Open `/` to browse the directory, or sign in at `/login.html` and print the QR
+code from the **QR code** tab.
 
-> **Serve over HTTP, don't open the files directly.** `file:///…` breaks
-> `config.js` loading and websockets. `npm start`, `python3 -m http.server 3000`
-> or VS Code Live Server all work.
+> Serve over HTTP. Opening `file:///…` breaks `config.js` and websockets.
+
+---
+
+## Demo data
+
+`seed-demo.sql` creates nine shops — three per category — each with its own
+team, service menu, opening hours and owner login. It is idempotent, so
+re-running it updates rather than duplicating.
+
+| Category | Shops | Team sizes |
+|---|---|---|
+| Barbers | Fade Factory, The Barber Room, Crown Cuts | 3, 2, 4 |
+| Nail salons | Polish Bar, Luxe Nails, The Nail Studio | 3, 2, 4 |
+| Car wash | Shine Express, Aqua Detail, Foam Garage | 2, 3, 1 |
+
+Logins are `fade`, `room`, `crown`, `polish`, `luxe`, `studio`, `shine`, `aqua`,
+`foam` — all with the password `Demo@2026`. Plus `imran`, a **stylist** at Fade
+Factory, for checking the role restrictions.
+
+It also seeds a few walk-ins and bookings so the screens aren't empty, varies
+the settings (Crown Cuts, Luxe Nails and Aqua Detail require a phone number;
+car washes open all week while the others close Mondays), and prints a summary
+table when it finishes.
+
+**Delete these before real customers.** The removal SQL is at the bottom of the
+file.
+
+
+## What's new in v3
+
+- **Many shops, one deployment.** Each shop has a `slug`; customers land on
+  `?shop=<slug>`. An owner signs in and sees only their own shop.
+- **Services with an audience.** Men / women / kids / unisex, each with its own
+  duration and price. Customers tap "Who's it for?" then pick from a menu.
+- **Appointments.** A real calendar with slots computed from opening hours, team
+  size and existing bookings. Walk-in queue still works alongside it.
+- **Owner self-service.** Add services, team, opening hours and closures from the
+  console. No SQL needed after setup.
+- **QR code generator.** Drawn on the device, printable, downloadable.
+- **Phone numbers optional**, with a per-shop toggle to require them.
+- **Board has a header and a back link** — it used to be a dead end.
+- **A category directory**: barbers, nail salons and car washes, browsable when
+  no shop is named in the URL.
+- **A month calendar** for both the customer and the owner, so today and every
+  date in the booking window are reachable — the old day strip hid anything past
+  the next fortnight.
+- **The desk can take a phone booking** for any future date from the calendar
+  tab, using the same availability the customer sees.
+
+---
+
+## The customer flow
+
+Tap-first. The only typing is a name (and optionally a phone and a note).
+
+```
+no ?shop= ──> Category ──> Shop ──┐
+                                  │
+?shop=slug (QR) ──────────────────┤
+                                  v
+            ┌─ Join the queue now ──┐
+Shop page ──┤                       ├── Who's it for? ── Service ──┐
+            └─ Book a slot later ───┘         (skipped if only      │
+                                               one applies)        │
+                                                                   │
+   queue ───────────────────────────────────────────────────────────┤
+                                                                   │
+   book ──── Month calendar ── Time ─────────────────────────────────┤
+                                                                   │
+                                            Name (+ optional phone) ┘
+                                                        │
+                              ┌─────────────────────────┴──────────┐
+                              │                                    │
+                     live ticket, updating            booking confirmation
+                     with position and ETA            with a reference code
+```
+
+Both outcomes persist in the browser, so reopening the link shows the live
+ticket or the booking rather than starting over.
 
 ---
 
@@ -49,169 +134,230 @@ password you set in step 9 of `schema.sql`.
 
 ### 1. Create a Supabase project
 
-1. <https://supabase.com/dashboard> → **New project**.
-2. Name it, set a database password, pick a region near the salon.
-3. Wait ~2 minutes to provision.
+<https://supabase.com/dashboard> → **New project**. Pick a region near the shops.
 
 ### 2. Run `schema.sql`
 
-**SQL Editor → New query →** paste all of [`schema.sql`](./schema.sql) **→ Run.**
+**SQL Editor → New query →** paste all of [`schema.sql`](./schema.sql) → **Run**.
 
-It is safe to run on a fresh project *or* over an existing v1 install — see
-[Upgrading](#upgrading-from-v1). It is idempotent, so re-running is harmless.
-
-Before you run it, scroll to **section 9** and change the admin password:
+Safe on a fresh project *or* over a v1/v2 install — it migrates in place and is
+idempotent. Before running, edit **section 13** and change the password:
 
 ```sql
 insert into public.admins (admin_id, password_hash, display_name, salon_id, role)
-values (
-  'admin',                                    -- the staff ID they type
-  crypt('ChangeMe123!', gen_salt('bf', 12)),  -- <- CHANGE THIS
-  'Front Desk', 1, 'owner'
-);
+values ('admin', crypt('ChangeMe123!', gen_salt('bf', 12)), 'Front Desk', 1, 'owner');
 ```
 
-`crypt()` hashes it right there in the database, so the plain text is never
-stored anywhere.
+`crypt()` hashes it in the database, so the plain text is never stored.
 
-### 3. Find your two keys
+### 3. Your two keys
 
 | Variable | Where |
 |---|---|
 | `SUPABASE_URL` | Settings → **Data API** → *Project URL* |
-| `SUPABASE_KEY` | Settings → **API Keys** → *Publishable key* (older projects: *anon public*) |
+| `SUPABASE_KEY` | Settings → **API Keys** → *Publishable key* |
 
-Direct link: `https://supabase.com/dashboard/project/<your-ref>/settings/api-keys`
+`https://supabase.com/dashboard/project/<your-ref>/settings/api-keys`
 
-### 4. Fill in `.env`
+**There is no third key.** Staff passwords live in the `admins` table and are
+checked inside Postgres. Never put the secret / service_role key in this project.
+
+### 4. `.env` → `config.js`
 
 ```env
 SUPABASE_URL=https://abcdefghijklmnop.supabase.co
 SUPABASE_KEY=sb_publishable_xxxxxxxxxxxxx
-
-SALON_ID=1
-MINUTES_PER_CLIENT=15
-ACTIVE_CHAIRS=1
+SALON_ID=1              # fallback shop when no ?shop= is given
 ```
-
-### 5. Build `config.js`
 
 ```bash
 npm run config
 ```
 
-Browsers can't read `.env`, so this writes the values into `config.js`, which the
-pages load with a `<script>` tag. Re-run it whenever `.env` changes. It also
-refuses to write a secret key into a browser file.
-
-**No Node?** `cp config.example.js config.js` and edit it by hand.
+Browsers can't read `.env`, so this writes the values into `config.js`. On Vercel
+the build does it from the dashboard's environment variables instead.
 
 ---
 
-## About the keys
+## Adding a shop
 
-| Key | Name in dashboard | Safe in the browser? |
-|---|---|---|
-| Publishable | **Publishable key** / anon public | **Yes** — designed for it |
-| Secret | **Secret key** / service_role | **Never.** Bypasses all security |
-
-The publishable key is meant to ship in frontend code. What protects your data is
-Row Level Security plus the database functions in `schema.sql` — not the secrecy
-of this key. **There are no other keys to add**: no API key, no admin key, no
-service key. Those two values are everything the app needs.
-
-`.env` and `config.js` are both in `.gitignore`. Keep it that way.
-
----
-
-## How staff login works
-
-You asked for a custom `admins` table with a staff ID and password, and that's
-what this is — no email addresses, your own table. One thing is done differently
-than a naive version, deliberately:
-
-**The password is verified inside Postgres, not in the browser.** A page that
-compares passwords itself has to read the stored hash to do it, which means
-anyone can read your `admins` table, or simply skip the check in devtools. So
-instead:
-
-- `admins` and `admin_sessions` have **RLS on and no policies at all**. Every
-  direct query from a browser returns zero rows. Password hashes are unreachable.
-- `admin_login(staff_id, password)` is a `SECURITY DEFINER` function. It hashes
-  with `pgcrypto` bcrypt (cost 12), compares server-side, and on success returns
-  a random session token.
-- Every staff action — reading phone numbers, calling someone to the chair,
-  clearing the line — goes through a function that takes that token and checks
-  it. `waitlists` has **no insert, update or delete policy**, so there is no way
-  to change the queue from a browser except through those functions.
-
-Also built in:
-
-- The same "Incorrect staff ID or password" message whether the ID exists or not,
-  so the login can't be used to discover valid staff IDs.
-- Five wrong attempts locks the account for 15 minutes.
-- Sessions expire after 12 hours; signing out deletes the token server-side.
-- `stylist` can work the line. Only `manager` and `owner` can clear it.
-
-### Managing staff
+Two inserts. The next run of `schema.sql` gives it a default week and a starter
+service menu, or just re-run the whole file.
 
 ```sql
--- add someone
+with s as (
+  insert into public.salons (name, slug, kind, address, active_chairs, phone_required)
+  values ('ICON Koramangala', 'koramangala', 'nails', '5th Block, Koramangala', 3, false)
+  returning id
+)
 insert into public.admins (admin_id, password_hash, display_name, salon_id, role)
-values ('ravi', crypt('a-good-password', gen_salt('bf', 12)), 'Ravi', 1, 'stylist');
-
--- reset a password
-update public.admins
-   set password_hash = crypt('new-password', gen_salt('bf', 12)),
-       failed_attempts = 0, locked_until = null
- where lower(admin_id) = 'ravi';
-
--- unlock after 5 bad attempts
-update public.admins set failed_attempts = 0, locked_until = null
- where lower(admin_id) = 'ravi';
+select 'kora', crypt('a-strong-password', gen_salt('bf', 12)), 'Koramangala Desk', s.id, 'owner'
+  from s;
 ```
 
-Staff can also change their own password in-app via
-`ICON.admin.changePassword(current, next)`.
+That shop is now at `?shop=koramangala`, and `kora` sees only its data. The owner
+prints their own QR code from the console.
 
-Staff IDs are case-insensitive — `Ravi` and `ravi` are the same login.
+`category` is what the directory groups by: `barbers`, `nail-salon` or
+`car-wash`. `kind` (`barber`, `salon`, `nails`, `spa`, `carwash`) is just a
+label. Neither changes behaviour — every shop gets both the queue and the
+calendar. Owners can move their own shop between categories in the Shop tab.
+
+To add a category, insert a row into `categories` and it appears in the
+directory as soon as a shop points at it:
+
+```sql
+insert into public.categories (slug, name, tagline, sort_order)
+values ('pet-grooming', 'Pet grooming', 'Wash, clip and nails', 4);
+```
 
 ---
 
-## The time section
+## How slots are worked out
 
-Two different things, both on the check-in form:
+`available_slots()` returns only **free** start times, so no customer ever learns
+who else is booked:
 
-**What the customer sees.** Position in line and an estimated clock time,
-recomputed live from the queue:
+1. Start from that weekday's opening hours. Closed day, or a date in
+   `salon_closures` → no slots.
+2. Step through the day in `slot_minutes` steps (default 30).
+3. Drop any start where the service wouldn't finish before closing — a 75-minute
+   service in a shop closing at 19:00 stops being offered at 17:30.
+4. Capacity per slot = number of active team members. Subtract overlapping
+   bookings. Nothing left → the slot disappears.
+5. Hide anything sooner than `lead_minutes` from now.
 
-```
-ceil(people_ahead / ACTIVE_CHAIRS) × MINUTES_PER_CLIENT
-```
+So **the team list is the capacity**: three active people means three bookings per
+slot. Marking someone away immediately narrows availability.
 
-Six people across three chairs is two rounds — 30 minutes, not 90. Nothing is
-stored, so the estimate can't go stale.
+Booking takes a per-shop advisory lock and re-checks availability inside the
+transaction, so two people tapping the last slot at the same moment can't both
+get it — the second sees "That time has just been taken."
 
-**What the customer adds.** An optional preferred time, offered as the next few
-half-hour slots after the current wait. Picking one stores `preferred_time` on
-the ticket and shows it to the front desk ("asked for 7:30 pm"). The default,
-*As soon as possible*, leaves it `NULL`.
-
-A preferred time is a request, not a booking — it doesn't reorder the queue. If
-you want real appointment slots with per-stylist availability, that's a different
-feature and a bigger change.
+The walk-in wait estimate is separate:
+`ceil(people_waiting / active_chairs) × avg_service_minutes`.
 
 ---
 
-## Tuning
+## The owner console
 
-In `.env`, then re-run `npm run config`:
-
-| Variable | Default | Effect |
+| Tab | What it's for | Who |
 |---|---|---|
-| `SALON_ID` | `1` | Which `salons` row this install serves |
-| `MINUTES_PER_CLIENT` | `15` | Average haircut length |
-| `ACTIVE_CHAIRS` | `1` | Chairs running now |
+| **The line** | Today's walk-ins, call to chair, finish, remove, walk-in desk | everyone |
+| **Calendar** | Month grid with booking counts; per-day list; take a booking for any future date; arrived → in chair → finished | everyone |
+| **Services** | Add and edit services: audience, type, duration, price | manager/owner |
+| **Team** | Add people, mark away. This sets booking capacity | manager/owner |
+| **Hours** | Per-weekday open/close, plus days closed | manager/owner |
+| **QR code** | Print, download, copy the link | everyone |
+| **Shop** | Name, address, category, phone-required toggle, slot size, notice, booking window, own password | manager/owner |
+
+A `stylist` sees only The line, Calendar and QR code — and the restriction is
+enforced in the database, not just hidden in the UI.
+
+Prices are entered in rupees and stored as paise (`price_minor`), so there's no
+floating-point drift. Change `currency` on the `salons` row for other symbols.
+
+Services and team members are never deleted, only switched off, so old bookings
+keep their names.
+
+---
+
+## Optional phone numbers
+
+Off by default: a customer can join the queue or book with just a name. Turn
+**Mobile number required** on in the Shop tab for a shop that needs to call
+people. Either way a number that *is* entered must be 10–15 digits.
+
+Duplicate protection only applies when there's a number to compare, so several
+anonymous walk-ins are fine.
+
+---
+
+## Deploying to Vercel
+
+`config.js` is gitignored, so Vercel generates it at build time. Both pieces ship
+in the project already: `vercel.json` sets the build command, and `package.json`
+has a matching `build` script.
+
+1. Push to GitHub, import in Vercel, framework preset **Other**.
+2. **Settings → Environment Variables** — add `SUPABASE_URL` and `SUPABASE_KEY`,
+   ticking **Production**, **Preview** and **Development**.
+3. Deploy. The log should show `✓ Wrote config.js  (hosted build)`.
+
+> **Environment variables are read at build time.** Adding one does not fix a
+> finished deployment — redeploy with "Use existing Build Cache" unticked.
+
+Check `https://your-app.vercel.app/config.js` shows your `window.ICON_CONFIG`.
+A 404 means the build command didn't run.
+
+### The lobby screen
+
+`tv.html?shop=<slug>&kiosk=1` hides the navigation for a wall display. Press
+**Escape** to bring it back. The board reconnects on its own and polls every 30
+seconds if the websocket drops.
+
+---
+
+## Data model
+
+```
+categories ── salons
+
+salons ──┬── salon_hours          (one row per weekday)
+         ├── salon_closures       (one-off closed dates)
+         ├── staff                (= booking capacity)
+         ├── services ── staff_services
+         ├── waitlists ────────── waitlist_contacts      (phones, staff-only)
+         ├── appointments ─────── appointment_contacts   (phones, staff-only)
+         └── admins ───────────── admin_sessions
+```
+
+`waitlists` is the only table a browser reads directly, because Realtime needs
+table-level read access to deliver change events. **Realtime filters rows by RLS
+but not columns**, so anything left on that table is readable by every visitor —
+which is why phone numbers live in separate tables no browser can read at all,
+and why `appointments` has no read policy. Customers see availability through
+`available_slots()` and their own booking through a `lookup_code`.
+
+States:
+
+```
+waiting ──[Call to chair]──> in_chair ──[Finished]──> done
+booked ──[Arrived]──> arrived ──[In the chair]──> in_chair ──[Finished]──> done
+   │                                                   │
+   └──────────────[Cancel]─────────────────────────────┴──> cancelled / no_show
+```
+
+Nothing is hard-deleted. Ticket numbers restart daily per shop, allocated under
+an advisory lock.
+
+---
+
+## Security
+
+What's in place:
+
+- Password hashes, session tokens, phone numbers and the whole `appointments`
+  table are unreachable from any browser — RLS on with no policy, plus explicit
+  `revoke`, so even with RLS accidentally disabled the grants still block it.
+- Every write goes through a `SECURITY DEFINER` function that checks a session
+  token and scopes to the signed-in shop. Verified: owner A cannot read, change
+  or cancel anything belonging to shop B.
+- Role checks live in the database. A `stylist` calling `admin_service_save`
+  directly is refused.
+- Everything rendered goes through `ICON.esc()`.
+- The lobby board shows a first name and last initial only.
+- Login is rate-limited (5 attempts → 15 minutes) and doesn't reveal which staff
+  IDs exist.
+- QR codes are generated on-device; the shop's URL never goes to a third party.
+
+Worth knowing:
+
+- The session token lives in `localStorage`. Standard for a backend-less app, but
+  it means the output escaping is load-bearing — keep `ICON.esc()` if you edit.
+- `check_in` and `book_appointment` are public by design, so someone could script
+  fake bookings. Add a captcha in front of them if that becomes real.
+- Sessions last 12 hours and are not sliding.
 
 ---
 
@@ -219,161 +365,21 @@ In `.env`, then re-run `npm run config`:
 
 ```
 ICON/
-├── index.html           Customer check-in and live ticket
+├── index.html           Customer wizard
 ├── tv.html              Lobby board
 ├── login.html           Staff sign-in
-├── admin.html           Front desk console
+├── admin.html           Owner console (7 tabs)
 ├── icon.css             The whole design system
-├── icon.js              Client, auth, queue maths, realtime
+├── icon.js              Client, shop resolution, slots, auth, owner CRUD
+├── schema.sql           Tables, functions, RLS, realtime, first owner
+├── seed-demo.sql        Nine demo shops with their own teams
+├── vendor/qrcode.js     Vendored QR encoder (MIT) — no CDN needed
 ├── config.example.js    Manual config template
 ├── config.js            GENERATED — gitignored
-├── .env.example         Env template with key-finding instructions
-├── .env                 Your keys — gitignored
-├── schema.sql           Tables, functions, RLS, realtime, first admin
-├── vercel.json          Tells Vercel to run the config build
-├── scripts/
-│   └── build-config.js  .env (or process.env) -> config.js
-└── package.json
+├── .env.example         Env template
+├── vercel.json          Build command for Vercel
+└── scripts/build-config.js
 ```
-
-`icon.js` holds everything shared: the Supabase client, HTML escaping, phone
-formatting, the wait maths, the realtime subscription with its polling fallback,
-and the `ICON.auth` / `ICON.admin` wrappers around the database functions.
-
----
-
-## Data model
-
-```
-salons ──┬── waitlists ─── waitlist_contacts   (phone numbers, staff-only)
-         └── admins ─── admin_sessions
-```
-
-`waitlists` is the only table a browser reads directly, because Realtime needs
-table-level read access to deliver change events. **Realtime filters rows by RLS
-but not columns** — anyone who can see a row receives every column over the
-websocket. So phone numbers live in `waitlist_contacts`, which no browser can
-read at all; staff get them through `admin_queue()`.
-
-A ticket moves through four states:
-
-```
-waiting ──[Call to chair]──> in_chair ──[Finished]──> done
-   │                             │
-   └─────────[Remove]────────────┴─────────────────> cancelled
-```
-
-Nothing is ever hard-deleted, so you keep a full day's history. Only `waiting`
-and `in_chair` rows from today appear on screen.
-
-Ticket numbers restart at 1 each day per salon, allocated under an advisory lock
-so two simultaneous check-ins can't collide. One active ticket per phone number
-per day.
-
----
-
-## Upgrading from v1
-
-Run `schema.sql`. It detects the old shape and migrates in place:
-
-- adds `ticket_no`, `service_date` and `preferred_time` to `waitlists`
-- backfills `service_date` from `join_time`, and numbers existing tickets per day
-  in join order
-- creates `waitlist_contacts`, copies every `phone_number` across, then drops the
-  old column
-- drops the permissive v1 `dev open *` policies
-- creates `admins`, `admin_sessions` and all the functions
-
-No rows are deleted and it's safe to re-run. This was tested against a seeded v1
-database: all rows survived with correct per-day ticket numbers.
-
-Your old `admin.html` bookmark now redirects to `login.html`.
-
----
-
-## Deploying to Vercel
-
-`config.js` is gitignored, so it isn't in your repo — Vercel generates it during
-the build. Two things make that work, both already in the project:
-
-- `vercel.json` sets the build command to `node scripts/build-config.js` and the
-  output directory to `.`
-- `package.json` has a matching `build` script
-
-`build-config.js` reads real environment variables first and falls back to `.env`,
-so the same script works locally and in a hosted build.
-
-### Steps
-
-1. Push to GitHub.
-2. Vercel → **Add New → Project**, import the repo, framework preset **Other**.
-   Leave the build settings alone; `vercel.json` handles them.
-3. **Settings → Environment Variables** — add these two, spelled exactly:
-
-   | Name | Value |
-   |---|---|
-   | `SUPABASE_URL` | `https://<your-ref>.supabase.co` |
-   | `SUPABASE_KEY` | your **publishable** key |
-
-   Tick **Production**, **Preview** and **Development** for both. Optionally add
-   `SALON_ID`, `MINUTES_PER_CLIENT`, `ACTIVE_CHAIRS`.
-4. **Deploy.** The build log should show:
-
-   ```
-   ✓ Wrote config.js  (hosted build)
-     SUPABASE_URL : https://....supabase.co   [from environment]
-     SUPABASE_KEY : sb_publi…xxxx   [from environment]
-   ```
-
-> **Environment variables are read at build time.** Adding or editing one does
-> not fix a deployment that already finished — you must redeploy:
-> **Deployments → ⋯ → Redeploy**, with "Use existing Build Cache" unticked.
-
-### Verify
-
-Open `https://your-app.vercel.app/config.js`. You should see your
-`window.ICON_CONFIG = { … }`. A 404 means the build command didn't run — check
-the build log for the `✓ Wrote config.js` line.
-
-If a variable name is misspelled, the build log says so and lists the names it
-can actually see.
-
-### Netlify
-
-Build command `node scripts/build-config.js`, publish directory `.`, same two
-variables under **Site configuration → Environment variables**.
-
-### Lobby TV
-
-Point a browser at `tv.html` fullscreen (`F11`) with sleep disabled. A Raspberry
-Pi in kiosk mode works well. The board reconnects on its own and refreshes every
-30 seconds even if the websocket drops.
-
----
-
-## Security notes
-
-What's in place:
-
-- Password hashes, session tokens and phone numbers are unreachable from any
-  browser (RLS enabled, no policies, functions only).
-- The queue cannot be modified without a valid session token — there is no
-  insert/update/delete policy on `waitlists` at all.
-- Every value rendered to a page goes through `ICON.esc()`, so a customer who
-  checks in as `<img onerror=…>` shows up as text, not script.
-- The lobby board shows a first name and last initial, never a phone number or
-  cut notes.
-- Login is rate-limited and doesn't leak which staff IDs exist.
-
-Worth knowing:
-
-- The session token is kept in `localStorage`. That's standard for an app with no
-  backend, but it means a browser extension or an XSS hole could read it. The
-  escaping above is what keeps that shut; keep it in place if you edit the pages.
-- `check_in` is open to the public by design, so someone could script fake
-  tickets. The one-per-phone-per-day rule limits it. If it becomes a problem, add
-  a captcha (Cloudflare Turnstile) in front of `check_in`.
-- Sessions last 12 hours and are not sliding. A long shift means signing in again.
 
 ---
 
@@ -381,33 +387,36 @@ Worth knowing:
 
 | What you see | Cause | Fix |
 |---|---|---|
-| Red bar: "config.js is missing or empty" | No `config.js` | `cp .env.example .env`, fill it in, `npm run config` |
-| Red bar **only on Vercel** | `config.js` never generated in the build | Confirm `vercel.json` is committed, then **redeploy** |
-| Red bar: "supabase-js did not load" | No internet, or CDN blocked | Check the `<script>` tag in `<head>` |
-| Build log: "No .env file found" | Old `build-config.js` | Use the version that reads `process.env` |
-| Login says "Incorrect staff ID or password" with the right one | Admin row never created, or locked out | Run section 9 of `schema.sql`; check `locked_until` |
-| "function admin_login does not exist" | `schema.sql` didn't finish | Re-run it; check for errors in the SQL Editor |
-| Signed in, but the queue is empty and the console shows 42501 | Grants missing | Re-run section 7 of `schema.sql` |
-| Updates take 30s instead of being instant | Realtime not enabled | Re-run section 8, or Database → Replication → add `waitlists` |
-| "relation public.waitlists does not exist" | Schema never ran | Run `schema.sql` |
-| Check-in says "already has a ticket today" | Working as intended | Finish or remove that person first |
-| Everything unstyled | Opened via `file://` | Serve over HTTP — `npm start` |
+| "config.js is missing or empty" | No `config.js` | `npm run config`, or set Vercel env vars and redeploy |
+| Red bar only on Vercel | Build didn't generate config | Check `vercel.json` is committed, then redeploy |
+| "function crypt(text, text) does not exist" | pgcrypto not on the function's search path | Re-run `schema.sql` — section 0 handles this |
+| "Shop not found" | Bad or missing `?shop=` slug | `select slug from salons;` and use one of those |
+| No slots on any day | No active team, or hours closed | Add someone in **Team**; check **Hours** |
+| Slots stop early in the day | Service too long to finish before closing | Expected — shorten it or extend hours |
+| Login refused with the right password | Admin row missing, or locked out | Run section 13; check `locked_until` |
+| Signed in but empty, console shows 42501 | Grants missing | Re-run section 11 of `schema.sql` |
+| Queue updates take 30s | Realtime not enabled | Re-run section 12, or Database → Replication |
+| QR tab says the library didn't load | `vendor/` not deployed | Confirm `vendor/qrcode.js` is committed |
+| Everything unstyled | Opened via `file://` | Serve over HTTP |
+| Directory shows nothing | No shop has a category, or none are open | `select slug, category, is_open from salons;` |
+| A category is missing from the list | It has no open shops | The directory hides empty categories |
+| "Unknown shop type: carwash" | Running a pre-v3.1 `schema.sql` | Re-run the current one |
+| Next month greyed out on the calendar | Past the shop's booking window | Raise **How far ahead** in the Shop tab |
 
-Every error also prints to the browser console with an `[ICON]` prefix.
+Errors print to the browser console with an `[ICON]` prefix.
 
 ---
 
 ## Design
 
-A ticket, not a dashboard. The palette is barber-pole DNA cooled off — enamel ink
-`#141A2E`, porcelain `#EDEEF0`, chrome, one barber red `#D8232A` reserved for
-"pay attention", one green `#0F9B6C` for "moving". Anton sets the ticket numerals
-and the wordmark; Archivo with tabular figures does everything else, so numbers
-don't wobble as they tick over. The only thing that animates on its own is a
-ticket being issued.
+A ticket, not a dashboard. Enamel ink `#141A2E`, cool porcelain `#EDEEF0`,
+chrome, one barber red `#D8232A` for *attention* and one green `#0F9B6C` for
+*moving*. Anton sets ticket numerals and the wordmark; Archivo with tabular
+figures does everything else so numbers don't wobble as they tick. The only
+unprompted animation is a ticket being issued.
 
 ---
 
 ## License
 
-MIT
+MIT. `vendor/qrcode.js` is qrcode-generator by Kazuhiko Arase, also MIT.

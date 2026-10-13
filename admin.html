@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ICON — The chair</title>
+<title>ICON — Shop console</title>
 <meta name="robots" content="noindex">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,80 +11,30 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="./icon.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="./vendor/qrcode.js"></script>
 <style>
-  /* Nothing renders until we know who is signed in. */
   body[data-gate="pending"] .gated { visibility: hidden; }
 </style>
 </head>
 <body data-gate="pending">
 
 <header class="bar">
-  <span class="wordmark">Icon</span>
+  <span class="wordmark" id="shopName">Icon</span>
   <nav>
-    <a href="./admin.html" aria-current="page">The chair</a>
-    <a href="./tv.html" target="_blank" rel="noopener">Board</a>
-    <span class="muted" style="color: var(--on-ink-dim); font-size: var(--t-sm);" id="who"></span>
-    <button class="btn btn--quiet" id="signOutBtn"
-            style="color: var(--on-ink); border-color: var(--ink-line); padding: 0.35rem 0.7rem; font-size: var(--t-sm);">
+    <a href="#" id="viewLink" target="_blank" rel="noopener">Customer view</a>
+    <a href="#" id="boardLink" target="_blank" rel="noopener">Board</a>
+    <span class="muted" style="color:var(--on-ink-dim);font-size:var(--t-sm);" id="who"></span>
+    <button class="btn btn--quiet" id="signOut"
+            style="color:var(--on-ink);border-color:var(--ink-line);padding:0.35rem 0.7rem;font-size:var(--t-sm);">
       Sign out
     </button>
   </nav>
 </header>
 
 <main class="shell gated">
-  <div class="split">
-
-    <!-- ============ Queue ============ -->
-    <section>
-      <div class="spread" style="margin-bottom: var(--s4);">
-        <div>
-          <h1 style="font-size: var(--t-xl);">Today's line</h1>
-          <p class="muted" style="margin: var(--s1) 0 0; font-size: var(--t-sm);" id="summary">Loading…</p>
-        </div>
-        <button class="btn btn--danger" id="purgeBtn" hidden>Clear the line</button>
-      </div>
-
-      <p class="msg msg--bad" id="queueMsg" hidden></p>
-
-      <div class="queue" id="queue"></div>
-    </section>
-
-    <!-- ============ Walk-in desk ============ -->
-    <aside>
-      <form class="ticket" id="walkInForm">
-        <div class="ticket__head">
-          <span class="label">Walk-in desk</span>
-        </div>
-        <div class="ticket__stub">
-          <p class="msg msg--bad" id="deskMsg" hidden></p>
-
-          <div class="field">
-            <label for="custName">Name</label>
-            <input type="text" id="custName" required maxlength="80" placeholder="John Doe">
-          </div>
-
-          <div class="field">
-            <label for="custPhone">Mobile number</label>
-            <input type="tel" id="custPhone" required placeholder="(404) 555-0199">
-          </div>
-
-          <div class="field">
-            <label for="custNotes">Cut notes
-              <span class="help">Optional.</span>
-            </label>
-            <textarea id="custNotes" maxlength="500" placeholder="#4 guard fade, trim the top"></textarea>
-          </div>
-
-          <div class="field">
-            <label id="deskWhenLabel">Coming in</label>
-            <div class="slots" id="deskSlots" role="group" aria-labelledby="deskWhenLabel"></div>
-          </div>
-
-          <button type="submit" class="btn btn--block btn--lg btn--go" id="addBtn">Add to the line</button>
-        </div>
-      </form>
-    </aside>
-  </div>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <p class="msg msg--bad" id="topMsg" hidden></p>
+  <div id="panel"></div>
 </main>
 
 <script src="./config.js"></script>
@@ -95,97 +45,66 @@
   if (!window.ICON) return;
   var ICON = window.ICON;
 
-  var queueEl = document.getElementById('queue');
-  var summaryEl = document.getElementById('summary');
-  var queueMsg = document.getElementById('queueMsg');
-  var deskMsg = document.getElementById('deskMsg');
-  var addBtn = document.getElementById('addBtn');
-  var deskSlots = document.getElementById('deskSlots');
-  var purgeBtn = document.getElementById('purgeBtn');
+  var panel = document.getElementById('panel');
+  var tabsEl = document.getElementById('tabs');
+  var topMsg = document.getElementById('topMsg');
 
-  var staff = null;
-  var deskTime = null;
+  var TABS = [
+    { id: 'line',     label: 'The line' },
+    { id: 'calendar', label: 'Calendar' },
+    { id: 'services', label: 'Services', manager: true },
+    { id: 'team',     label: 'Team',     manager: true },
+    { id: 'hours',    label: 'Hours',    manager: true },
+    { id: 'qr',       label: 'QR code' },
+    { id: 'shop',     label: 'Shop',     manager: true }
+  ];
 
-  function say(el, text, good) {
-    el.textContent = text;
-    el.hidden = !text;
-    el.className = 'msg ' + (good ? 'msg--good' : 'msg--bad');
+  var S = {
+    staff: null, shop: null, tab: 'line',
+    queue: [], appts: [], apptDay: ICON.dateKey(new Date()),
+    calMonth: null, counts: {},
+    services: [], team: [], hours: [], closures: [],
+    deskTime: null, deskService: null,
+    editService: null, editStaff: null,
+    bookSlots: null, bookService: null, bookStaff: null, bookSlot: null, bookOpen: false
+  };
+
+  var AUD = ['men', 'women', 'kids', 'unisex'];
+  var CAT = ['hair', 'beard', 'nails', 'skin', 'spa', 'other'];
+  var KINDS = ['barber', 'salon', 'nails', 'spa', 'carwash'];
+  var CATEGORIES = [
+    { slug: 'barbers',    name: 'Barbers' },
+    { slug: 'nail-salon', name: 'Nail salons' },
+    { slug: 'car-wash',   name: 'Car wash' }
+  ];
+
+  /* ---------- Helpers ---------- */
+
+  function say(text, good) {
+    topMsg.textContent = text || '';
+    topMsg.hidden = !text;
+    topMsg.className = 'msg ' + (good ? 'msg--good' : 'msg--bad');
+    if (text) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function bounceToLogin() {
-    location.replace('./login.html?next=admin.html');
-  }
+  function bounce() { location.replace('./login.html?next=admin.html'); }
 
-  /* ---------- Render the line ---------- */
-
-  async function render() {
-    var out = await ICON.admin.queue();
-
+  // Every staff call funnels through here so an expired session is
+  // handled in exactly one place.
+  async function call(promise) {
+    var out = await promise;
     if (!out.ok) {
-      if (out.expired) return bounceToLogin();
-      say(queueMsg, out.error);
-      return;
+      if (out.expired) { bounce(); return null; }
+      say(out.error);
+      return null;
     }
-    say(queueMsg, '');
+    return out;
+  }
 
-    var rows = out.data || [];
-    var waiting = rows.filter(function (r) { return r.status === 'waiting'; });
-    var inChair = rows.filter(function (r) { return r.status === 'in_chair'; });
+  function money(minor) { return ICON.fmtMoney(minor, S.shop && S.shop.currency); }
 
-    summaryEl.textContent = rows.length === 0
-      ? 'Nobody in the shop.'
-      : waiting.length + ' waiting · ' + inChair.length + ' in the chair · about ' +
-        ICON.estimateWaitMinutes(waiting.length) + ' min for a new walk-in';
-
-    if (rows.length === 0) {
-      queueEl.innerHTML =
-        '<div class="empty"><strong>The line is empty</strong>' +
-        'Add a walk-in from the desk, or wait for an online ticket.</div>';
-      buildDeskSlots(0);
-      return;
-    }
-
-    var seen = 0;
-    var html = '';
-
-    rows.forEach(function (row) {
-      var active = row.status === 'in_chair';
-      if (!active) seen += 1;
-
-      var eta = active ? null : ICON.etaFor(seen);
-      var meta = [];
-      meta.push(active
-        ? 'In the chair since ' + ICON.esc(ICON.fmtTime(row.called_at))
-        : seen + ordinal(seen) + ' · about ' + ICON.esc(ICON.fmtTime(eta)));
-      meta.push(ICON.esc(row.phone_number ? ICON.fmtPhone(row.phone_number) : 'no number'));
-      meta.push('joined ' + ICON.esc(ICON.fmtRelative(row.join_time)));
-      if (row.preferred_time) {
-        meta.push('asked for ' + ICON.esc(ICON.fmtTime(row.preferred_time)));
-      }
-
-      html +=
-        '<div class="entry' + (active ? ' is-active' : '') + '">' +
-          '<div class="entry__ticket num">' + ICON.padTicket(row.ticket_no) + '</div>' +
-          '<div>' +
-            '<div class="entry__name">' + ICON.esc(row.customer_name) + '</div>' +
-            '<div class="entry__meta">' + meta.map(function (m) {
-              return '<span>' + m + '</span>';
-            }).join('') + '</div>' +
-            (row.clip_notes
-              ? '<span class="entry__note">' + ICON.esc(row.clip_notes) + '</span>'
-              : '') +
-          '</div>' +
-          '<div class="entry__actions">' +
-            (active
-              ? '<button class="btn btn--go" data-do="done" data-id="' + Number(row.id) + '">Finished</button>'
-              : '<button class="btn" data-do="call" data-id="' + Number(row.id) + '">Call to chair</button>') +
-            '<button class="btn btn--quiet" data-do="drop" data-id="' + Number(row.id) + '">Remove</button>' +
-          '</div>' +
-        '</div>';
-    });
-
-    queueEl.innerHTML = html;
-    buildDeskSlots(waiting.length);
+  function audTag(a) {
+    return '<span class="tag tag--' + a + '">' + a.charAt(0).toUpperCase() + a.slice(1) + '</span>';
   }
 
   function ordinal(n) {
@@ -193,117 +112,1022 @@
     return ['th', 'st', 'nd', 'rd'][n % 10] || 'th';
   }
 
-  /* ---------- Queue actions ---------- */
+  function esc(v) { return ICON.esc(v); }
 
-  queueEl.addEventListener('click', async function (e) {
-    var btn = e.target.closest('button[data-do]');
-    if (!btn) return;
+  /* ---------- Tabs ---------- */
 
-    var id = Number(btn.dataset.id);
-    var map = { call: 'in_chair', done: 'done', drop: 'cancelled' };
-    var status = map[btn.dataset.do];
-    if (!status) return;
+  function renderTabs() {
+    tabsEl.innerHTML = TABS
+      .filter(function (t) { return !t.manager || ICON.auth.isManager(); })
+      .map(function (t) {
+        return '<button class="tab" role="tab" data-tab="' + t.id + '"' +
+          (S.tab === t.id ? ' aria-selected="true"' : '') + '>' + t.label + '</button>';
+      }).join('');
 
-    if (status === 'cancelled' && !confirm('Remove this person from the line?')) return;
-
-    Array.prototype.forEach.call(queueEl.querySelectorAll('button'), function (b) { b.disabled = true; });
-
-    var out = await ICON.admin.setStatus(id, status);
-    if (!out.ok) {
-      if (out.expired) return bounceToLogin();
-      say(queueMsg, out.error);
-    }
-    render();
-  });
-
-  /* ---------- Walk-in desk ---------- */
-
-  function buildDeskSlots(waitingCount) {
-    if (document.activeElement && deskSlots.contains(document.activeElement)) return;
-    var slots = ICON.timeSlots(waitingCount, 3);
-    var html = '<button type="button" class="slot" data-when="asap" aria-pressed="' +
-               (deskTime ? 'false' : 'true') + '">Now</button>';
-    slots.forEach(function (d) {
-      var iso = d.toISOString();
-      html += '<button type="button" class="slot" data-when="' + iso + '" aria-pressed="' +
-              (deskTime === iso ? 'true' : 'false') + '">' + ICON.esc(ICON.fmtTime(d)) + '</button>';
+    tabsEl.querySelectorAll('[data-tab]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        S.tab = b.dataset.tab;
+        say('');
+        renderTabs();
+        route();
+      });
     });
-    deskSlots.innerHTML = html;
   }
 
-  deskSlots.addEventListener('click', function (e) {
-    var btn = e.target.closest('.slot');
-    if (!btn) return;
-    Array.prototype.forEach.call(deskSlots.querySelectorAll('.slot'), function (b) {
-      b.setAttribute('aria-pressed', String(b === btn));
+  function route() {
+    if (S.tab === 'line')     return showLine();
+    if (S.tab === 'calendar') return showCalendar();
+    if (S.tab === 'services') return showServices();
+    if (S.tab === 'team')     return showTeam();
+    if (S.tab === 'hours')    return showHours();
+    if (S.tab === 'qr')       return showQR();
+    if (S.tab === 'shop')     return showShop();
+  }
+
+  /* ============================================================
+     The line
+     ============================================================ */
+
+  async function showLine() {
+    var out = await call(ICON.admin.queue());
+    if (!out) return;
+    S.queue = out.data || [];
+
+    var waiting = S.queue.filter(function (r) { return r.status === 'waiting'; });
+    var chair = S.queue.filter(function (r) { return r.status === 'in_chair'; });
+
+    var html =
+      '<div class="spread" style="margin-bottom:var(--s4);">' +
+        '<div><h1 style="font-size:var(--t-xl);">Today’s line</h1>' +
+        '<p class="muted" style="margin:var(--s1) 0 0;font-size:var(--t-sm);">' +
+          (S.queue.length === 0 ? 'Nobody in the shop.'
+            : waiting.length + ' waiting · ' + chair.length + ' in the chair · about ' +
+              ICON.queue.estimate(waiting.length) + ' min for a new walk-in') +
+        '</p></div>' +
+        (ICON.auth.isManager() && S.queue.length
+          ? '<button class="btn btn--danger" data-act="purge">Clear the line</button>' : '') +
+      '</div>';
+
+    html += '<div class="split"><section>';
+
+    if (S.queue.length === 0) {
+      html += '<div class="empty"><strong>The line is empty</strong>' +
+              'Add a walk-in, or wait for someone to scan the QR code.</div>';
+    } else {
+      var seen = 0;
+      html += '<div class="queue">' + S.queue.map(function (r) {
+        var active = r.status === 'in_chair';
+        if (!active) seen += 1;
+        var meta = [];
+        meta.push(active
+          ? 'In the chair since ' + esc(ICON.fmtTime(r.called_at))
+          : seen + ordinal(seen) + ' · about ' + esc(ICON.fmtTime(ICON.queue.etaFor(seen))));
+        if (r.service_name) meta.push(esc(r.service_name));
+        meta.push(r.phone_number ? esc(ICON.fmtPhone(r.phone_number)) : 'no number');
+        meta.push('joined ' + esc(ICON.fmtRelative(r.join_time)));
+        if (r.preferred_time) meta.push('said ' + esc(ICON.fmtTime(r.preferred_time)));
+
+        return '<div class="entry' + (active ? ' is-active' : '') + '">' +
+          '<div class="entry__ticket num">' + ICON.padTicket(r.ticket_no) + '</div>' +
+          '<div><div class="entry__name">' + esc(r.customer_name) + '</div>' +
+          '<div class="entry__meta">' + meta.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div>' +
+          (r.clip_notes ? '<span class="entry__note">' + esc(r.clip_notes) + '</span>' : '') +
+          '</div><div class="entry__actions">' +
+            (active
+              ? '<button class="btn btn--go" data-act="q" data-id="' + Number(r.id) + '" data-s="done">Finished</button>'
+              : '<button class="btn" data-act="q" data-id="' + Number(r.id) + '" data-s="in_chair">Call to chair</button>') +
+            '<button class="btn btn--quiet" data-act="q" data-id="' + Number(r.id) + '" data-s="cancelled">Remove</button>' +
+          '</div></div>';
+      }).join('') + '</div>';
+    }
+
+    html += '</section><aside>' + deskForm() + '</aside></div>';
+
+    panel.innerHTML = html;
+    wirePanel();
+  }
+
+  function deskForm() {
+    var svcs = (S.services.length ? S.services : (S.shop && S.shop.services) || [])
+      .filter(function (s) { return s.is_active !== false; });
+
+    return '<form class="ticket" id="deskForm" novalidate>' +
+      '<div class="ticket__head"><span class="label">Walk-in desk</span></div>' +
+      '<div class="ticket__stub">' +
+        '<p class="msg msg--bad" id="deskMsg" hidden></p>' +
+        '<div class="field"><label for="dName">Name</label>' +
+          '<input type="text" id="dName" required maxlength="80" placeholder="Walk-in"></div>' +
+        '<div class="field"><label for="dPhone">Mobile' +
+          '<span class="help">' + (S.shop && S.shop.phone_required ? 'Required at this shop.' : 'Optional.') +
+          '</span></label>' +
+          '<input type="tel" id="dPhone"' + (S.shop && S.shop.phone_required ? ' required' : '') +
+          ' placeholder="98450 00000"></div>' +
+        (svcs.length
+          ? '<div class="field"><label for="dService">Service</label><select id="dService">' +
+            '<option value="">Not sure yet</option>' +
+            svcs.map(function (s) {
+              return '<option value="' + s.id + '">' + esc(s.name) + ' · ' +
+                     s.duration_minutes + 'm' + (s.price_minor ? ' · ' + esc(money(s.price_minor)) : '') +
+                     '</option>';
+            }).join('') + '</select></div>'
+          : '') +
+        '<div class="field"><label for="dNotes">Notes<span class="help">Optional.</span></label>' +
+          '<textarea id="dNotes" maxlength="500" placeholder="#4 guard fade"></textarea></div>' +
+        '<button type="submit" class="btn btn--block btn--lg btn--go" id="dBtn">Add to the line</button>' +
+      '</div></form>';
+  }
+
+  /* ============================================================
+     Calendar
+     ============================================================ */
+
+  async function showCalendar() {
+    if (!S.calMonth) S.calMonth = firstOfMonth(new Date());
+
+    var from = ICON.dateKey(S.calMonth);
+    var counts = await call(ICON.admin.appointmentCounts(from, 42));
+    if (!counts) return;
+    S.counts = {};
+    (counts.data || []).forEach(function (c) {
+      S.counts[String(c.on_date).slice(0, 10)] = c;
     });
-    deskTime = btn.dataset.when === 'asap' ? null : btn.dataset.when;
-  });
 
-  document.getElementById('walkInForm').addEventListener('submit', async function (e) {
+    var day = await call(ICON.admin.appointments(S.apptDay, S.apptDay));
+    if (!day) return;
+    S.appts = day.data || [];
+
+    panel.innerHTML =
+      '<div class="split split--even"><section>' + monthGrid() + newBooking() + '</section>' +
+      '<aside class="apptwrap">' + dayList() + '</aside></div>';
+    wirePanel();
+  }
+
+  function firstOfMonth(d) { var x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
+
+  function monthGrid() {
+    var first = S.calMonth;
+    var year = first.getFullYear(), month = first.getMonth();
+    var start = new Date(year, month, 1);
+    var pad = start.getDay();
+    var daysIn = new Date(year, month + 1, 0).getDate();
+    var todayKey = ICON.dateKey(new Date());
+
+    var cells = '';
+    for (var i = 0; i < pad; i++) cells += '<button class="cal__cell" disabled></button>';
+
+    for (var d = 1; d <= daysIn; d++) {
+      var dt = new Date(year, month, d);
+      var key = ICON.dateKey(dt);
+      var c = S.counts[key];
+      var booked = c ? Number(c.booked) : 0;
+      cells += '<button class="cal__cell' + (key === todayKey ? ' is-today' : '') + '"' +
+        ' data-act="pickDay" data-date="' + key + '"' +
+        (S.apptDay === key ? ' aria-pressed="true"' : '') + '>' +
+        '<span class="cal__num">' + d + '</span>' +
+        (booked ? '<span class="cal__count">' + booked + '</span>' : '<span class="cal__dot" style="opacity:0"></span>') +
+        '</button>';
+    }
+
+    var MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+
+    return '<div class="cal">' +
+      '<div class="cal__head">' +
+        '<button class="btn btn--quiet" data-act="month" data-d="-1">←</button>' +
+        '<span class="cal__month">' + MONTHS[month] + ' ' + year + '</span>' +
+        '<button class="btn btn--quiet" data-act="month" data-d="1">→</button>' +
+      '</div>' +
+      '<div class="cal__grid">' +
+        ['S','M','T','W','T','F','S'].map(function (d) {
+          return '<div class="cal__dow">' + d + '</div>';
+        }).join('') + cells +
+      '</div>' +
+      '<p class="muted" style="font-size:var(--t-xs);margin-top:var(--s3);">' +
+        'The number on a day is how many bookings it holds.</p>' +
+    '</div>';
+  }
+
+  // Taking a booking over the phone. The slot list comes from the same
+  // available_slots() the customer sees, so the desk cannot double-book.
+  function newBooking() {
+    var svcs = S.services.filter(function (x) { return x.is_active !== false; });
+    var team = S.team.filter(function (t) { return t.is_active !== false; });
+    var dayLabel = ICON.fmtDate(S.apptDay + 'T00:00:00');
+
+    if (!S.bookOpen) {
+      return '<button class="btn btn--block" data-act="openBook" style="margin-top:var(--s5);">' +
+             'Take a booking for ' + esc(dayLabel) + '</button>';
+    }
+
+    return '<form class="miniform" id="bookForm" style="margin-top:var(--s5);">' +
+      '<div class="spread">' +
+        '<strong>New booking \u00b7 ' + esc(dayLabel) + '</strong>' +
+        '<button type="button" class="btn btn--quiet" data-act="closeBook">Cancel</button>' +
+      '</div>' +
+      '<p class="msg msg--bad" id="bookMsg" hidden></p>' +
+
+      '<div class="field"><label for="bName">Name</label>' +
+        '<input type="text" id="bName" required maxlength="80" placeholder="Customer name"></div>' +
+
+      '<div class="field"><label for="bPhone">Mobile' +
+        '<span class="help">' + (S.shop && S.shop.phone_required ? 'Required at this shop.' : 'Optional.') +
+        '</span></label><input type="tel" id="bPhone" placeholder="98450 00000"></div>' +
+
+      '<div class="field"><label for="bService">Service</label><select id="bService" required>' +
+        '<option value="">Pick a service\u2026</option>' +
+        svcs.map(function (x) {
+          return '<option value="' + x.id + '"' + (String(S.bookService) === String(x.id) ? ' selected' : '') + '>' +
+            esc(x.name) + ' \u00b7 ' + x.duration_minutes + 'm' +
+            (x.price_minor ? ' \u00b7 ' + esc(money(x.price_minor)) : '') + '</option>';
+        }).join('') + '</select></div>' +
+
+      (team.length > 1
+        ? '<div class="field"><label for="bStaff">With</label><select id="bStaff">' +
+          '<option value="">Anyone</option>' +
+          team.map(function (t) {
+            return '<option value="' + t.id + '"' + (String(S.bookStaff) === String(t.id) ? ' selected' : '') + '>' +
+              esc(t.name) + '</option>';
+          }).join('') + '</select></div>'
+        : '') +
+
+      '<div class="field"><label>Time</label>' +
+        (S.bookService
+          ? (S.bookSlots === null
+              ? '<p class="muted" style="font-size:var(--t-sm);margin:0;">Checking what\u2019s free\u2026</p>'
+              : S.bookSlots.length === 0
+                ? '<p class="msg msg--bad" style="margin:0;">Nothing free on this day for that service. ' +
+                  'Pick another day on the calendar.</p>'
+                : '<div class="slotgrid">' + S.bookSlots.map(function (sl) {
+                    return '<button type="button" class="timeslot" data-act="bookSlot" data-at="' +
+                      sl.starts_at + '"' + (S.bookSlot === sl.starts_at ? ' aria-pressed="true"' : '') + '>' +
+                      esc(ICON.fmtTime(sl.starts_at)) + '</button>';
+                  }).join('') + '</div>')
+          : '<p class="muted" style="font-size:var(--t-sm);margin:0;">Pick a service first.</p>') +
+      '</div>' +
+
+      '<div class="field"><label for="bNotes">Notes<span class="help">Optional.</span></label>' +
+        '<textarea id="bNotes" maxlength="500" placeholder="Called ahead"></textarea></div>' +
+
+      '<button type="submit" class="btn btn--lg btn--go" id="bBtn"' +
+        (S.bookSlot ? '' : ' disabled') + '>' +
+        (S.bookSlot ? 'Book ' + esc(ICON.fmtTime(S.bookSlot)) : 'Pick a time above') +
+      '</button>' +
+    '</form>';
+  }
+
+  async function loadBookSlots() {
+    if (!S.bookService) { S.bookSlots = null; return; }
+    S.bookSlots = null;
+    showCalendar();
+    var out = await ICON.book.slots(S.apptDay, Number(S.bookService), S.bookStaff || null);
+    S.bookSlots = out.ok ? out.data : [];
+    if (!out.ok) say(out.error);
+    showCalendar();
+  }
+
+  function dayList() {
+    var head = '<div class="spread" style="margin-bottom:var(--s3);">' +
+      '<h2 style="font-size:var(--t-lg);">' + esc(ICON.fmtDate(S.apptDay + 'T00:00:00')) + '</h2>' +
+      '<button class="btn btn--quiet" data-act="today">Today</button></div>';
+
+    if (S.appts.length === 0) {
+      return head + '<div class="empty"><strong>No bookings</strong>' +
+             'Nothing booked for this day yet.</div>';
+    }
+
+    var now = Date.now();
+    return head + '<div class="rows">' + S.appts.map(function (a) {
+      var cancelled = a.status === 'cancelled' || a.status === 'no_show';
+      var isNow = new Date(a.starts_at) <= now && new Date(a.ends_at) > now && !cancelled;
+      var meta = [];
+      if (a.service_name) meta.push(esc(a.service_name));
+      if (a.staff_name) meta.push('with ' + esc(a.staff_name));
+      if (a.phone_number) meta.push(esc(ICON.fmtPhone(a.phone_number)));
+      if (a.price_minor) meta.push(esc(money(a.price_minor)));
+      meta.push(esc(a.status));
+
+      return '<div class="appt' + (cancelled ? ' is-cancelled' : '') + (isNow ? ' is-now' : '') + '">' +
+        '<div class="appt__time">' + esc(ICON.fmtTime(a.starts_at)) + '</div>' +
+        '<div><div class="appt__name">' + esc(a.customer_name) + '</div>' +
+        '<div class="appt__meta">' + meta.join(' · ') + '</div>' +
+        (a.notes ? '<span class="entry__note">' + esc(a.notes) + '</span>' : '') +
+        '</div><div class="appt__actions">' +
+          (cancelled ? '' :
+            (a.status === 'booked'
+              ? '<button class="btn" data-act="a" data-id="' + Number(a.id) + '" data-s="arrived">Arrived</button>'
+              : '') +
+            (a.status === 'arrived'
+              ? '<button class="btn btn--go" data-act="a" data-id="' + Number(a.id) + '" data-s="in_chair">In the chair</button>'
+              : '') +
+            (a.status === 'in_chair'
+              ? '<button class="btn btn--go" data-act="a" data-id="' + Number(a.id) + '" data-s="done">Finished</button>'
+              : '') +
+            '<button class="btn btn--quiet" data-act="a" data-id="' + Number(a.id) + '" data-s="cancelled">Cancel</button>'
+          ) +
+        '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  /* ============================================================
+     Services
+     ============================================================ */
+
+  async function showServices() {
+    var out = await call(ICON.admin.services());
+    if (!out) return;
+    S.services = out.data || [];
+
+    var e = S.editService;
+    panel.innerHTML =
+      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Services</h1>' +
+      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
+        'What customers can pick, and what it costs. A service switched off stops ' +
+        'appearing for customers but stays on old bookings.</p>' +
+
+      '<form class="miniform miniform--wide" id="svcForm">' +
+        '<div class="field"><label for="sName">' + (e ? 'Edit service' : 'New service') + '</label>' +
+          '<input type="text" id="sName" required maxlength="60" placeholder="Haircut" value="' +
+          esc(e ? e.name : '') + '"></div>' +
+        '<div class="field"><label for="sAud">For</label><select id="sAud">' +
+          AUD.map(function (a) {
+            return '<option value="' + a + '"' + (e && e.audience === a ? ' selected' : '') + '>' +
+              a.charAt(0).toUpperCase() + a.slice(1) + '</option>';
+          }).join('') + '</select></div>' +
+        '<div class="field"><label for="sCat">Type</label><select id="sCat">' +
+          CAT.map(function (c) {
+            return '<option value="' + c + '"' + (e && e.category === c ? ' selected' : '') + '>' +
+              c.charAt(0).toUpperCase() + c.slice(1) + '</option>';
+          }).join('') + '</select></div>' +
+        '<div class="field"><label for="sMins">Minutes</label>' +
+          '<input type="text" inputmode="numeric" id="sMins" value="' +
+          esc(e ? e.duration_minutes : 30) + '"></div>' +
+        '<div class="field"><label for="sPrice">Price</label>' +
+          '<input type="text" inputmode="decimal" id="sPrice" value="' +
+          esc(e ? (e.price_minor / 100) : '') + '" placeholder="250"></div>' +
+        '<button type="submit" class="btn">' + (e ? 'Save' : 'Add') + '</button>' +
+        (e ? '<button type="button" class="btn btn--quiet" data-act="cancelEdit">Cancel</button>' : '') +
+      '</form>' +
+
+      (S.services.length === 0
+        ? '<div class="empty"><strong>No services yet</strong>Add your first one above.</div>'
+        : '<div class="rows">' + S.services.map(function (s) {
+            return '<div class="rowitem' + (s.is_active ? '' : ' is-off') + '">' +
+              '<div class="rowitem__main"><div class="rowitem__name">' +
+                audTag(s.audience) + esc(s.name) +
+                (s.is_active ? '' : ' <span class="tag">off</span>') +
+              '</div><div class="rowitem__meta">' +
+                s.duration_minutes + ' min · ' + esc(money(s.price_minor)) +
+                ' · ' + esc(s.category) +
+              '</div></div>' +
+              '<div class="rowitem__actions">' +
+                '<button class="btn btn--quiet" data-act="editSvc" data-id="' + s.id + '">Edit</button>' +
+                (s.is_active
+                  ? '<button class="btn btn--quiet" data-act="offSvc" data-id="' + s.id + '">Turn off</button>'
+                  : '<button class="btn btn--quiet" data-act="onSvc" data-id="' + s.id + '">Turn on</button>') +
+              '</div></div>';
+          }).join('') + '</div>');
+
+    wirePanel();
+  }
+
+  /* ============================================================
+     Team
+     ============================================================ */
+
+  async function showTeam() {
+    var out = await call(ICON.admin.staff());
+    if (!out) return;
+    S.team = out.data || [];
+
+    var e = S.editStaff;
+    var active = S.team.filter(function (t) { return t.is_active; }).length;
+
+    panel.innerHTML =
+      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Team</h1>' +
+      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
+        'Everyone who takes a chair. This is also how many bookings can run at once — ' +
+        'right now <strong>' + active + '</strong> ' + (active === 1 ? 'person' : 'people') +
+        ', so ' + active + ' booking' + (active === 1 ? '' : 's') + ' per slot.</p>' +
+
+      '<form class="miniform" id="staffForm" style="grid-template-columns:2fr 2fr auto;align-items:end;">' +
+        '<div class="field"><label for="tName">' + (e ? 'Edit person' : 'Add someone') + '</label>' +
+          '<input type="text" id="tName" required maxlength="60" placeholder="Ravi" value="' +
+          esc(e ? e.name : '') + '"></div>' +
+        '<div class="field"><label for="tTitle">Title<span class="help">Optional.</span></label>' +
+          '<input type="text" id="tTitle" maxlength="40" placeholder="Senior stylist" value="' +
+          esc(e && e.title ? e.title : '') + '"></div>' +
+        '<button type="submit" class="btn">' + (e ? 'Save' : 'Add') + '</button>' +
+        (e ? '<button type="button" class="btn btn--quiet" data-act="cancelEdit">Cancel</button>' : '') +
+      '</form>' +
+
+      (S.team.length === 0
+        ? '<div class="empty"><strong>Nobody added</strong>Add at least one person so slots open up.</div>'
+        : '<div class="rows">' + S.team.map(function (t) {
+            return '<div class="rowitem' + (t.is_active ? '' : ' is-off') + '">' +
+              '<div class="rowitem__main"><div class="rowitem__name">' + esc(t.name) +
+                (t.is_active ? '' : ' <span class="tag">away</span>') + '</div>' +
+              '<div class="rowitem__meta">' + esc(t.title || 'Stylist') + '</div></div>' +
+              '<div class="rowitem__actions">' +
+                '<button class="btn btn--quiet" data-act="editStaff" data-id="' + t.id + '">Edit</button>' +
+                (t.is_active
+                  ? '<button class="btn btn--quiet" data-act="offStaff" data-id="' + t.id + '">Mark away</button>'
+                  : '<button class="btn btn--quiet" data-act="onStaff" data-id="' + t.id + '">Bring back</button>') +
+              '</div></div>';
+          }).join('') + '</div>');
+
+    wirePanel();
+  }
+
+  /* ============================================================
+     Hours + closures  ("open slots")
+     ============================================================ */
+
+  async function showHours() {
+    var h = await call(ICON.admin.hours());
+    if (!h) return;
+    S.hours = h.data || [];
+
+    var c = await call(ICON.admin.closures());
+    if (!c) return;
+    S.closures = c.data || [];
+
+    // Monday first reads better than Sunday first for a shop.
+    var order = [1, 2, 3, 4, 5, 6, 0];
+
+    panel.innerHTML =
+      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Opening hours</h1>' +
+      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
+        'These decide which booking slots exist. Change a day and press Save on that row.</p>' +
+
+      '<div class="rows" id="hoursRows">' + order.map(function (wd) {
+        var row = S.hours.filter(function (x) { return x.weekday === wd; })[0] ||
+                  { weekday: wd, is_open: true, opens_at: '09:00', closes_at: '19:00' };
+        return '<div class="hourrow' + (row.is_open ? '' : ' is-closed') + '" data-wd="' + wd + '">' +
+          '<div class="hourrow__day">' + ICON.fmtDay(wd) + '</div>' +
+          '<label class="toggle"><input type="checkbox" data-role="open"' +
+            (row.is_open ? ' checked' : '') + '> Open</label>' +
+          '<div class="hourrow__times">' +
+            '<input type="text" data-role="from" value="' + esc(row.opens_at) + '" placeholder="09:00">' +
+            '<span class="muted">to</span>' +
+            '<input type="text" data-role="to" value="' + esc(row.closes_at) + '" placeholder="19:00">' +
+            '<button class="btn btn--quiet" data-act="saveHour" data-wd="' + wd + '">Save</button>' +
+          '</div></div>';
+      }).join('') + '</div>' +
+
+      '<h2 style="font-size:var(--t-lg);margin:var(--s7) 0 var(--s2);">Days closed</h2>' +
+      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s4);">' +
+        'Holidays and one-offs. A closed day takes all its slots off the customer calendar.</p>' +
+      '<form class="miniform" id="closeForm" style="grid-template-columns:1fr 2fr auto;align-items:end;">' +
+        '<div class="field"><label for="cDate">Date</label>' +
+          '<input type="date" id="cDate" required></div>' +
+        '<div class="field"><label for="cWhy">Reason<span class="help">Optional.</span></label>' +
+          '<input type="text" id="cWhy" maxlength="60" placeholder="Diwali"></div>' +
+        '<button type="submit" class="btn">Close that day</button>' +
+      '</form>' +
+      (S.closures.length === 0
+        ? '<p class="muted" style="font-size:var(--t-sm);">No closures coming up.</p>'
+        : '<div class="rows">' + S.closures.map(function (x) {
+            return '<div class="rowitem"><div class="rowitem__main">' +
+              '<div class="rowitem__name">' + esc(ICON.fmtDate(String(x.on_date).slice(0,10) + 'T00:00:00', { absolute: true })) + '</div>' +
+              '<div class="rowitem__meta">' + esc(x.reason || 'Closed') + '</div></div>' +
+              '<div class="rowitem__actions"><button class="btn btn--quiet" data-act="reopen" data-date="' +
+                String(x.on_date).slice(0, 10) + '">Reopen</button></div></div>';
+          }).join('') + '</div>');
+
+    wirePanel();
+  }
+
+  /* ============================================================
+     QR code
+     ============================================================ */
+
+  function showQR() {
+    var url = ICON.shop.customerUrl(S.staff.salon_slug);
+
+    panel.innerHTML =
+      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Your QR code</h1>' +
+      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
+        'Print this and stick it on the counter, the mirror or the door. Scanning it ' +
+        'opens your shop’s page — no app, no typing.</p>' +
+      '<div class="qrwrap">' +
+        '<div class="qrcard"><div id="qrBox"></div>' +
+          '<p class="qrcard__cap">' + esc(S.shop ? S.shop.name : '') + '<br>Scan to join the queue or book</p>' +
+        '</div>' +
+        '<div>' +
+          '<div class="field"><label for="qrUrl">The link it opens</label>' +
+            '<div class="urlbox"><input type="text" id="qrUrl" readonly value="' + esc(url) + '">' +
+            '<button class="btn btn--quiet" data-act="copyUrl">Copy</button></div></div>' +
+          '<div class="row" style="margin-top:var(--s4);">' +
+            '<button class="btn" data-act="printQR">Print</button>' +
+            '<button class="btn btn--quiet" data-act="downloadQR">Download SVG</button>' +
+          '</div>' +
+          '<p class="muted" style="font-size:var(--t-xs);margin-top:var(--s5);">' +
+            'The code is drawn on this device. Nothing is sent to a QR service, so your ' +
+            'link never leaves the shop.</p>' +
+        '</div>' +
+      '</div>';
+
+    drawQR(url);
+    wirePanel();
+  }
+
+  function drawQR(url) {
+    var box = document.getElementById('qrBox');
+    if (!box) return;
+    if (typeof window.qrcode !== 'function') {
+      box.innerHTML = '<p class="msg msg--bad" style="margin:0;">' +
+        'The QR library did not load. Check that vendor/qrcode.js was deployed.</p>';
+      return;
+    }
+    try {
+      // Type 0 = auto-size, 'M' = medium error correction: still scans
+      // with a bit of print smudging.
+      var q = window.qrcode(0, 'M');
+      q.addData(url);
+      q.make();
+      box.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+      var svg = box.querySelector('svg');
+      if (svg) {
+        svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-label', 'QR code for ' + url);
+      }
+    } catch (err) {
+      console.error('[ICON] QR failed:', err);
+      box.innerHTML = '<p class="msg msg--bad" style="margin:0;">Could not draw the QR code.</p>';
+    }
+  }
+
+  /* ============================================================
+     Shop settings
+     ============================================================ */
+
+  async function showShop() {
+    var out = await call(ICON.admin.shop());
+    if (!out) return;
+    S.shop = Object.assign({}, S.shop, out.data);
+    var s = S.shop;
+
+    panel.innerHTML =
+      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Shop settings</h1>' +
+      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
+        'Your shop link is <strong>?shop=' + esc(s.slug) + '</strong> — that’s what the QR code uses.</p>' +
+
+      '<form id="shopForm" style="max-width:34rem;">' +
+        '<div class="field"><label for="pName">Shop name</label>' +
+          '<input type="text" id="pName" required maxlength="80" value="' + esc(s.name) + '"></div>' +
+        '<div class="field"><label for="pAddr">Address</label>' +
+          '<input type="text" id="pAddr" maxlength="160" value="' + esc(s.address || '') + '"></div>' +
+        '<div class="field"><label for="pPhone">Shop phone<span class="help">Shown when you’re closed.</span></label>' +
+          '<input type="tel" id="pPhone" value="' + esc(s.contact_phone || '') + '"></div>' +
+        '<div class="field"><label for="pCategory">Category' +
+          '<span class="help">Which list customers find you under.</span></label>' +
+          '<select id="pCategory">' +
+          CATEGORIES.map(function (c) {
+            return '<option value="' + c.slug + '"' + (s.category === c.slug ? ' selected' : '') + '>' +
+              c.name + '</option>';
+          }).join('') + '</select></div>' +
+        '<div class="field"><label for="pKind">Type of shop</label><select id="pKind">' +
+          KINDS.map(function (k) {
+            return '<option value="' + k + '"' + (s.kind === k ? ' selected' : '') + '>' +
+              k.charAt(0).toUpperCase() + k.slice(1) + '</option>';
+          }).join('') + '</select></div>' +
+
+        '<div class="field"><label class="toggle"><input type="checkbox" id="pOpen"' +
+          (s.is_open ? ' checked' : '') + '> Taking customers</label>' +
+          '<span class="help">Switch off to pause the queue and bookings.</span></div>' +
+
+        '<div class="field"><label class="toggle"><input type="checkbox" id="pPhoneReq"' +
+          (s.phone_required ? ' checked' : '') + '> Mobile number required</label>' +
+          '<span class="help">Leave off to let customers skip it.</span></div>' +
+
+        '<div class="field"><label for="pChairs">Chairs running</label>' +
+          '<input type="text" inputmode="numeric" id="pChairs" value="' + esc(s.active_chairs) + '">' +
+          '<span class="help">Used for the walk-in wait estimate.</span></div>' +
+        '<div class="field"><label for="pAvg">Average service, minutes</label>' +
+          '<input type="text" inputmode="numeric" id="pAvg" value="' + esc(s.avg_service_minutes) + '"></div>' +
+        '<div class="field"><label for="pSlot">Booking slot size, minutes</label>' +
+          '<input type="text" inputmode="numeric" id="pSlot" value="' + esc(s.slot_minutes) + '">' +
+          '<span class="help">30 means slots at 9:00, 9:30, 10:00…</span></div>' +
+        '<div class="field"><label for="pLead">Shortest notice, minutes</label>' +
+          '<input type="text" inputmode="numeric" id="pLead" value="' + esc(s.lead_minutes) + '">' +
+          '<span class="help">Hides slots sooner than this.</span></div>' +
+        '<div class="field"><label for="pHorizon">How far ahead people can book, days</label>' +
+          '<input type="text" inputmode="numeric" id="pHorizon" value="' + esc(s.horizon_days) + '"></div>' +
+
+        '<button type="submit" class="btn btn--lg">Save settings</button>' +
+      '</form>' +
+
+      '<h2 style="font-size:var(--t-lg);margin:var(--s7) 0 var(--s2);">Your password</h2>' +
+      '<form id="pwForm" style="max-width:34rem;">' +
+        '<div class="field"><label for="pwOld">Current password</label>' +
+          '<input type="password" id="pwOld" required autocomplete="current-password"></div>' +
+        '<div class="field"><label for="pwNew">New password<span class="help">At least 8 characters.</span></label>' +
+          '<input type="password" id="pwNew" required autocomplete="new-password"></div>' +
+        '<button type="submit" class="btn btn--quiet">Change password</button>' +
+      '</form>';
+
+    wirePanel();
+  }
+
+  /* ============================================================
+     Wiring
+     ============================================================ */
+
+  function wirePanel() {
+    panel.querySelectorAll('[data-act]').forEach(function (el) {
+      el.addEventListener('click', onAction);
+    });
+
+    var f;
+    if ((f = document.getElementById('deskForm')))  f.addEventListener('submit', addWalkIn);
+    if ((f = document.getElementById('svcForm')))   f.addEventListener('submit', saveService);
+    if ((f = document.getElementById('staffForm'))) f.addEventListener('submit', saveStaff);
+    if ((f = document.getElementById('closeForm'))) f.addEventListener('submit', addClosure);
+    if ((f = document.getElementById('shopForm')))  f.addEventListener('submit', saveShop);
+    if ((f = document.getElementById('bookForm'))) {
+      f.addEventListener('submit', takeBooking);
+      var sel = document.getElementById('bService');
+      if (sel) sel.addEventListener('change', function () {
+        S.bookService = sel.value || null;
+        S.bookSlot = null;
+        loadBookSlots();
+      });
+      var who = document.getElementById('bStaff');
+      if (who) who.addEventListener('change', function () {
+        S.bookStaff = who.value || null;
+        S.bookSlot = null;
+        loadBookSlots();
+      });
+    }
+    if ((f = document.getElementById('pwForm')))    f.addEventListener('submit', changePw);
+
+    panel.querySelectorAll('.hourrow input[data-role="open"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        cb.closest('.hourrow').classList.toggle('is-closed', !cb.checked);
+      });
+    });
+  }
+
+  async function onAction(e) {
+    var el = e.currentTarget;
+    var act = el.dataset.act;
+
+    /* queue */
+    if (act === 'q') {
+      el.disabled = true;
+      if (el.dataset.s === 'cancelled' && !confirm('Remove this person from the line?')) {
+        el.disabled = false; return;
+      }
+      await call(ICON.admin.setStatus(Number(el.dataset.id), el.dataset.s));
+      return showLine();
+    }
+
+    if (act === 'purge') {
+      if (!confirm('Close out everyone in the shop right now? This cannot be undone.')) return;
+      var p = await call(ICON.admin.purge());
+      if (p) say('Cleared ' + p.data + (p.data === 1 ? ' ticket.' : ' tickets.'), true);
+      return showLine();
+    }
+
+    /* appointments */
+    if (act === 'a') {
+      el.disabled = true;
+      if (el.dataset.s === 'cancelled' && !confirm('Cancel this booking?')) {
+        el.disabled = false; return;
+      }
+      await call(ICON.admin.setAppointmentStatus(Number(el.dataset.id), el.dataset.s));
+      return showCalendar();
+    }
+
+    if (act === 'pickDay') {
+      S.apptDay = el.dataset.date;
+      // A different day means the chosen time no longer applies.
+      S.bookSlot = null;
+      if (S.bookOpen && S.bookService) { await showCalendar(); return loadBookSlots(); }
+      return showCalendar();
+    }
+
+    if (act === 'openBook') {
+      S.bookOpen = true; S.bookSlot = null; S.bookSlots = null;
+      return showCalendar();
+    }
+    if (act === 'closeBook') {
+      S.bookOpen = false; S.bookSlot = null; S.bookService = null; S.bookStaff = null;
+      return showCalendar();
+    }
+    if (act === 'bookSlot') {
+      S.bookSlot = el.dataset.at;
+      return showCalendar();
+    }
+    if (act === 'today') {
+      S.apptDay = ICON.dateKey(new Date());
+      S.calMonth = firstOfMonth(new Date());
+      return showCalendar();
+    }
+    if (act === 'month') {
+      var m = new Date(S.calMonth);
+      m.setMonth(m.getMonth() + Number(el.dataset.d));
+      S.calMonth = firstOfMonth(m);
+      return showCalendar();
+    }
+
+    /* services */
+    if (act === 'editSvc') {
+      S.editService = S.services.filter(function (s) { return String(s.id) === el.dataset.id; })[0];
+      return showServices();
+    }
+    if (act === 'offSvc') {
+      await call(ICON.admin.serviceRetire(Number(el.dataset.id)));
+      return showServices();
+    }
+    if (act === 'onSvc') {
+      var sv = S.services.filter(function (s) { return String(s.id) === el.dataset.id; })[0];
+      if (sv) await call(ICON.admin.serviceSave({
+        id: sv.id, name: sv.name, audience: sv.audience, category: sv.category,
+        duration: sv.duration_minutes, priceMinor: sv.price_minor, isActive: true, sort: sv.sort_order
+      }));
+      return showServices();
+    }
+
+    /* team */
+    if (act === 'editStaff') {
+      S.editStaff = S.team.filter(function (t) { return String(t.id) === el.dataset.id; })[0];
+      return showTeam();
+    }
+    if (act === 'offStaff') {
+      await call(ICON.admin.staffRetire(Number(el.dataset.id)));
+      return showTeam();
+    }
+    if (act === 'onStaff') {
+      var st = S.team.filter(function (t) { return String(t.id) === el.dataset.id; })[0];
+      if (st) await call(ICON.admin.staffSave({
+        id: st.id, name: st.name, title: st.title, isActive: true, sort: st.sort_order
+      }));
+      return showTeam();
+    }
+
+    if (act === 'cancelEdit') {
+      S.editService = null; S.editStaff = null;
+      return route();
+    }
+
+    /* hours */
+    if (act === 'saveHour') {
+      var row = el.closest('.hourrow');
+      var wd = Number(el.dataset.wd);
+      var isOpen = row.querySelector('[data-role="open"]').checked;
+      var from = row.querySelector('[data-role="from"]').value.trim();
+      var to = row.querySelector('[data-role="to"]').value.trim();
+      var ok = await call(ICON.admin.hoursSave(wd, isOpen, from || '09:00', to || '19:00'));
+      if (ok) say(ICON.fmtDay(wd, true) + ' saved.', true);
+      return showHours();
+    }
+
+    if (act === 'reopen') {
+      await call(ICON.admin.closureSet(el.dataset.date, null, false));
+      return showHours();
+    }
+
+    /* QR */
+    if (act === 'copyUrl') {
+      var input = document.getElementById('qrUrl');
+      input.select();
+      try {
+        await navigator.clipboard.writeText(input.value);
+        say('Link copied.', true);
+      } catch (err) {
+        document.execCommand && document.execCommand('copy');
+        say('Link selected — press Ctrl/Cmd+C to copy.', true);
+      }
+      return;
+    }
+    if (act === 'printQR') return window.print();
+    if (act === 'downloadQR') {
+      var svg = document.querySelector('#qrBox svg');
+      if (!svg) return;
+      var blob = new Blob([svg.outerHTML], { type: 'image/svg+xml' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (S.staff.salon_slug || 'shop') + '-qr.svg';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      return;
+    }
+  }
+
+  /* ---------- Form handlers ---------- */
+
+  async function addWalkIn(e) {
     e.preventDefault();
-    say(deskMsg, '');
+    var msg = document.getElementById('deskMsg');
+    var btn = document.getElementById('dBtn');
+    function bad(t) { msg.textContent = t; msg.hidden = false; }
+    msg.hidden = true;
 
-    var name = document.getElementById('custName').value.trim();
-    var phone = document.getElementById('custPhone').value;
-    var notes = document.getElementById('custNotes').value.trim();
+    var name = document.getElementById('dName').value.trim();
+    var phone = document.getElementById('dPhone').value.trim();
+    var svc = document.getElementById('dService');
+    var notes = document.getElementById('dNotes').value.trim();
 
-    if (name.length < 2) return say(deskMsg, 'Enter the customer’s name.');
-    if (!ICON.isValidPhone(phone)) return say(deskMsg, 'Enter a mobile number with 10 to 15 digits.');
+    if (name.length < 2) return bad('Enter a name.');
+    if (S.shop && S.shop.phone_required && !phone) return bad('This shop needs a mobile number.');
+    if (phone && !ICON.isValidPhone(phone)) return bad('That number needs 10 to 15 digits, or leave it blank.');
 
-    addBtn.disabled = true;
-    addBtn.textContent = 'Adding…';
-
-    var out = await ICON.admin.register(name, phone, notes, deskTime);
-
-    addBtn.disabled = false;
-    addBtn.textContent = 'Add to the line';
+    btn.disabled = true; btn.textContent = 'Adding…';
+    var out = await ICON.admin.register({
+      name: name, phone: phone, notes: notes,
+      serviceId: svc && svc.value ? Number(svc.value) : null
+    });
+    btn.disabled = false; btn.textContent = 'Add to the line';
 
     if (!out.ok) {
-      if (out.expired) return bounceToLogin();
-      return say(deskMsg, out.error);
+      if (out.expired) return bounce();
+      return bad(out.error);
     }
+    say('Ticket ' + ICON.padTicket(out.data.ticket_no) + ' added for ' + name + '.', true);
+    showLine();
+  }
 
-    say(deskMsg, 'Ticket ' + ICON.padTicket(out.data.ticket_no) + ' added for ' + name + '.', true);
-    this.reset();
-    deskTime = null;
-    render();
-  });
+  async function saveService(e) {
+    e.preventDefault();
+    var mins = parseInt(document.getElementById('sMins').value, 10);
+    var priceMajor = parseFloat(document.getElementById('sPrice').value);
+    if (!isFinite(mins) || mins < 5) return say('Minutes must be a number, 5 or more.');
+    if (!isFinite(priceMajor) || priceMajor < 0) priceMajor = 0;
 
-  /* ---------- Clear the line ---------- */
+    var out = await call(ICON.admin.serviceSave({
+      id: S.editService ? S.editService.id : null,
+      name: document.getElementById('sName').value.trim(),
+      audience: document.getElementById('sAud').value,
+      category: document.getElementById('sCat').value,
+      duration: mins,
+      priceMinor: Math.round(priceMajor * 100),
+      isActive: S.editService ? S.editService.is_active : true,
+      sort: S.editService ? S.editService.sort_order : (S.services.length + 1)
+    }));
+    if (out) {
+      say(S.editService ? 'Service saved.' : 'Service added.', true);
+      S.editService = null;
+    }
+    showServices();
+  }
 
-  purgeBtn.addEventListener('click', async function () {
-    if (!confirm('Close out everyone currently in the shop? This cannot be undone.')) return;
+  async function saveStaff(e) {
+    e.preventDefault();
+    var out = await call(ICON.admin.staffSave({
+      id: S.editStaff ? S.editStaff.id : null,
+      name: document.getElementById('tName').value.trim(),
+      title: document.getElementById('tTitle').value.trim(),
+      isActive: S.editStaff ? S.editStaff.is_active : true,
+      sort: S.editStaff ? S.editStaff.sort_order : (S.team.length + 1)
+    }));
+    if (out) {
+      say(S.editStaff ? 'Saved.' : 'Added to the team.', true);
+      S.editStaff = null;
+    }
+    showTeam();
+  }
 
-    var out = await ICON.admin.purge();
+  async function addClosure(e) {
+    e.preventDefault();
+    var d = document.getElementById('cDate').value;
+    if (!d) return say('Pick a date.');
+    var out = await call(ICON.admin.closureSet(d, document.getElementById('cWhy').value.trim(), true));
+    if (out) say('Closed on ' + d + '.', true);
+    showHours();
+  }
+
+  async function takeBooking(e) {
+    e.preventDefault();
+    var msg = document.getElementById('bookMsg');
+    function bad(t) { msg.textContent = t; msg.hidden = false; }
+    msg.hidden = true;
+
+    var name = document.getElementById('bName').value.trim();
+    var phone = document.getElementById('bPhone').value.trim();
+    var notes = document.getElementById('bNotes').value.trim();
+
+    if (name.length < 2) return bad('Enter a name.');
+    if (S.shop && S.shop.phone_required && !phone) return bad('This shop needs a mobile number.');
+    if (phone && !ICON.isValidPhone(phone)) return bad('That number needs 10 to 15 digits, or leave it blank.');
+    if (!S.bookService) return bad('Pick a service.');
+    if (!S.bookSlot) return bad('Pick a time.');
+
+    var btn = document.getElementById('bBtn');
+    btn.disabled = true; btn.textContent = 'Booking\u2026';
+
+    var out = await ICON.admin.book({
+      serviceId: Number(S.bookService),
+      startsAt: S.bookSlot,
+      name: name, phone: phone, notes: notes,
+      staffId: S.bookStaff ? Number(S.bookStaff) : null
+    });
+
     if (!out.ok) {
-      if (out.expired) return bounceToLogin();
-      return say(queueMsg, out.error);
+      btn.disabled = false;
+      btn.textContent = 'Book ' + ICON.fmtTime(S.bookSlot);
+      if (out.expired) return bounce();
+      // Someone took it while the desk was typing.
+      if (/just been taken/i.test(out.error)) {
+        S.bookSlot = null;
+        await loadBookSlots();
+      }
+      return bad(out.error);
     }
-    say(queueMsg, 'Cleared ' + out.data + (out.data === 1 ? ' ticket.' : ' tickets.'), true);
-    render();
-  });
+
+    say('Booked ' + name + ' for ' + ICON.fmtTime(S.bookSlot) + '.', true);
+    S.bookOpen = false; S.bookSlot = null; S.bookService = null; S.bookStaff = null;
+    showCalendar();
+  }
+
+  async function saveShop(e) {
+    e.preventDefault();
+    var num = function (id, dflt) {
+      var v = parseInt(document.getElementById(id).value, 10);
+      return isFinite(v) ? v : dflt;
+    };
+    var out = await call(ICON.admin.shopSave({
+      name: document.getElementById('pName').value.trim(),
+      address: document.getElementById('pAddr').value.trim(),
+      contactPhone: document.getElementById('pPhone').value.trim(),
+      kind: document.getElementById('pKind').value,
+      category: document.getElementById('pCategory').value,
+      isOpen: document.getElementById('pOpen').checked,
+      phoneRequired: document.getElementById('pPhoneReq').checked,
+      activeChairs: num('pChairs', 1),
+      avgMinutes: num('pAvg', 15),
+      slotMinutes: num('pSlot', 30),
+      leadMinutes: num('pLead', 30),
+      horizonDays: num('pHorizon', 14)
+    }));
+    if (out) {
+      say('Shop settings saved.', true);
+      document.getElementById('shopName').textContent =
+        document.getElementById('pName').value.trim();
+    }
+    showShop();
+  }
+
+  async function changePw(e) {
+    e.preventDefault();
+    var out = await ICON.admin.changePassword(
+      document.getElementById('pwOld').value,
+      document.getElementById('pwNew').value
+    );
+    if (!out.ok) {
+      if (out.expired) return bounce();
+      return say(out.error);
+    }
+    alert('Password changed. Sign in again with the new one.');
+    await ICON.auth.logout();
+    location.replace('./login.html');
+  }
 
   /* ---------- Sign out ---------- */
 
-  document.getElementById('signOutBtn').addEventListener('click', async function () {
+  document.getElementById('signOut').addEventListener('click', async function () {
     await ICON.auth.logout();
     location.replace('./login.html');
   });
 
-  /* ---------- Boot: gate first, then render ---------- */
+  /* ============================================================
+     Boot
+     ============================================================ */
 
   (async function start() {
-    staff = await ICON.auth.require('./login.html');
-    if (!staff) return;  // require() already redirected
+    S.staff = await ICON.auth.require('./login.html');
+    if (!S.staff) return;
 
     document.body.dataset.gate = 'open';
-    document.getElementById('who').textContent = staff.display_name + ' · ' + staff.role;
+    document.getElementById('who').textContent =
+      S.staff.display_name + ' · ' + S.staff.role;
 
-    // Only managers and owners get the destructive control.
-    purgeBtn.hidden = !(staff.role === 'manager' || staff.role === 'owner');
+    var slug = S.staff.salon_slug || '';
+    document.getElementById('viewLink').href = './index.html?shop=' + encodeURIComponent(slug);
+    document.getElementById('boardLink').href = './tv.html?shop=' + encodeURIComponent(slug);
 
-    ICON.subscribeQueue('desk-queue', render);
+    var sh = await ICON.admin.shop();
+    if (sh.ok) {
+      S.shop = sh.data;
+      document.getElementById('shopName').textContent = S.shop.name;
+      document.title = S.shop.name + ' — Shop console';
+    }
+
+    // Pull services and team once: the walk-in desk and the booking form
+    // both need them, and neither is in the admin_shop payload.
+    var sv = await ICON.admin.services();
+    if (sv.ok) S.services = sv.data || [];
+
+    var tm = await ICON.admin.staff();
+    if (tm.ok) S.team = tm.data || [];
+
+    renderTabs();
+    route();
+
+    // The line is live; other tabs refresh when you open them.
+    ICON.queue.subscribe('desk-queue', function () {
+      if (S.tab === 'line') showLine();
+    });
   })();
 })();
 </script>

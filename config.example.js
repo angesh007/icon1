@@ -15,12 +15,15 @@ window.ICON_CONFIG = {
   // Safe in the browser. Never paste the secret / service_role key here.
   SUPABASE_KEY: 'YOUR_PUBLISHABLE_KEY',
 
-  // Which row in the `salons` table this install serves
+  // Fallback shop, used only when the URL has no ?shop=<slug>.
+  // Per-shop settings live on the salons row and are edited in the
+  // owner console, not here.
   SALON_ID: 1,
 
-  // Average minutes per haircut
+  // Fallback wait-estimate values, used before a shop has loaded.
   MINUTES_PER_CLIENT: 15,
-
-  // Number of stylist chairs currently running
   ACTIVE_CHAIRS: 1
+
+  // Optional: always open one particular shop from the bare URL.
+  // , SHOP_SLUG: 'perimeter'
 };

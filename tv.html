@@ -14,31 +14,37 @@
 </head>
 <body class="on-ink">
 
-<div class="board">
+<div class="board" id="board">
 
   <header class="board__head">
-    <div>
-      <span class="wordmark">Icon</span>
-      <div class="board__where">Perimeter Center &middot; Dunwoody</div>
+    <div class="board__nav">
+      <!-- The missing back door: this page used to be a dead end. -->
+      <a href="#" id="backLink" aria-label="Back to check-in">&larr; Back</a>
+      <div>
+        <span class="wordmark" id="shopName">Icon</span>
+        <div class="board__where" id="shopWhere">&nbsp;</div>
+      </div>
     </div>
-    <div class="board__wait">
-      <div class="v num" id="wait">--</div>
-      <div class="k">Minute wait for a walk-in</div>
+
+    <div class="board__nav">
+      <a href="#" id="kioskLink" aria-label="Hide these buttons for wall display">Kiosk</a>
+      <div class="board__wait">
+        <div class="v num" id="wait">--</div>
+        <div class="k">Minute wait for a walk-in</div>
+      </div>
     </div>
   </header>
 
   <div class="board__body">
-
     <section class="board__col">
       <h2 class="board__title"><span class="pip pip--live"></span> Now serving</h2>
       <ul class="board__list" id="serving"></ul>
     </section>
 
     <section class="board__col">
-      <h2 class="board__title"><span class="pip" style="background: var(--chrome);"></span> Up next</h2>
+      <h2 class="board__title"><span class="pip" style="background:var(--chrome);"></span> Up next</h2>
       <ul class="board__list" id="upnext"></ul>
     </section>
-
   </div>
 </div>
 
@@ -53,14 +59,22 @@
   var servingEl = document.getElementById('serving');
   var upnextEl = document.getElementById('upnext');
   var waitEl = document.getElementById('wait');
+  var board = document.getElementById('board');
 
   function empty(title, line) {
     return '<li><div class="empty"><strong>' + title + '</strong>' + line + '</div></li>';
   }
 
+  // A lobby screen shows a first name and a last initial, never a full
+  // name, a phone number or what someone is having done.
+  function shortName(full) {
+    var parts = String(full || '').trim().split(/\s+/);
+    if (parts.length === 1) return parts[0];
+    return parts[0] + ' ' + parts[parts.length - 1].charAt(0).toUpperCase() + '.';
+  }
+
   async function render() {
-    // Public screen: ticket number, first name and status only.
-    var res = await ICON.openQueue('id,ticket_no,customer_name,status,join_time,called_at');
+    var res = await ICON.queue.open('id,ticket_no,customer_name,status,join_time,called_at');
 
     if (res.error) {
       console.error('[ICON]', res.error);
@@ -74,14 +88,14 @@
     var inChair = rows.filter(function (r) { return r.status === 'in_chair'; });
     var waiting = rows.filter(function (r) { return r.status === 'waiting'; });
 
-    waitEl.textContent = ICON.estimateWaitMinutes(waiting.length);
+    waitEl.textContent = ICON.queue.estimate(waiting.length);
 
     servingEl.innerHTML = inChair.length === 0
       ? empty('Chair’s open', 'Walk in and take a ticket.')
       : inChair.map(function (row) {
           return '<li class="serving">' +
             '<span class="serving__no num">' + ICON.padTicket(row.ticket_no) + '</span>' +
-            '<span><span class="serving__who">' + ICON.esc(firstName(row.customer_name)) + '</span>' +
+            '<span><span class="serving__who">' + ICON.esc(shortName(row.customer_name)) + '</span>' +
             (row.called_at
               ? '<div class="serving__at">Started ' + ICON.esc(ICON.fmtTime(row.called_at)) + '</div>'
               : '') +
@@ -93,20 +107,53 @@
       : waiting.map(function (row, i) {
           return '<li class="upnext">' +
             '<span class="upnext__no num">' + ICON.padTicket(row.ticket_no) + '</span>' +
-            '<span class="upnext__who">' + ICON.esc(firstName(row.customer_name)) + '</span>' +
-            '<span class="upnext__eta num">' + ICON.esc(ICON.fmtTime(ICON.etaFor(i + 1))) + '</span>' +
+            '<span class="upnext__who">' + ICON.esc(shortName(row.customer_name)) + '</span>' +
+            '<span class="upnext__eta num">' + ICON.esc(ICON.fmtTime(ICON.queue.etaFor(i + 1))) + '</span>' +
             '</li>';
         }).join('');
   }
 
-  // A lobby screen shows a first name and a last initial, not the full name.
-  function firstName(full) {
-    var parts = String(full || '').trim().split(/\s+/);
-    if (parts.length === 1) return parts[0];
-    return parts[0] + ' ' + parts[parts.length - 1].charAt(0).toUpperCase() + '.';
-  }
+  /* ---------- Boot ---------- */
 
-  ICON.subscribeQueue('board', render);
+  (async function start() {
+    var out = await ICON.shop.resolve();
+
+    if (!out.ok) {
+      document.getElementById('shopName').textContent = 'Shop not found';
+      servingEl.innerHTML = empty('Shop not found', ICON.esc(out.error));
+      return;
+    }
+
+    var shop = out.shop;
+    document.getElementById('shopName').textContent = shop.name;
+    document.getElementById('shopWhere').textContent =
+      shop.address || (shop.kind ? shop.kind.charAt(0).toUpperCase() + shop.kind.slice(1) : '');
+    document.title = shop.name + ' — Now serving';
+
+    // Back goes to this shop's own check-in page, not a generic one.
+    document.getElementById('backLink').href =
+      './index.html?shop=' + encodeURIComponent(shop.slug);
+
+    // Kiosk mode hides the chrome so a wall display shows only the board.
+    // ?kiosk=1 makes it permanent for that screen.
+    var kiosk = new URLSearchParams(location.search).get('kiosk');
+    if (kiosk === '1') board.classList.add('is-kiosk');
+
+    document.getElementById('kioskLink').addEventListener('click', function (e) {
+      e.preventDefault();
+      board.classList.add('is-kiosk');
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(function () { /* user said no */ });
+      }
+    });
+
+    // Escape leaves kiosk mode, so a screen is never stuck.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') board.classList.remove('is-kiosk');
+    });
+
+    ICON.queue.subscribe('board', render);
+  })();
 })();
 </script>
 </body>

@@ -38,7 +38,7 @@
       <button type="submit" class="btn btn--block btn--lg" id="signInBtn">Sign in</button>
     </form>
 
-    <a class="gate__back" href="./index.html">Back to check-in</a>
+    <a class="gate__back" href="./index.html" id="backLink">Back to check-in</a>
   </div>
 </main>
 
@@ -64,6 +64,13 @@
     msg.textContent = text;
     msg.hidden = !text;
     msg.className = 'msg ' + (good ? 'msg--good' : 'msg--bad');
+  }
+
+  // Keep the shop context if they arrived from a shop page.
+  var fromShop = new URLSearchParams(location.search).get('shop');
+  if (fromShop) {
+    document.getElementById('backLink').href =
+      './index.html?shop=' + encodeURIComponent(fromShop);
   }
 
   // Already signed in? Skip the form.
