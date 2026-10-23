@@ -371,6 +371,7 @@ ICON/
 ├── admin.html           Owner console (7 tabs)
 ├── icon.css             The whole design system
 ├── customer.css         Customer page styles (index.html only)
+├── board.css            Live Board styles (tv.html only)
 ├── icon.js              Client, shop resolution, slots, auth, owner CRUD
 ├── schema.sql           Tables, functions, RLS, realtime, first owner
 ├── seed-demo.sql        Nine demo shops with their own teams

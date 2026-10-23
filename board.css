@@ -1,0 +1,499 @@
+/* ============================================================
+   ICON — Live Board (tv.html only)
+
+   A lobby screen read from across the room. It answers one
+   question: whose turn is it, and when is mine? So the ticket in
+   the chair is the largest thing on the wall, the line beside it
+   reads like a departures board, and nothing else competes.
+
+   Colour is spent on data, not chrome:
+     teal   = live and in the chair (moving)
+     coral  = the next ticket, and the connection when it drops
+     ivory  = everything people read
+   Surfaces step in lightness; a 1px line or a tone step, never
+   both, no glow, no glass, no gradients.
+
+   Sizes follow the screen's height as well as its width, so a
+   1080p TV, a laptop and a tablet all keep the board on one screen
+   without scrolling. Below 64rem it becomes a single column that
+   scrolls like a page.
+   ============================================================ */
+
+:root {
+  --lb-ground:   #10172A;   /* midnight navy */
+  --lb-raised:   #19233B;   /* elevated navy */
+  --lb-raised-2: #212D49;   /* one step above, for controls */
+  --lb-line:     #2A3654;   /* structural lines */
+  --lb-ivory:    #F4F1E8;   /* text people read */
+  --lb-muted:    #98A5BB;   /* secondary text, 6.9:1 on the ground */
+  --lb-teal:     #43E0C0;   /* live, in the chair */
+  --lb-teal-tint: rgba(67, 224, 192, 0.12);
+  --lb-coral:    #FF514D;   /* next up, attention */
+  --lb-coral-tint: rgba(255, 81, 77, 0.14);
+
+  --lb-gutter: clamp(1rem, 2.4vw, 3rem);
+  --lb-gap: clamp(0.75rem, 1.6vw, 2rem);
+
+  /* Type: Anton for figures and the name, Archivo for reading */
+  --lb-fs-label: clamp(1rem, 1.9vh, 1.375rem);
+  --lb-fs-meta:  clamp(0.9375rem, 1.8vh, 1.3rem);
+  --lb-fs-name:  clamp(1.375rem, 3.4vh, 2.5rem);
+  --lb-fs-row:   clamp(2.25rem, 6vh, 4.5rem);
+
+  --lb-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html, body { height: 100%; }
+body.lb-body {
+  margin: 0;
+  background: var(--lb-ground);
+  color: var(--lb-ivory);
+  font-family: var(--text);
+}
+
+.lb {
+  min-height: 100vh; /* taste-skill-ignore: fallback for browsers without svh */
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.lb :focus-visible { outline: 3px solid var(--lb-ivory); outline-offset: 3px; }
+
+/* ---------- Header ------------------------------------------ */
+
+.lb-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--lb-gap);
+  padding: clamp(0.875rem, 2vh, 1.5rem) var(--lb-gutter);
+  border-bottom: 1px solid var(--lb-line); /* taste-skill-ignore: app-screen structural line, allowed by app-screens.md §13 */
+}
+
+.lb-shop { min-width: 0; }
+.lb-shop .wordmark {
+  display: block;
+  font-size: clamp(1.5rem, 3.6vh, 2.75rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lb-where {
+  margin-top: 0.35em;
+  font-size: var(--lb-fs-meta);
+  color: var(--lb-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-side { display: flex; align-items: center; gap: var(--lb-gap); }
+
+/* Live status: a dot and words, so it never relies on colour alone */
+.lb-live {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2em;
+  font-size: var(--lb-fs-meta);
+  white-space: nowrap;
+}
+.lb-live__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-weight: 700;
+  color: var(--lb-teal);
+}
+.lb-live__stamp { color: var(--lb-muted); }
+.lb-dot {
+  position: relative;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.lb-live.is-stale .lb-live__state { color: var(--lb-coral); }
+.lb-live.is-waiting .lb-live__state { color: var(--lb-muted); }
+
+/* The wait: one figure with its unit, set like a fare on a board */
+.lb-wait {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: end;
+  column-gap: 0.4em;
+  padding: clamp(0.5rem, 1.2vh, 0.875rem) clamp(0.875rem, 1.4vw, 1.375rem);
+  background: var(--lb-raised);
+  border-radius: 6px;
+}
+.lb-wait__label {
+  grid-column: 1 / -1;
+  font-size: var(--lb-fs-meta);
+  color: var(--lb-muted);
+  margin-bottom: 0.15em;
+}
+.lb-wait__v {
+  font-family: var(--display);
+  font-size: clamp(2.5rem, 7vh, 5.25rem);
+  line-height: 0.88;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.2s;
+}
+.lb-wait__unit {
+  font-size: clamp(1.125rem, 2.6vh, 1.875rem);
+  font-weight: 700;
+  padding-bottom: 0.12em;
+}
+.lb-wait.is-changed .lb-wait__v { animation: lb-tick 0.5s var(--lb-ease); }
+
+/* Controls: quiet, one step above the ground */
+.lb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-size: var(--lb-fs-meta);
+  font-weight: 600;
+  color: var(--lb-ivory);
+  text-decoration: none;
+  background: var(--lb-raised-2);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.12s var(--lb-ease);
+  white-space: nowrap;
+}
+.lb-btn svg { width: 1.1em; height: 1.1em; flex: none; }
+.lb-btn:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .lb-btn:hover { background: var(--lb-line); }
+}
+
+/* Kiosk: the wall shows the board and nothing to press */
+.lb.is-kiosk .lb-btn { display: none; }
+.lb.is-kiosk .lb-head { grid-template-columns: minmax(0, 1fr) auto; }
+
+/* ---------- Body -------------------------------------------- */
+
+.lb-body-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--lb-gap);
+  padding: var(--lb-gap) var(--lb-gutter);
+  min-height: 0;
+}
+
+.lb-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+
+.lb-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 clamp(0.5rem, 1.4vh, 1rem);
+  font-size: var(--lb-fs-label);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.lb-title small { font-size: var(--lb-fs-meta); font-weight: 500; color: var(--lb-muted); }
+
+/* ---------- Now serving ------------------------------------- */
+
+.lb-serving {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  display: grid;
+  gap: var(--lb-gap);
+  min-height: 0;
+}
+.lb-serving[data-count="2"] { grid-template-rows: 1fr 1fr; }
+.lb-serving[data-count="3"],
+.lb-serving[data-count="4"] { grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; }
+.lb-serving[data-count="3"] .lb-seat:first-child { grid-column: 1 / -1; }
+.lb-serving[data-count="many"] { grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); grid-auto-rows: 1fr; }
+
+.lb-seat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: clamp(0.25rem, 1vh, 0.75rem);
+  min-height: 0;
+  padding: clamp(1rem, 3vh, 2.5rem) clamp(1rem, 2.4vw, 2.75rem);
+  background: var(--lb-raised);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.lb-seat__tag {
+  position: absolute;
+  top: clamp(1rem, 3vh, 2.5rem);
+  left: clamp(1rem, 2.4vw, 2.75rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: var(--lb-fs-meta);
+  font-weight: 700;
+  color: var(--lb-teal);
+}
+.lb-seat__no {
+  font-family: var(--display);
+  font-size: clamp(6rem, min(36vh, 24vw), 26rem);
+  line-height: 0.8;
+  letter-spacing: -0.01em;
+  color: var(--lb-teal);
+  font-variant-numeric: tabular-nums;
+}
+.lb-seat__who {
+  font-size: clamp(1.75rem, 5.6vh, 4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.lb-seat__at { font-size: var(--lb-fs-meta); color: var(--lb-muted); }
+
+/* One chair busy: the number fills the stage, the name sits on its baseline */
+.lb-serving[data-count="1"] .lb-seat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr auto auto;
+  column-gap: clamp(1.25rem, 3vw, 3.5rem);
+  align-items: end;
+}
+.lb-serving[data-count="1"] .lb-seat__no { grid-row: 1 / 4; font-size: clamp(6rem, min(60vh, 30vw), 34rem); }
+.lb-serving[data-count="1"] .lb-seat__who { grid-column: 2; grid-row: 2; }
+.lb-serving[data-count="1"] .lb-seat__at { grid-column: 2; grid-row: 3; padding-bottom: 0.4em; }
+
+/* Several chairs busy: each seat gets smaller, the hierarchy holds */
+.lb-serving[data-count="2"] .lb-seat__no { font-size: clamp(4.5rem, min(17vh, 14vw), 12rem); }
+.lb-serving[data-count="3"] .lb-seat__no,
+.lb-serving[data-count="4"] .lb-seat__no,
+.lb-serving[data-count="many"] .lb-seat__no { font-size: clamp(4rem, min(15vh, 9vw), 10rem); }
+.lb-serving[data-count="2"] .lb-seat__who,
+.lb-serving[data-count="3"] .lb-seat__who,
+.lb-serving[data-count="4"] .lb-seat__who,
+.lb-serving[data-count="many"] .lb-seat__who { font-size: var(--lb-fs-name); }
+.lb-serving:not([data-count="1"]) .lb-seat__tag { display: none; }
+
+/* A ticket just called: one teal wash that settles, once */
+.lb-seat.is-called { animation: lb-called 1.8s var(--lb-ease); }
+.lb-seat.is-called .lb-seat__no { animation: lb-pop 0.6s var(--lb-ease); }
+
+/* The open chair: the frame stays, the facts fill it */
+.lb-open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: clamp(0.5rem, 1.4vh, 1rem);
+  padding: clamp(1.25rem, 3vh, 2.5rem) clamp(1rem, 2.4vw, 2.75rem);
+  background: var(--lb-raised);
+  border-radius: 6px;
+  min-height: 14rem;
+}
+.lb-open__head {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(3.5rem, min(16vh, 11vw), 11rem);
+  line-height: 0.88;
+  text-transform: uppercase;
+  margin: 0;
+}
+.lb-open__line { margin: 0; font-size: var(--lb-fs-name); font-weight: 600; }
+.lb-open__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  margin: clamp(0.5rem, 1.6vh, 1.25rem) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--lb-fs-meta);
+  color: var(--lb-muted);
+}
+.lb-open__facts b { color: var(--lb-ivory); font-weight: 700; }
+.lb-open.is-problem .lb-open__head { color: var(--lb-coral); }
+
+/* ---------- Up next ----------------------------------------- */
+
+.lb-next {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.lb-row {
+  display: grid;
+  grid-template-columns: minmax(4.2ch, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: clamp(0.875rem, 1.8vw, 2rem);
+  padding: clamp(0.5rem, 1.3vh, 1rem) 0;
+  border-bottom: 1px solid var(--lb-line); /* taste-skill-ignore: list row rule, allowed by app-screens.md §13 */
+}
+.lb-row__no {
+  font-family: var(--display);
+  font-size: var(--lb-fs-row);
+  line-height: 1;
+  color: var(--lb-ivory);
+  font-variant-numeric: tabular-nums;
+}
+.lb-row__who {
+  font-size: var(--lb-fs-name);
+  font-weight: 600;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-row__eta {
+  text-align: right;
+  font-size: var(--lb-fs-meta);
+  color: var(--lb-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.lb-row__eta b { margin-left: 0.3em; font-size: var(--lb-fs-label); color: var(--lb-ivory); font-weight: 600; }
+
+/* The next ticket leads the list */
+.lb-row.is-first .lb-row__no { color: var(--lb-coral); }
+.lb-row.is-first { padding-top: 0; }
+.lb-badge {
+  display: inline-block;
+  margin-left: 0.6em;
+  padding: 0.12em 0.55em;
+  font-size: var(--lb-fs-meta);
+  font-weight: 700;
+  vertical-align: 0.2em;
+  color: var(--lb-coral);
+  background: var(--lb-coral-tint);
+  border-radius: 4px;
+}
+
+.lb-row.is-new { animation: lb-in 0.45s var(--lb-ease) both; }
+
+.lb-more {
+  padding: clamp(0.5rem, 1.3vh, 1rem) 0;
+  font-size: var(--lb-fs-label);
+  font-weight: 600;
+  color: var(--lb-muted);
+}
+
+.lb-clear {
+  padding: clamp(1.25rem, 3vh, 2.5rem) 0;
+  border-bottom: 1px solid var(--lb-line); /* taste-skill-ignore: list row rule, allowed by app-screens.md §13 */
+}
+.lb-clear strong { display: block; font-size: var(--lb-fs-name); font-weight: 700; }
+.lb-clear span { display: block; margin-top: 0.35em; font-size: var(--lb-fs-meta); color: var(--lb-muted); }
+
+/* Loading: the final layout with bars where values will land */
+.lb-skel {
+  display: block;
+  height: 1em;
+  width: 60%;
+  border-radius: 4px;
+  background: var(--lb-raised-2);
+}
+
+/* ---------- Footer: the line as a picture -------------------- */
+
+.lb-foot {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 1.6vw, 1.5rem);
+  padding: clamp(0.625rem, 1.6vh, 1.125rem) var(--lb-gutter);
+  border-top: 1px solid var(--lb-line); /* taste-skill-ignore: app-screen structural line, allowed by app-screens.md §13 */
+  font-size: var(--lb-fs-meta);
+  color: var(--lb-muted);
+}
+.lb-track {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+.lb-track i {
+  width: clamp(0.75rem, 1.4vh, 1.1rem);
+  height: clamp(0.75rem, 1.4vh, 1.1rem);
+  border-radius: 3px;
+  border: 2px solid var(--lb-muted);
+  flex: none;
+}
+.lb-track i.is-chair { background: var(--lb-teal); border-color: var(--lb-teal); }
+.lb-track i.is-next { border-color: var(--lb-coral); }
+.lb-track span { margin-left: 0.4em; }
+.lb-foot__sum { white-space: nowrap; }
+.lb-foot__sum b { color: var(--lb-ivory); }
+
+/* ---------- Landscape screens: two columns, one screen ------- */
+
+@media (min-width: 64rem) and (orientation: landscape) {
+  .lb {
+    height: 100vh; /* taste-skill-ignore: fallback for browsers without svh */
+    height: 100svh;
+    overflow: hidden;
+  }
+  .lb-body-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    column-gap: clamp(1.5rem, 3vw, 4rem);
+  }
+}
+
+/* ---------- Phones and narrow windows ------------------------ */
+
+@media (max-width: 47.99rem) {
+  /* Controls on top, the shop, then the two live facts side by side */
+  .lb-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "back kiosk" "shop shop" "live wait";
+    row-gap: 0.875rem;
+  }
+  .lb-side { display: contents; }
+  #backLink { grid-area: back; justify-self: start; }
+  #kioskLink { grid-area: kiosk; }
+  .lb-shop { grid-area: shop; }
+  .lb-live { grid-area: live; align-items: flex-start; align-self: end; }
+  .lb-wait { grid-area: wait; }
+  .lb-shop .wordmark { white-space: normal; }
+  .lb-foot { flex-wrap: wrap; }
+}
+
+/* ---------- Motion ------------------------------------------ */
+
+@keyframes lb-in     { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes lb-pop    { from { transform: scale(1.06); } to { transform: none; } }
+@keyframes lb-tick   { from { opacity: 0.25; } to { opacity: 1; } }
+@keyframes lb-called { from { background-color: #1E5A55; } to { background-color: var(--lb-raised); } }
+
+/* The live dot breathes slowly while connected; it is the one
+   continuous movement on the screen, and stops when the feed does. */
+.lb-live:not(.is-stale):not(.is-waiting) .lb-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: lb-ring 2.4s ease-out infinite;
+}
+@keyframes lb-ring { from { transform: scale(1); opacity: 0.7; } to { transform: scale(2.6); opacity: 0; } }
+
+.lb.is-stale .lb-body-grid { opacity: 0.72; transition: opacity 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-row.is-new,
+  .lb-seat.is-called,
+  .lb-seat.is-called .lb-seat__no,
+  .lb-wait.is-changed .lb-wait__v { animation: none; }
+  .lb-live .lb-dot::after { display: none; }
+}
