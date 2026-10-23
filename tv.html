@@ -5,47 +5,68 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ICON — Now serving</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#10172A">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="./icon.css">
+<!-- The Live Board only; the other screens use icon.css alone. -->
+<link rel="stylesheet" href="./board.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
-<body class="on-ink">
+<body class="on-ink lb-body">
 
-<div class="board" id="board">
+<div class="lb" id="board">
 
-  <header class="board__head">
-    <div class="board__nav">
-      <!-- The missing back door: this page used to be a dead end. -->
-      <a href="#" id="backLink" aria-label="Back to check-in">&larr; Back</a>
-      <div>
-        <span class="wordmark" id="shopName">Icon</span>
-        <div class="board__where" id="shopWhere">&nbsp;</div>
-      </div>
+  <header class="lb-head">
+    <!-- The missing back door: this page used to be a dead end. -->
+    <a href="#" id="backLink" class="lb-btn" aria-label="Back to check-in">&larr; Back</a>
+
+    <div class="lb-shop">
+      <h1 class="wordmark" id="shopName">Icon</h1>
+      <div class="lb-where" id="shopWhere">&nbsp;</div>
     </div>
 
-    <div class="board__nav">
-      <a href="#" id="kioskLink" aria-label="Hide these buttons for wall display">Kiosk</a>
-      <div class="board__wait">
-        <div class="v num" id="wait">--</div>
-        <div class="k">Minute wait for a walk-in</div>
+    <div class="lb-side">
+      <div class="lb-live is-waiting" id="live">
+        <span class="lb-live__state"><span class="lb-dot" aria-hidden="true"></span><span id="liveState">Connecting</span></span>
+        <span class="lb-live__stamp" id="liveStamp">&nbsp;</span>
       </div>
+
+      <div class="lb-wait" id="waitBox">
+        <span class="lb-wait__label">Walk-in wait</span>
+        <span class="lb-wait__v num" id="wait">&ndash;</span>
+        <span class="lb-wait__unit">min</span>
+      </div>
+
+      <a href="#" id="kioskLink" class="lb-btn" aria-label="Hide these buttons for wall display">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        Kiosk
+      </a>
     </div>
   </header>
 
-  <div class="board__body">
-    <section class="board__col">
-      <h2 class="board__title"><span class="pip pip--live"></span> Now serving</h2>
-      <ul class="board__list" id="serving"></ul>
+  <main class="lb-body-grid">
+    <section class="lb-col" aria-labelledby="servingTitle">
+      <h2 class="lb-title" id="servingTitle">Now serving</h2>
+      <ul class="lb-serving" id="serving" data-count="0">
+        <li class="lb-open"><p class="lb-open__line">Loading the line&hellip;</p>
+          <span class="lb-skel" style="height:3rem;width:40%;"></span></li>
+      </ul>
     </section>
 
-    <section class="board__col">
-      <h2 class="board__title"><span class="pip" style="background:var(--chrome);"></span> Up next</h2>
-      <ul class="board__list" id="upnext"></ul>
+    <section class="lb-col" aria-labelledby="nextTitle">
+      <h2 class="lb-title" id="nextTitle">Up next <small id="nextCount"></small></h2>
+      <ul class="lb-next" id="upnext"></ul>
     </section>
-  </div>
+  </main>
+
+  <footer class="lb-foot" id="foot" aria-hidden="true"></footer>
+
+  <!-- One spoken update when someone is called, never a bare number -->
+  <p class="sr" role="status" aria-atomic="true" id="announce"></p>
 </div>
 
 <script src="./config.js"></script>
@@ -59,11 +80,21 @@
   var servingEl = document.getElementById('serving');
   var upnextEl = document.getElementById('upnext');
   var waitEl = document.getElementById('wait');
+  var waitBox = document.getElementById('waitBox');
   var board = document.getElementById('board');
+  var liveEl = document.getElementById('live');
+  var liveState = document.getElementById('liveState');
+  var liveStamp = document.getElementById('liveStamp');
+  var nextCount = document.getElementById('nextCount');
+  var footEl = document.getElementById('foot');
+  var announceEl = document.getElementById('announce');
 
-  function empty(title, line) {
-    return '<li><div class="empty"><strong>' + title + '</strong>' + line + '</div></li>';
-  }
+  // What was on screen last time, so only real changes animate.
+  var seen = null;          // { serving: {id:true}, waiting: {id:true}, wait: n }
+  var lastGood = null;      // when the feed last answered
+
+  // The two-column board fits one screen; narrower screens scroll.
+  var landscape = window.matchMedia('(min-width: 64rem) and (orientation: landscape)');
 
   // A lobby screen shows a first name and a last initial, never a full
   // name, a phone number or what someone is having done.
@@ -73,45 +104,183 @@
     return parts[0] + ' ' + parts[parts.length - 1].charAt(0).toUpperCase() + '.';
   }
 
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  /* ---------- Live status ---------- */
+
+  function setLive(state) {
+    liveEl.classList.toggle('is-stale', state === 'stale');
+    liveEl.classList.toggle('is-waiting', state === 'waiting' || state === 'missing');
+    board.classList.toggle('is-stale', state === 'stale');
+    if (state === 'live') {
+      liveState.textContent = 'Live';
+      liveStamp.textContent = 'Updated ' + ICON.fmtTime(lastGood);
+    } else if (state === 'stale') {
+      liveState.textContent = 'Reconnecting';
+      liveStamp.textContent = lastGood ? 'Last update ' + ICON.fmtTime(lastGood) : ' ';
+    } else {
+      liveState.textContent = state === 'missing' ? 'Offline' : 'Connecting';
+      liveStamp.textContent = ' ';
+    }
+  }
+
+  // "Open until 8:00 pm", from the shop's own hours, only while it is open.
+  function closingFact() {
+    var h = ICON.shop.hoursFor(new Date().getDay());
+    if (!h || !h.is_open || !h.closes_at) return '';
+    var p = String(h.closes_at).split(':');
+    var close = new Date(); close.setHours(parseInt(p[0], 10) || 0, parseInt(p[1], 10) || 0, 0, 0);
+    if (close <= new Date()) return '';
+    return '<li>Open until <b>' + ICON.esc(ICON.fmtTime(close)) + '</b></li>';
+  }
+
+  /* ---------- Blocks ---------- */
+
+  function openChair(title, line, facts, problem) {
+    return '<li class="lb-open' + (problem ? ' is-problem' : '') + '">' +
+      '<p class="lb-open__head">' + title + '</p>' +
+      '<p class="lb-open__line">' + line + '</p>' +
+      (facts ? '<ul class="lb-open__facts">' + facts + '</ul>' : '') +
+    '</li>';
+  }
+
+  function seat(row, single, called) {
+    return '<li class="lb-seat' + (called ? ' is-called' : '') + '">' +
+      (single ? '<span class="lb-seat__tag"><span class="lb-dot" aria-hidden="true"></span>In the chair</span>' : '') +
+      '<span class="lb-seat__no num" aria-label="Ticket ' + ICON.padTicket(row.ticket_no) + '">' +
+        ICON.padTicket(row.ticket_no) + '</span>' +
+      '<span class="lb-seat__who">' + ICON.esc(shortName(row.customer_name)) + '</span>' +
+      (row.called_at
+        ? '<span class="lb-seat__at">Started ' + ICON.esc(ICON.fmtTime(row.called_at)) + '</span>'
+        : '') +
+    '</li>';
+  }
+
+  function nextRow(row, i, isNew) {
+    return '<li class="lb-row' + (i === 0 ? ' is-first' : '') + (isNew ? ' is-new' : '') + '">' +
+      '<span class="lb-row__no num">' + ICON.padTicket(row.ticket_no) + '</span>' +
+      '<span class="lb-row__who">' + ICON.esc(shortName(row.customer_name)) +
+        (i === 0 ? '<span class="lb-badge">Next</span>' : '') + '</span>' +
+      '<span class="lb-row__eta">about<b>' + ICON.esc(ICON.fmtTime(ICON.queue.etaFor(i + 1))) + '</b></span>' +
+    '</li>';
+  }
+
+  // The line as a picture: a filled mark per chair in use, an open
+  // mark per person waiting, the next one in coral.
+  function track(chairs, waits) {
+    var CAP = 40;
+    var marks = '';
+    for (var i = 0; i < Math.min(chairs, CAP); i++) marks += '<i class="is-chair"></i>';
+    for (var j = 0; j < Math.min(waits, CAP - Math.min(chairs, CAP)); j++) {
+      marks += '<i' + (j === 0 ? ' class="is-next"' : '') + '></i>';
+    }
+    var shown = Math.min(chairs + waits, CAP);
+    return '<div class="lb-track">' + marks +
+      (chairs + waits > shown ? '<span>+' + (chairs + waits - shown) + '</span>' : '') + '</div>' +
+      '<div class="lb-foot__sum"><b>' + chairs + '</b> in the chair · <b>' + waits + '</b> waiting</div>';
+  }
+
+  // On a landscape screen the list must not run off the bottom: show the
+  // rows that fit and say how many more are waiting.
+  function fitList() {
+    var rows = upnextEl.querySelectorAll('.lb-row');
+    var more = document.getElementById('more');
+    rows.forEach(function (r) { r.hidden = false; });
+    if (!more) return;
+    more.hidden = true;
+    if (!landscape.matches || !rows.length) return;
+
+    var limit = upnextEl.getBoundingClientRect().bottom;
+    if (rows[rows.length - 1].getBoundingClientRect().bottom <= limit + 1) return;
+
+    more.hidden = false;
+    var cut = rows.length;
+    while (cut > 1 && more.getBoundingClientRect().bottom > limit + 1) {
+      cut--;
+      rows[cut].hidden = true;
+    }
+    more.textContent = '+ ' + (rows.length - cut) + ' more waiting';
+  }
+
+  /* ---------- Render ---------- */
+
   async function render() {
     var res = await ICON.queue.open('id,ticket_no,customer_name,status,join_time,called_at');
 
     if (res.error) {
       console.error('[ICON]', res.error);
-      waitEl.textContent = '--';
-      servingEl.innerHTML = empty('Reconnecting', 'The board will come back on its own.');
-      upnextEl.innerHTML = '';
+      setLive('stale');
+      // Keep the last good board on the wall; only an empty one gets the notice.
+      if (!seen) {
+        waitEl.textContent = '–';
+        servingEl.dataset.count = '0';
+        servingEl.innerHTML = openChair('Reconnecting', 'The board will come back on its own.', '', true);
+        upnextEl.innerHTML = '';
+        footEl.innerHTML = '';
+      }
       return;
     }
+
+    lastGood = new Date();
+    setLive('live');
 
     var rows = res.data || [];
     var inChair = rows.filter(function (r) { return r.status === 'in_chair'; });
     var waiting = rows.filter(function (r) { return r.status === 'waiting'; });
+    var first = !seen;
 
-    waitEl.textContent = ICON.queue.estimate(waiting.length);
+    // Wait figure
+    var wait = ICON.queue.estimate(waiting.length);
+    waitEl.textContent = wait;
+    if (!first && seen.wait !== wait) {
+      waitBox.classList.remove('is-changed'); void waitBox.offsetWidth; waitBox.classList.add('is-changed');
+    }
 
-    servingEl.innerHTML = inChair.length === 0
-      ? empty('Chair’s open', 'Walk in and take a ticket.')
-      : inChair.map(function (row) {
-          return '<li class="serving">' +
-            '<span class="serving__no num">' + ICON.padTicket(row.ticket_no) + '</span>' +
-            '<span><span class="serving__who">' + ICON.esc(shortName(row.customer_name)) + '</span>' +
-            (row.called_at
-              ? '<div class="serving__at">Started ' + ICON.esc(ICON.fmtTime(row.called_at)) + '</div>'
-              : '') +
-            '</span></li>';
-        }).join('');
+    // Now serving
+    var called = [];
+    if (inChair.length === 0) {
+      servingEl.dataset.count = '0';
+      servingEl.innerHTML = openChair('Chair’s open', 'Walk in and take a ticket.',
+        '<li><b>' + plural(ICON.queue.chairs(), 'chair', 'chairs') + '</b> working today</li>' +
+        '<li>About <b>' + ICON.queue.serviceMinutes() + ' min</b> a client</li>' +
+        closingFact() +
+        '<li>' + (waiting.length === 0 ? 'Nobody waiting' : '<b>' + waiting.length + '</b> waiting') + '</li>');
+    } else {
+      servingEl.dataset.count = inChair.length <= 4 ? String(inChair.length) : 'many';
+      // The latest call leads the stage; display order only.
+      var byCall = inChair.slice().sort(function (a, b) {
+        return new Date(b.called_at || 0) - new Date(a.called_at || 0);
+      });
+      servingEl.innerHTML = byCall.map(function (row) {
+        var isCalled = !first && !seen.serving[row.id];
+        if (isCalled) called.push(row);
+        return seat(row, inChair.length === 1, isCalled);
+      }).join('');
+    }
 
+    // Up next
+    nextCount.textContent = waiting.length ? plural(waiting.length, 'person', 'people') + ' waiting' : '';
     upnextEl.innerHTML = waiting.length === 0
-      ? empty('Nobody waiting', 'The line is clear.')
+      ? '<li class="lb-clear"><strong>Nobody waiting</strong><span>The line is clear.</span></li>'
       : waiting.map(function (row, i) {
-          return '<li class="upnext">' +
-            '<span class="upnext__no num">' + ICON.padTicket(row.ticket_no) + '</span>' +
-            '<span class="upnext__who">' + ICON.esc(shortName(row.customer_name)) + '</span>' +
-            '<span class="upnext__eta num">' + ICON.esc(ICON.fmtTime(ICON.queue.etaFor(i + 1))) + '</span>' +
-            '</li>';
-        }).join('');
+          return nextRow(row, i, !first && !seen.waiting[row.id]);
+        }).join('') + '<li class="lb-more" id="more" hidden></li>';
+    fitList();
+
+    footEl.innerHTML = track(inChair.length, waiting.length);
+
+    if (called.length) {
+      announceEl.textContent = called.map(function (r) {
+        return 'Now serving ticket ' + ICON.padTicket(r.ticket_no) + ', ' + shortName(r.customer_name) + '.';
+      }).join(' ');
+    }
+
+    seen = { serving: {}, waiting: {}, wait: wait };
+    inChair.forEach(function (r) { seen.serving[r.id] = true; });
+    waiting.forEach(function (r) { seen.waiting[r.id] = true; });
   }
+
+  window.addEventListener('resize', fitList);
 
   /* ---------- Boot ---------- */
 
@@ -120,7 +289,9 @@
 
     if (!out.ok) {
       document.getElementById('shopName').textContent = 'Shop not found';
-      servingEl.innerHTML = empty('Shop not found', ICON.esc(out.error));
+      setLive('missing');
+      servingEl.dataset.count = '0';
+      servingEl.innerHTML = openChair('Shop not found', ICON.esc(out.error), '', true);
       return;
     }
 
