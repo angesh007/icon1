@@ -8,10 +8,11 @@
      banner this page logs to the console, to confirm what is actually live. -->
 <meta name="icon-build" content="3.4-redesign">
 <meta name="description" content="See the live wait, join the queue, or book a slot for later.">
+<meta name="theme-color" content="#EEF0EB">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@100..125,400..700&display=swap">
 <link rel="stylesheet" href="./icon.css">
 <!-- Customer page only; the other screens use icon.css alone. -->
 <link rel="stylesheet" href="./customer.css">
@@ -37,10 +38,16 @@
 </head>
 <body>
 
+<a class="skip" href="#root">Skip to content</a>
 <header class="cbar">
   <div class="wrap cbar__in">
-    <span class="wordmark" id="brand">Icon</span>
+    <span class="wordmark" id="brand" translate="no">Icon</span>
     <nav aria-label="Main">
+      <!-- Shown on a shop's page only (body.is-home) -->
+      <a href="#menu" class="cnav__sec">Menu</a>
+      <a href="#team" class="cnav__sec">Team</a>
+      <a href="#hours" class="cnav__sec">Hours</a>
+      <span class="cnav__sep" aria-hidden="true"></span>
       <a href="#" id="navBoard">Live board</a>
       <a href="./login.html">Staff sign in</a>
     </nav>
@@ -48,7 +55,7 @@
 </header>
 
 <main id="root" tabindex="-1">
-  <p class="loading">Loading the shop…</p>
+  <p class="loading" role="status">Loading the shop…</p>
 </main>
 
 <script src="./config.js"></script>
@@ -165,6 +172,7 @@
   // replay it each time.
   function paint(html, view) {
     root.innerHTML = html;
+    document.body.classList.toggle('is-home', view === 'step:route' || view === 'closed');
     if (view !== lastView) {
       root.classList.remove('is-entering');
       void root.offsetWidth;
@@ -199,14 +207,17 @@
       ICON.esc(title) + '</strong>' + bodyHtml + '</div></div>';
   }
 
-  // The mark, built large, closes the pages people scroll.
+  // A short close: what this is, and the links people come back for.
   function footer() {
-    return '<footer class="cfoot"><div class="wrap">' +
-      '<div class="mark js-reveal" aria-hidden="true"><span>I</span><span>C</span><span>O</span><span>N</span></div>' +
-      '<div class="cfoot__row">' +
-        '<p>Live queues and bookings for local barbers, nail salons and car washes.</p>' +
-        '<a href="./login.html">Staff sign in \u2192</a>' +
-      '</div>' +
+    var onShop = S.shop && !S.browsing;
+    return '<footer class="cfoot"><div class="wrap cfoot__in">' +
+      '<span class="wordmark" translate="no">Icon</span>' +
+      '<p class="cfoot__line">Live queues and bookings for local barbers, nail salons and car washes.</p>' +
+      '<nav class="cfoot__links" aria-label="Footer">' +
+        (onShop ? '<a href="./tv.html?shop=' + encodeURIComponent(S.shop.slug) + '">Live board</a>' : '') +
+        (onShop && S.shops.length > 1 ? '<a href="./index.html">All shops</a>' : '') +
+        '<a href="./login.html">Staff sign in</a>' +
+      '</nav>' +
     '</div></footer>';
   }
 
@@ -532,80 +543,117 @@
     return (S.shop.hours || []).filter(function (x) { return x.weekday === now.getDay(); })[0] || null;
   }
 
-  // Name, address, open or closed, and the live line as a stub.
-  function shopHead(withLive) {
-    var openNow = isOpenNow();
+  // Where the shop stands right now, in words, from its own hours.
+  function shopStatus() {
+    if (!S.shop.is_open) return { open: false, text: 'Not taking customers right now', next: '' };
     var h = todayHours();
+    if (isOpenNow()) return { open: true, text: 'Open now, until ' + clock(h.closes_at), next: '' };
+
+    var now = new Date();
+    var mins = now.getHours() * 60 + now.getMinutes();
+    if (h && h.is_open && toMins(h.opens_at) > mins) {
+      return { open: false, text: 'Opens today at ' + clock(h.opens_at), next: 'today at ' + clock(h.opens_at) };
+    }
+    for (var i = 1; i <= 7; i++) {
+      var day = (now.getDay() + i) % 7;
+      var x = (S.shop.hours || []).filter(function (y) { return y.weekday === day; })[0];
+      if (x && x.is_open) {
+        var when = i === 1 ? 'tomorrow' : ICON.fmtDay(day, true);
+        return { open: false, text: 'Closed now, opens ' + when + ' at ' + clock(x.opens_at), next: when + ' at ' + clock(x.opens_at) };
+      }
+    }
+    return { open: false, text: 'Closed right now', next: '' };
+  }
+
+  // The forest hero: name, status, address, the ways in, and the live line.
+  function hero(actionsHtml) {
+    var st = shopStatus();
     var w = waiting().length;
     var c = inChair().length;
-    var status = !S.shop.is_open ? 'Not taking customers'
-      : openNow ? 'Open now' + (h ? ' \u00b7 until ' + clock(h.closes_at) : '')
-      : (h && h.is_open && toMins(h.opens_at) > new Date().getHours() * 60 + new Date().getMinutes()
-          ? 'Opens at ' + clock(h.opens_at) : 'Closed right now');
 
-    return '<section class="shophead" aria-labelledby="shopTitle"><div class="wrap">' +
+    return '<section class="wrap hh" aria-labelledby="shopTitle"><div class="hh__panel">' +
       '<div>' +
-        (S.shops.length > 1 ? '<a class="shophead__back" href="./index.html"' + enter(0) + '>\u2190 All shops</a>' : '') +
-        '<h1 class="shophead__name" id="shopTitle"' + enter(1) + '>' + ICON.esc(S.shop.name) + '</h1>' +
-        '<p class="shophead__where"' + enter(2) + '>' +
-          '<span class="shophead__open"><i class="dot' + (openNow ? '' : ' dot--off') + '"></i>' + ICON.esc(status) + '</span>' +
-          (S.shop.address ? '<span>' + ICON.esc(S.shop.address) + '</span>' : '') +
+        (S.shops.length > 1 ? '<a class="hh__back" href="./index.html"' + enter(0) + '>← All shops</a>' : '') +
+        '<h1 class="hh__name" id="shopTitle"' + enter(1) + '>' + ICON.esc(S.shop.name) + '</h1>' +
+        '<p class="hh__facts"' + enter(2) + '>' +
+          '<span class="hh__status' + (st.open ? '' : ' is-closed') + '"><i class="hh__dot" aria-hidden="true"></i>' +
+            ICON.esc(st.text) + '</span>' +
+          (S.shop.address ? '<span class="hh__addr">' + ICON.esc(S.shop.address) + '</span>' : '') +
         '</p>' +
+        actionsHtml +
       '</div>' +
-      (withLive
-        ? '<div class="live" data-ui' + enter(3) + '>' +
-            '<div class="live__head"><span>The line right now</span><i class="pip pip--live" aria-hidden="true"></i></div>' +
-            '<div class="live__wait num">' + waitMins() + '<small>min</small></div>' +
-            '<p class="live__key">Wait if you join now</p>' +
-            '<dl>' +
-              '<div><dt>' + (w === 1 ? 'Person' : 'People') + ' in line</dt><dd class="num">' + w + '</dd></div>' +
-              '<div><dt>In the chair</dt><dd class="num">' + c + '</dd></div>' +
+      (S.shop.is_open
+        ? '<aside class="hh__live" aria-label="The line right now"' + enter(4) + '>' +
+            '<p class="hh__live-head"><span class="pip pip--live" aria-hidden="true"></span>The line right now</p>' +
+            '<p class="hh__wait"><span class="num">' + waitMins() + '</span><span>min wait</span></p>' +
+            '<dl class="hh__stats">' +
+              '<div><dt>Waiting</dt><dd>' + w + '</dd></div>' +
+              '<div><dt>In the chair</dt><dd>' + c + '</dd></div>' +
+              '<div><dt>Chairs</dt><dd>' + ICON.queue.chairs() + '</dd></div>' +
             '</dl>' +
-          '</div>'
+            '<a class="hh__board" href="./tv.html?shop=' + encodeURIComponent(S.shop.slug) + '">Open the live board</a>' +
+          '</aside>'
         : '') +
     '</div></section>';
   }
 
-  // The service menu as a printed sheet, the team and the hours.
-  function profile(lead) {
+  // The menu, the team and the hours: everything below the hero.
+  function sections() {
     var list = S.shop.services || [];
     var groups = {};
     list.forEach(function (s) { (groups[s.category] = groups[s.category] || []).push(s); });
     var keys = Object.keys(groups);
 
-    var sheet = '<div class="sheet js-reveal">' +
-      '<h2 class="sect sheet__title">Menu</h2>' +
-      '<p class="sheet__note">Prices and times are what the shop set.</p>' +
+    var menu = '<section class="wrap sec" id="menu" aria-labelledby="menuTitle"><div class="js-reveal">' +
+      '<div class="sec__head"><h2 class="sec__title" id="menuTitle">Menu</h2>' +
+        '<p class="sec__note">Prices and times are set by the shop.</p></div>' +
       (list.length === 0
-        ? '<p class="sheet__hours">The shop hasn\u2019t added services yet. Ask at the counter.</p>'
-        : keys.map(function (cat) {
-            return '<div class="sheet__group">' +
-              (keys.length > 1 ? '<h3>' + ICON.esc(CATEGORY_LABEL[cat] || cat) + '</h3>' : '<div style="height:var(--s6)"></div>') +
-              '<ul class="sheet__items">' + groups[cat].map(function (s) {
-                return '<li><span class="sheet__name">' + ICON.esc(s.name) + '</span>' +
-                  '<span class="sheet__price">' +
-                    (s.price_minor > 0 ? ICON.esc(ICON.fmtMoney(s.price_minor, S.shop.currency)) : '\u2014') + '</span>' +
-                  '<span class="sheet__desc">' + s.duration_minutes + ' min' +
-                    (s.audience !== 'unisex' ? ' \u00b7 ' + AUDIENCE_LABEL[s.audience] : '') + '</span></li>';
+        ? '<p class="mempty">The shop hasn’t added services yet. Ask at the counter.</p>'
+        : '<div class="mgrid' + (keys.length === 1 ? ' mgrid--flat' : '') + '">' + keys.map(function (cat) {
+            return '<div class="mgroup">' +
+              (keys.length > 1 ? '<h3>' + ICON.esc(CATEGORY_LABEL[cat] || cat) + '</h3>' : '<h3 class="sr">Services</h3>') +
+              '<ul class="mlist">' + groups[cat].map(function (s) {
+                return '<li><span class="mname">' + ICON.esc(s.name) + '</span>' +
+                  '<span class="mprice">' +
+                    (s.price_minor > 0 ? ICON.esc(ICON.fmtMoney(s.price_minor, S.shop.currency)) : '—') + '</span>' +
+                  '<span class="mmeta"><span>' + s.duration_minutes + '&nbsp;min</span>' +
+                    (s.audience !== 'unisex' ? '<span class="mtag">' + AUDIENCE_LABEL[s.audience] + '</span>' : '') +
+                  '</span></li>';
               }).join('') + '</ul></div>';
-          }).join('')) +
-    '</div>';
+          }).join('') + '</div>') +
+    '</div></section>';
 
     var team = S.shop.staff || [];
-    var side = '<div class="side">' +
-      (lead || '') +
-      '<div class="js-reveal" style="--i:1"><h2 class="sect">Team</h2>' +
-        (team.length
-          ? '<ul class="team">' + team.map(function (t) {
-              return '<li><span class="team__init" aria-hidden="true">' + ICON.esc(String(t.name || '?').charAt(0)) + '</span>' +
-                '<b>' + ICON.esc(t.name) + '</b>' + (t.title ? '<span>' + ICON.esc(t.title) + '</span>' : '') + '</li>';
-            }).join('') + '</ul>'
-          : '<p class="soft">No team listed yet.</p>') +
-      '</div>' +
-      hoursTable() +
-    '</div>';
+    var crew = '<section class="wrap sec" id="team" aria-labelledby="teamTitle"><div class="js-reveal">' +
+      '<div class="sec__head"><h2 class="sec__title" id="teamTitle">Team</h2></div>' +
+      (team.length
+        ? '<ul class="crew">' + team.map(function (t) {
+            return '<li><span class="crew__mono" aria-hidden="true">' + ICON.esc(String(t.name || '?').charAt(0)) + '</span>' +
+              '<span class="crew__who"><b>' + ICON.esc(t.name) + '</b>' + (t.title ? '<span class="crew__role">' + ICON.esc(t.title) + '</span>' : '') + '</span></li>';
+          }).join('') + '</ul>'
+        : '<p class="mempty">No team listed yet.</p>') +
+    '</div></section>';
 
-    return '<div class="wrap profile">' + sheet + side + '</div>';
+    var hours = '<section class="sec" id="hours" aria-labelledby="hoursTitle"><div class="js-reveal" style="--i:1">' +
+      '<div class="sec__head"><h2 class="sec__title" id="hoursTitle">Opening hours</h2></div>' +
+      hoursTable() +
+    '</div></section>';
+
+    // Where to find the shop, with the ways in again for whoever scrolled
+    // this far. A shop not taking customers gets no buttons here.
+    var st = shopStatus();
+    var tel = S.shop.contact_phone ? String(S.shop.contact_phone).replace(/[^0-9+]/g, '') : '';
+    var visit = '<aside class="visit js-reveal" style="--i:2" aria-labelledby="visitTitle"><div>' +
+      '<h2 class="visit__title" id="visitTitle">Visit ' + ICON.esc(S.shop.name) + '</h2>' +
+      (S.shop.address ? '<p class="visit__addr">' + ICON.esc(S.shop.address) + '</p>' : '') +
+      '<p class="hh__facts"><span class="hh__status' + (st.open ? '' : ' is-closed') + '"><i class="hh__dot" aria-hidden="true"></i>' +
+        ICON.esc(st.text) + '</span>' +
+        (tel ? '<a class="visit__tel" href="tel:' + ICON.esc(tel) + '">' + ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + '</a>' : '') +
+      '</p></div>' +
+      (S.shop.is_open ? '<div class="hh__actions">' + waysButtons() + '</div>' : '') +
+    '</aside>';
+
+    return menu + crew + '<div class="wrap duo">' + hours + visit + '</div>';
   }
 
   function errorBox() {
@@ -614,32 +662,32 @@
 
   /* ---------- Step: queue or book ---------- */
 
+  // The two ways in. Joining the queue leads while the shop is open now;
+  // otherwise booking leads and the queue button is disabled.
+  function waysButtons() {
+    var openNow = isOpenNow();
+    var queueBtn = '<button class="pill ' + (openNow ? 'pill--primary' : 'pill--ghost') + '" data-act="route" data-route="queue"' +
+      (openNow ? '' : ' disabled') + '>Join the queue</button>';
+    var bookBtn = '<button class="pill ' + (openNow ? 'pill--ghost' : 'pill--primary') + '" data-act="route" data-route="book">Book a time</button>';
+    return openNow ? queueBtn + bookBtn : bookBtn + queueBtn;
+  }
+
   function stepRoute() {
     var w = waiting().length;
     var openNow = isOpenNow();
+    var st = shopStatus();
 
-    return shopHead(true) +
-      '<div class="wrap">' +
-        errorBox() +
-        '<div class="ways">' +
-          '<button class="choice choice--lead is-queue" data-act="route" data-route="queue"' +
-            (openNow ? '' : ' disabled') + enter(4) + '>' +
-            '<span class="choice__label">Join the queue now</span>' +
-            '<span class="choice__note">' +
-              (openNow
-                ? (w === 0 ? 'Nobody waiting — walk straight in' :
-                   'About ' + waitMins() + ' min, you’ll be ' + (w + 1) + ordinal(w + 1) + ' in line')
-                : 'The shop is closed right now') +
-            '</span>' +
-          '</button>' +
-          '<button class="choice choice--lead is-book" data-act="route" data-route="book"' + enter(5) + '>' +
-            '<span class="choice__label">Book a slot for later</span>' +
-            '<span class="choice__note">Pick a day and a time that suits you</span>' +
-          '</button>' +
-        '</div>' +
-        '<p class="shopnote">Already have a booking? It shows up here automatically on the phone you booked with.</p>' +
-      '</div>' +
-      profile();
+    var hint = openNow
+      ? (w === 0 ? 'Nobody waiting. Walk straight in.'
+                 : 'About ' + waitMins() + ' min. You’d be ' + (w + 1) + ordinal(w + 1) + ' in line.')
+      : 'The queue opens when the shop does' + (st.next ? ', ' + st.next : '') + '. You can book a time now.';
+
+    return (S.error ? '<div class="wrap" style="padding-top:var(--s4);">' + errorBox() + '</div>' : '') +
+      hero(
+        '<div class="hh__actions"' + enter(3) + '>' + waysButtons() + '</div>' +
+        '<p class="hh__hint"' + enter(3) + ' aria-live="polite">' + ICON.esc(hint) + '</p>' +
+        '<p class="hh__note"' + enter(3) + '>Already have a booking? It shows up here automatically on the phone you booked with.</p>') +
+      sections();
   }
 
   function isOpenNow() {
@@ -1531,27 +1579,33 @@
   }
 
   function renderClosed() {
+    var tel = S.shop.contact_phone ? String(S.shop.contact_phone).replace(/[^0-9+]/g, '') : '';
     paint(
-      shopHead(false) +
-      profile(
-        '<div class="empty" style="text-align:left;"' + enter(3) + '><strong>Closed right now</strong>' +
-          (S.shop.contact_phone
-            ? 'Call <a href="tel:' + ICON.esc(String(S.shop.contact_phone).replace(/[^0-9+]/g, '')) + '">' +
-              ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + '</a> if you need us.'
-            : 'Check back during opening hours.') +
-        '</div>') +
+      hero(
+        (tel
+          ? '<div class="hh__actions"' + enter(3) + '><a class="pill pill--primary" href="tel:' + ICON.esc(tel) + '">Call ' +
+              ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + '</a></div>'
+          : '') +
+        '<p class="hh__hint"' + enter(3) + '>This shop isn’t taking walk-ins or bookings right now. ' +
+          (tel ? 'Call if you need them.' : 'Check back during opening hours.') + '</p>') +
+      sections() +
       footer(), 'closed');
   }
 
   function hoursTable() {
     var hours = S.shop.hours || [];
-    if (!hours.length) return '';
+    if (!hours.length) return '<p class="mempty">The shop hasn’t listed its hours yet.</p>';
     var today = new Date().getDay();
-    return '<div class="js-reveal" style="--i:2"><h2 class="sect">Hours</h2><dl class="hours">' + hours.map(function (h) {
-      return '<div' + (h.weekday === today ? ' class="is-today"' : '') + '>' +
-        '<dt>' + ICON.fmtDay(h.weekday, true) + (h.weekday === today ? ' (today)' : '') + '</dt>' +
-        '<dd>' + (h.is_open ? ICON.esc(clock(h.opens_at)) + ' – ' + ICON.esc(clock(h.closes_at)) : 'Closed') + '</dd></div>';
-    }).join('') + '</dl></div>';
+    var st = shopStatus();
+    return '<div class="hours2"><table>' +
+      '<caption><span class="' + (st.open ? 'is-open' : 'is-closed') + '">' + ICON.esc(st.text) + '</span></caption>' +
+      '<tbody>' + hours.map(function (h) {
+        var isToday = h.weekday === today;
+        return '<tr' + (isToday ? ' class="is-today"' : '') + '>' +
+          '<th scope="row">' + ICON.fmtDay(h.weekday, true) + (isToday ? '<span class="today">Today</span>' : '') + '</th>' +
+          '<td' + (h.is_open ? '' : ' class="is-off"') + '>' +
+            (h.is_open ? ICON.esc(clock(h.opens_at)) + ' – ' + ICON.esc(clock(h.closes_at)) : 'Closed') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
   }
 
   /* ---------- Bits ---------- */
