@@ -6,13 +6,15 @@
 <title>ICON — Book or join the queue</title>
 <!-- Bump this when the file changes. Check it with View Source, or read the
      banner this page logs to the console, to confirm what is actually live. -->
-<meta name="icon-build" content="3.3-qr">
+<meta name="icon-build" content="3.4-redesign">
 <meta name="description" content="See the live wait, join the queue, or book a slot for later.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="./icon.css">
+<!-- Customer page only; the other screens use icon.css alone. -->
+<link rel="stylesheet" href="./customer.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <!-- Vendored QR encoder (MIT, already in the repo for admin.html). Drawn on
      the device, so a booking reference never goes to a QR service. -->
@@ -32,146 +34,21 @@
         document.head.appendChild(s);
       });
 </script>
-<style>
-  /* ============================================================
-     The pass: booking confirmation and walk-in ticket.
-     Scoped here so icon.css stays untouched.
-     ============================================================ */
-
-  /* A status chip in the ticket head, so state reads at a glance */
-  .chip {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0.2rem 0.5rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--on-ink);
-  }
-  .chip--go   { background: rgba(15, 155, 108, 0.22); color: #6EE7B7; }
-  .chip--wait { background: rgba(168, 175, 184, 0.18); color: #CBD3DD; }
-  .chip--off  { background: rgba(216, 35, 42, 0.2);  color: #FCA5A5; }
-
-  /* Date band under the head: the day, stated once, clearly */
-  .band {
-    background: var(--ink-raised);
-    color: var(--on-ink);
-    text-align: center;
-    padding: var(--s2) var(--s4);
-    font-size: var(--t-sm);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-  .band span { color: var(--on-ink-dim); font-weight: 400; }
-
-  /* The hero time/number already comes from .ticket__number in icon.css;
-     this just tightens the block underneath it. */
-  .hero__sub {
-    text-align: center;
-    margin: 0;
-    padding: 0 var(--s4) var(--s5);
-    font-size: var(--t-sm);
-    color: var(--on-paper-dim);
-  }
-  .hero__sub strong { color: var(--on-paper); }
-
-  /* ---------- queue progress pips ---------- */
-  /* Position as a picture: filled = people ahead, hollow = you. */
-  .pips {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-    padding: 0 var(--s4) var(--s4);
-  }
-  .pips i {
-    width: 9px; height: 9px;
-    border-radius: 50%;
-    background: var(--chrome);
-    display: block;
-  }
-  .pips i.is-me {
-    width: 13px; height: 13px;
-    background: transparent;
-    border: 3px solid var(--signal);
-  }
-  .pips i.is-chair { background: var(--go); }
-
-  /* ---------- the QR block ---------- */
-  .pass { text-align: center; padding: var(--s5) 0 var(--s3); }
-
-  .pass__code {
-    display: inline-block;
-    background: #fff;
-    padding: var(--s3);
-    border-radius: 12px;
-    box-shadow: 0 0 0 1px rgba(20, 26, 46, 0.1), 0 8px 20px -14px rgba(20, 26, 46, 0.55);
-    line-height: 0;
-  }
-  .pass__code svg { display: block; width: 10.5rem; height: 10.5rem; }
-
-  .pass__ref { margin: var(--s4) 0 0; font-size: var(--t-xs); color: var(--on-paper-dim); }
-  .pass__ref strong {
-    display: block;
-    margin-top: 2px;
-    font-size: var(--t-lg);
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: var(--on-paper);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* When the encoder cannot run, say so instead of leaving a hole. */
-  .pass__fallback {
-    display: inline-block;
-    max-width: 17rem;
-    padding: var(--s3) var(--s4);
-    border: 1px dashed var(--signal);
-    border-radius: 10px;
-    background: var(--signal-dim);
-    color: #7E1317;
-    font-size: var(--t-xs);
-    font-weight: 500;
-    line-height: 1.5;
-    text-align: left;
-  }
-  .pass__fallback code {
-    display: block;
-    margin-top: var(--s1);
-    font-size: 11px;
-    opacity: 0.85;
-  }
-
-  /* ---------- actions at the foot of the stub ---------- */
-  .acts { display: grid; gap: var(--s2); margin-top: var(--s4); }
-  @media (min-width: 26rem) { .acts--two { grid-template-columns: 1fr 1fr; } }
-
-  /* Footnote under the card */
-  .foot {
-    margin: var(--s3) 0 0;
-    font-size: var(--t-xs);
-    text-align: center;
-    color: var(--on-paper-dim);
-    line-height: 1.6;
-  }
-</style>
 </head>
 <body>
 
-<header class="bar">
-  <span class="wordmark" id="brand">Icon</span>
-  <nav>
-    <a href="#" id="navBoard">Board</a>
-    <a href="./login.html">Staff</a>
-  </nav>
+<header class="cbar">
+  <div class="wrap cbar__in">
+    <span class="wordmark" id="brand">Icon</span>
+    <nav aria-label="Main">
+      <a href="#" id="navBoard">Live board</a>
+      <a href="./login.html">Staff sign in</a>
+    </nav>
+  </div>
 </header>
 
-<main class="shell">
-  <div id="root" class="wizard">
-    <p class="muted" style="text-align:center;padding:var(--s7) 0;">Loading the shop…</p>
-  </div>
+<main id="root" tabindex="-1">
+  <p class="loading">Loading the shop…</p>
 </main>
 
 <script src="./config.js"></script>
@@ -212,6 +89,8 @@
   };
 
   var AUDIENCE_LABEL = { men: 'Men', women: 'Women', kids: 'Kids', unisex: 'Everyone' };
+  var query = '';         // directory search, filters the shops already loaded
+  var lastView = null;    // which view is on screen, so re-renders don't replay the entrance
   var CATEGORY_LABEL = {
     hair: 'Hair', beard: 'Beard', nails: 'Nails', skin: 'Skin', spa: 'Spa', other: 'Other'
   };
@@ -233,10 +112,9 @@
         return;
       }
       // Bad or expired code: say so, then carry on to the normal flow.
-      root.innerHTML =
-        '<div class="empty"><strong>Booking not found</strong>' +
+      paint(notice('Booking not found',
         'That code didn\u2019t match a booking. It may have been cancelled, ' +
-        'or the link was mistyped.</div>';
+        'or the link was mistyped.'), 'notice');
       return;
     }
 
@@ -254,9 +132,8 @@
     }
 
     if (!out.ok) {
-      root.innerHTML =
-        '<div class="empty"><strong>Shop not found</strong>' +
-        ICON.esc(out.error) + '<br><br>Check the link or scan the QR code at the counter again.</div>';
+      paint(notice('Shop not found',
+        ICON.esc(out.error) + '<br><br>Check the link or scan the QR code at the counter again.'), 'notice');
       return;
     }
 
@@ -281,6 +158,61 @@
     render();
   }
 
+  /* ---------- Painting ---------- */
+
+  // Every view goes through here. The entrance plays only when the view
+  // changes: the live queue re-renders every few seconds and must not
+  // replay it each time.
+  function paint(html, view) {
+    root.innerHTML = html;
+    if (view !== lastView) {
+      root.classList.remove('is-entering');
+      void root.offsetWidth;
+      root.classList.add('is-entering');
+      lastView = view;
+    } else {
+      // Same view, new data: what was already revealed stays revealed.
+      root.classList.remove('is-entering');
+      root.querySelectorAll('.js-reveal').forEach(function (el) { el.classList.add('is-in'); });
+    }
+    reveal();
+  }
+
+  // Sections further down rise in as they are scrolled to.
+  function reveal() {
+    var items = root.querySelectorAll('.js-reveal:not(.is-in)');
+    if (!items.length) return;
+    if (!('IntersectionObserver' in window)) {
+      items.forEach(function (el) { el.classList.add('is-in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -10% 0px' });
+    items.forEach(function (el) { io.observe(el); });
+  }
+
+  function notice(title, bodyHtml) {
+    return '<div class="wrap notice"><div class="empty" data-enter><strong>' +
+      ICON.esc(title) + '</strong>' + bodyHtml + '</div></div>';
+  }
+
+  // The mark, built large, closes the pages people scroll.
+  function footer() {
+    return '<footer class="cfoot"><div class="wrap">' +
+      '<div class="mark js-reveal" aria-hidden="true"><span>I</span><span>C</span><span>O</span><span>N</span></div>' +
+      '<div class="cfoot__row">' +
+        '<p>Live queues and bookings for local barbers, nail salons and car washes.</p>' +
+        '<a href="./login.html">Staff sign in \u2192</a>' +
+      '</div>' +
+    '</div></footer>';
+  }
+
+  // The order an element enters in, for the staggered entrance.
+  function enter(i) { return ' data-enter style="--i:' + i + '"'; }
+
   /* ---------- Directory: categories, then shops ---------- */
 
   var CATEGORY_ART = {
@@ -290,59 +222,171 @@
   };
 
   function renderBrowse() {
-    if (!S.category) return renderCategories();
-    return renderShops();
-  }
-
-  function renderCategories() {
     var cats = S.categories.filter(function (c) { return Number(c.shop_count) > 0; });
+    var open = S.shops.filter(function (x) { return x.is_open; });
 
-    root.innerHTML =
-      '<h1 class="step__title">What do you need?</h1>' +
-      '<p class="step__hint">Pick a category, then the shop nearest you.</p>' +
-      (cats.length === 0
-        ? '<div class="empty"><strong>Nothing open</strong>No shops are taking customers right now.</div>'
-        : '<div class="choices">' + cats.map(function (c) {
-            return '<button class="choice choice--lead" data-act="cat" data-slug="' +
-              ICON.esc(c.slug) + '">' +
-              '<span class="choice__label">' + ICON.esc(c.name) + '</span>' +
-              '<span class="choice__note">' + ICON.esc(c.tagline || '') +
-                (c.tagline ? ' \u00b7 ' : '') + c.shop_count +
-                (Number(c.shop_count) === 1 ? ' shop' : ' shops') + '</span>' +
-            '</button>';
-          }).join('') + '</div>');
+    // The stub on the poster carries real figures from the directory.
+    var cheapest = open.filter(function (x) { return x.from_price_minor; })
+      .sort(function (a, b) { return a.from_price_minor - b.from_price_minor; })[0];
 
+    var stub =
+      '<div class="poster__stub" data-ui>' +
+        '<div class="shutter"><div class="mini" style="width:100%;">' +
+          '<div class="mini__head"><span>Icon</span><span>Today</span></div>' +
+          '<div class="mini__no num">' + ICON.padTicket(open.length) + '</div>' +
+          '<p class="mini__line">' + (open.length === 1 ? 'shop' : 'shops') + ' taking customers</p>' +
+          '<div class="ticket__tear" style="margin:0 var(--s3);"></div>' +
+          '<dl style="margin:0;padding:var(--s2) var(--s4) var(--s3);text-align:left;">' +
+            '<div class="ticket__row"><dt>Categories</dt><dd>' + cats.length + '</dd></div>' +
+            (cheapest
+              ? '<div class="ticket__row"><dt>Services from</dt><dd>' +
+                  ICON.esc(ICON.fmtMoney(cheapest.from_price_minor, cheapest.currency)) + '</dd></div>'
+              : '') +
+          '</dl>' +
+        '</div></div>' +
+      '</div>';
+
+    var html =
+      '<section class="poster" aria-labelledby="dirTitle">' +
+        '<div class="wrap poster__field">' +
+          '<h1 class="poster__shout" id="dirTitle"' + enter(0) + '><span>Wait</span> <span>from home</span></h1>' +
+          stub +
+        '</div>' +
+        '<div class="poster__band"><div class="wrap">' +
+          '<p class="lead poster__lede"' + enter(2) + '>Join the line at a barber, nail salon or car wash from your phone and ' +
+            'watch your number come up. Or book a time for later.</p>' +
+          '<form class="search" role="search" id="searchForm"' + enter(3) + '>' +
+            '<label for="q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">' +
+              '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>' +
+              '<span class="sr">Search shops</span>' +
+              '<input type="search" id="q" autocomplete="off" placeholder="Shop name, street or area" value="' +
+                ICON.esc(query) + '"></label>' +
+            '<button type="submit" class="btn btn--accent">Find a shop</button>' +
+          '</form>' +
+        '</div></div>' +
+      '</section>' +
+
+      '<section class="wrap find" id="find" aria-labelledby="findTitle">' +
+        '<div class="find__head">' +
+          '<h2 class="sect" id="findTitle">' + ICON.esc(findTitle()) + '</h2>' +
+          '<p class="find__count" id="findCount" aria-live="polite"></p>' +
+        '</div>' +
+        errorBox() +
+        (cats.length
+          ? '<div class="rail" role="group" aria-label="Categories">' +
+              '<button class="rail__item" data-act="backCat"' + (S.category ? '' : ' aria-pressed="true"') + '>' +
+                'All <small>' + open.length + '</small></button>' +
+              cats.map(function (c) {
+                return '<button class="rail__item" data-act="cat" data-slug="' + ICON.esc(c.slug) + '"' +
+                  (S.category === c.slug ? ' aria-pressed="true"' : '') +
+                  (c.tagline ? ' title="' + ICON.esc(c.tagline) + '"' : '') + '>' +
+                  ICON.esc(c.name) + ' <small>' + c.shop_count + '</small></button>';
+              }).join('') +
+            '</div>'
+          : '') +
+        '<div id="results"></div>' +
+      '</section>' +
+
+      howItWorks() +
+      footer();
+
+    paint(html, 'browse');
+    drawResults();
     bind();
+
+    var q = document.getElementById('q');
+    q.addEventListener('input', function () { query = q.value; drawResults(); });
+    document.getElementById('searchForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      query = q.value;
+      drawResults();
+      document.getElementById('find').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
-  function renderShops() {
+  function findTitle() {
     var cat = S.categories.filter(function (c) { return c.slug === S.category; })[0];
-    var list = S.shops.filter(function (x) { return x.category === S.category; });
+    return cat ? cat.name : 'Every shop';
+  }
 
-    root.innerHTML =
-      '<button class="step__back" data-act="backCat">\u2190 All categories</button>' +
-      '<h1 class="step__title">' + ICON.esc(cat ? cat.name : 'Shops') + '</h1>' +
-      '<p class="step__hint">' + list.length +
-        (list.length === 1 ? ' shop' : ' shops') + '</p>' +
-      (list.length === 0
-        ? '<div class="empty"><strong>None here yet</strong>Try another category.</div>'
-        : '<div class="choices">' + list.map(function (x) {
-            var bits = [];
-            if (x.staff_count) bits.push(x.staff_count + (Number(x.staff_count) === 1 ? ' person' : ' people'));
-            if (x.service_count) bits.push(x.service_count + ' services');
-            if (x.from_price_minor) {
-              bits.push('from ' + ICON.fmtMoney(x.from_price_minor, x.currency));
-            }
-            return '<button class="choice" data-act="shop" data-slug="' + ICON.esc(x.slug) + '"' +
-              (x.is_open ? '' : ' disabled') + '>' +
-              '<span class="choice__label">' + ICON.esc(x.name) +
-                (x.is_open ? '' : ' <span class="tag">closed</span>') + '</span>' +
-              (x.address ? '<span class="choice__note">' + ICON.esc(x.address) + '</span>' : '') +
-              (bits.length ? '<span class="choice__note">' + ICON.esc(bits.join(' \u00b7 ')) + '</span>' : '') +
-            '</button>';
-          }).join('') + '</div>');
+  // Search narrows the list already loaded; it never goes back to the server.
+  function matchingShops() {
+    var list = S.shops.filter(function (x) { return !S.category || x.category === S.category; });
+    var words = String(query).toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return list;
+    return list.filter(function (x) {
+      var cat = S.categories.filter(function (c) { return c.slug === x.category; })[0];
+      var hay = [x.name, x.address, cat && cat.name, x.kind].join(' ').toLowerCase();
+      return words.every(function (w) { return hay.indexOf(w) !== -1; });
+    });
+  }
 
-    bind();
+  function drawResults() {
+    var box = document.getElementById('results');
+    if (!box) return;
+    var list = matchingShops();
+    var count = document.getElementById('findCount');
+
+    if (count) {
+      count.textContent = list.length + (list.length === 1 ? ' shop' : ' shops') +
+        (query.trim() ? ' match “' + query.trim() + '”' : '');
+    }
+
+    if (S.shops.length === 0 || (!S.category && !S.categories.some(function (c) { return Number(c.shop_count) > 0; }) && !query.trim())) {
+      box.innerHTML = '<div class="empty"><strong>Nothing open</strong>No shops are taking customers right now.</div>';
+      return;
+    }
+
+    if (list.length === 0) {
+      box.innerHTML = '<div class="empty"><strong>' + (query.trim() ? 'No match' : 'None here yet') + '</strong>' +
+        (query.trim()
+          ? 'No shop matches “' + ICON.esc(query.trim()) + '”' + (S.category ? ' in ' + ICON.esc(findTitle()) : '') + '.'
+          : 'Try another category.') +
+        '<br><button type="button" class="btn btn--quiet" data-act="clearSearch">Show every shop</button></div>';
+      box.querySelectorAll('[data-act]').forEach(function (el) { el.addEventListener('click', onAction); });
+      return;
+    }
+
+    box.innerHTML = '<div class="board-list">' + list.map(function (x, i) {
+      var cat = S.categories.filter(function (c) { return c.slug === x.category; })[0];
+      var bits = [];
+      if (cat && !S.category) bits.push('<span>' + ICON.esc(cat.name) + '</span>');
+      if (x.from_price_minor) bits.push('<span>From <b>' + ICON.esc(ICON.fmtMoney(x.from_price_minor, x.currency)) + '</b></span>');
+      if (x.service_count) bits.push('<span>' + x.service_count + ' services</span>');
+      if (x.staff_count) bits.push('<span>' + x.staff_count + (Number(x.staff_count) === 1 ? ' person' : ' people') + '</span>');
+      return '<button class="shoprow" data-act="shop" data-slug="' + ICON.esc(x.slug) + '"' +
+        (x.is_open ? '' : ' disabled') + enter(Math.min(i, 8) + 4) + '>' +
+        '<span class="shoprow__name"><span class="shoprow__title">' + ICON.esc(x.name) + '</span>' +
+          (x.address ? '<span class="shoprow__addr">' + ICON.esc(x.address) + '</span>' : '') + '</span>' +
+        '<span class="shoprow__meta">' + bits.join('') + '</span>' +
+        '<span class="shoprow__status' + (x.is_open ? '' : ' is-off') + '">' +
+          (x.is_open ? 'Open now' : 'Closed') + '</span>' +
+        '<span class="shoprow__go" aria-hidden="true">→</span>' +
+      '</button>';
+    }).join('') + '</div>';
+
+    box.querySelectorAll('[data-act]').forEach(function (el) { el.addEventListener('click', onAction); });
+  }
+
+  // How the walk-in line moves, shown as the same ticket four times.
+  function howItWorks() {
+    var steps = [
+      { clause: 'Join from your phone.', no: '14', head: 'In line', line: '3 ahead of you', waiting: true },
+      { clause: 'Watch your number move.', no: '14', head: 'In line', line: '1 ahead · about 15 min', waiting: true },
+      { clause: 'Head over when you’re next.', no: '14', head: 'Next', line: 'You’re next', waiting: false },
+      { clause: 'Take the chair.', no: '14', head: 'In the chair', line: 'You’re up', waiting: false }
+    ];
+    return '<section class="how" aria-labelledby="howTitle">' + steps.map(function (st, i) {
+      return '<div class="how__field">' +
+        '<div class="how__head">' + (i === 0 ? '<h2 class="sect" id="howTitle">How the line works</h2>' : '') + '</div>' +
+        '<div class="mini js-reveal" style="--i:' + i + '" data-ui aria-hidden="true">' +
+          '<div class="mini__head"><span>Ticket</span><span>' + st.head + '</span></div>' +
+          '<div class="mini__no num' + (st.waiting ? ' is-waiting' : '') + '">' + st.no + '</div>' +
+          '<p class="mini__line">' + st.line + '</p>' +
+        '</div>' +
+        '<p class="how__clause">' + st.clause + '</p>' +
+      '</div>';
+    }).join('') + '</section>';
   }
 
   function bind() {
@@ -414,15 +458,23 @@
     if (!S.shop.is_open) return renderClosed();
 
     var name = stepName();
-    var html = trail();
 
-    if (name === 'route')    html += stepRoute();
+    // The first step is the shop's own page, full width.
+    if (name === 'route') {
+      paint(stepRoute() + footer(), 'step:route');
+      return wire(name);
+    }
+
+    var html = '';
     if (name === 'audience') html += stepAudience();
     if (name === 'service')  html += stepService();
     if (name === 'when')     html += stepWhen();
     if (name === 'details')  html += stepDetails();
 
-    root.innerHTML = html;
+    paint(
+      '<div class="flowhead"><div class="wrap">' + trail() + '</div></div>' +
+      '<div class="wrap flow"><div class="flow__main">' + html + '</div>' + summary() + '</div>',
+      'step:' + name);
     wire(name);
   }
 
@@ -435,59 +487,159 @@
   }
 
   function backBtn(label) {
-    return '<button class="step__back" data-act="back">← ' + ICON.esc(label || 'Back') + '</button>';
+    return '<button class="step__back textlink" data-act="back"' + enter(0) + '>\u2190 ' + ICON.esc(label || 'Back') + '</button>';
+  }
+
+  // The booking so far, as a stub beside the steps (desktop only; a phone
+  // gets the recap on the last step instead).
+  function summary() {
+    var rows = [];
+    function row(k, v) { rows.push([k, v || null]); }
+
+    row('Service', S.service ? S.service.name + ' \u00b7 ' + S.service.duration_minutes + ' min' : null);
+    if (S.route === 'book') {
+      row('When', S.slot ? ICON.fmtDate(S.slot) + ', ' + ICON.fmtTime(S.slot)
+                 : S.day ? ICON.fmtDate(S.day + 'T00:00:00') : null);
+    } else {
+      row('Wait', 'about ' + waitMins() + ' min');
+    }
+    var t = S.staffId && (S.shop.staff || []).filter(function (x) { return String(x.id) === String(S.staffId); })[0];
+    if (S.route === 'book' || t) row('With', t ? t.name : 'Anyone');
+    row('Price', S.service && S.service.price_minor > 0 ? ICON.fmtMoney(S.service.price_minor, S.shop.currency) : null);
+
+    return '<aside class="stub" aria-label="Your booking so far"' + enter(2) + '>' +
+      '<div class="stub__head"><span>' + (S.route === 'queue' ? 'Walk-in ticket' : 'Booking') + '</span>' +
+        '<span>' + (isOpenNow() ? 'Open now' : 'Closed now') + '</span></div>' +
+      '<p class="stub__shop">' + ICON.esc(S.shop.name) + '</p>' +
+      (S.shop.address ? '<p class="stub__addr">' + ICON.esc(S.shop.address) + '</p>' : '') +
+      '<div class="stub__tear"></div>' +
+      '<dl>' + rows.map(function (r) {
+        return '<div class="ticket__row' + (r[1] ? '' : ' is-pending') + '"><dt>' + ICON.esc(r[0]) + '</dt><dd>' +
+          ICON.esc(r[1] || 'Not chosen yet') + '</dd></div>';
+      }).join('') + '</dl>' +
+      '<p class="stub__foot">Nothing is held until you confirm.</p>' +
+    '</aside>';
+  }
+
+  // "20:00" -> "8:00 pm"
+  function clock(hhmm) {
+    var p = String(hhmm || '0:0').split(':');
+    return ICON.fmtTime(new Date(2000, 0, 1, parseInt(p[0], 10) || 0, parseInt(p[1], 10) || 0));
+  }
+
+  function todayHours() {
+    var now = new Date();
+    return (S.shop.hours || []).filter(function (x) { return x.weekday === now.getDay(); })[0] || null;
+  }
+
+  // Name, address, open or closed, and the live line as a stub.
+  function shopHead(withLive) {
+    var openNow = isOpenNow();
+    var h = todayHours();
+    var w = waiting().length;
+    var c = inChair().length;
+    var status = !S.shop.is_open ? 'Not taking customers'
+      : openNow ? 'Open now' + (h ? ' \u00b7 until ' + clock(h.closes_at) : '')
+      : (h && h.is_open && toMins(h.opens_at) > new Date().getHours() * 60 + new Date().getMinutes()
+          ? 'Opens at ' + clock(h.opens_at) : 'Closed right now');
+
+    return '<section class="shophead" aria-labelledby="shopTitle"><div class="wrap">' +
+      '<div>' +
+        (S.shops.length > 1 ? '<a class="shophead__back" href="./index.html"' + enter(0) + '>\u2190 All shops</a>' : '') +
+        '<h1 class="shophead__name" id="shopTitle"' + enter(1) + '>' + ICON.esc(S.shop.name) + '</h1>' +
+        '<p class="shophead__where"' + enter(2) + '>' +
+          '<span class="shophead__open"><i class="dot' + (openNow ? '' : ' dot--off') + '"></i>' + ICON.esc(status) + '</span>' +
+          (S.shop.address ? '<span>' + ICON.esc(S.shop.address) + '</span>' : '') +
+        '</p>' +
+      '</div>' +
+      (withLive
+        ? '<div class="live" data-ui' + enter(3) + '>' +
+            '<div class="live__head"><span>The line right now</span><i class="pip pip--live" aria-hidden="true"></i></div>' +
+            '<div class="live__wait num">' + waitMins() + '<small>min</small></div>' +
+            '<p class="live__key">Wait if you join now</p>' +
+            '<dl>' +
+              '<div><dt>' + (w === 1 ? 'Person' : 'People') + ' in line</dt><dd class="num">' + w + '</dd></div>' +
+              '<div><dt>In the chair</dt><dd class="num">' + c + '</dd></div>' +
+            '</dl>' +
+          '</div>'
+        : '') +
+    '</div></section>';
+  }
+
+  // The service menu as a printed sheet, the team and the hours.
+  function profile(lead) {
+    var list = S.shop.services || [];
+    var groups = {};
+    list.forEach(function (s) { (groups[s.category] = groups[s.category] || []).push(s); });
+    var keys = Object.keys(groups);
+
+    var sheet = '<div class="sheet js-reveal">' +
+      '<h2 class="sect sheet__title">Menu</h2>' +
+      '<p class="sheet__note">Prices and times are what the shop set.</p>' +
+      (list.length === 0
+        ? '<p class="sheet__hours">The shop hasn\u2019t added services yet. Ask at the counter.</p>'
+        : keys.map(function (cat) {
+            return '<div class="sheet__group">' +
+              (keys.length > 1 ? '<h3>' + ICON.esc(CATEGORY_LABEL[cat] || cat) + '</h3>' : '<div style="height:var(--s6)"></div>') +
+              '<ul class="sheet__items">' + groups[cat].map(function (s) {
+                return '<li><span class="sheet__name">' + ICON.esc(s.name) + '</span>' +
+                  '<span class="sheet__price">' +
+                    (s.price_minor > 0 ? ICON.esc(ICON.fmtMoney(s.price_minor, S.shop.currency)) : '\u2014') + '</span>' +
+                  '<span class="sheet__desc">' + s.duration_minutes + ' min' +
+                    (s.audience !== 'unisex' ? ' \u00b7 ' + AUDIENCE_LABEL[s.audience] : '') + '</span></li>';
+              }).join('') + '</ul></div>';
+          }).join('')) +
+    '</div>';
+
+    var team = S.shop.staff || [];
+    var side = '<div class="side">' +
+      (lead || '') +
+      '<div class="js-reveal" style="--i:1"><h2 class="sect">Team</h2>' +
+        (team.length
+          ? '<ul class="team">' + team.map(function (t) {
+              return '<li><span class="team__init" aria-hidden="true">' + ICON.esc(String(t.name || '?').charAt(0)) + '</span>' +
+                '<b>' + ICON.esc(t.name) + '</b>' + (t.title ? '<span>' + ICON.esc(t.title) + '</span>' : '') + '</li>';
+            }).join('') + '</ul>'
+          : '<p class="soft">No team listed yet.</p>') +
+      '</div>' +
+      hoursTable() +
+    '</div>';
+
+    return '<div class="wrap profile">' + sheet + side + '</div>';
   }
 
   function errorBox() {
-    return S.error ? '<p class="msg msg--bad">' + ICON.esc(S.error) + '</p>' : '';
+    return S.error ? '<p class="msg msg--bad" role="alert">' + ICON.esc(S.error) + '</p>' : '';
   }
 
   /* ---------- Step: queue or book ---------- */
 
   function stepRoute() {
     var w = waiting().length;
-    var c = inChair().length;
     var openNow = isOpenNow();
 
-    return '' +
-      '<h1 class="step__title">' + ICON.esc(S.shop.name) + '</h1>' +
-      '<p class="step__hint">' +
-        (S.shop.address ? ICON.esc(S.shop.address) + ' &middot; ' : '') +
-        (openNow ? 'Open now' : 'Closed right now') +
-      '</p>' +
-
-      '<div class="readout">' +
-        '<div class="readout__item">' +
-          '<div class="readout__value num">' + waitMins() + '<span class="readout__unit"> min</span></div>' +
-          '<span class="readout__key">Wait right now</span></div>' +
-        '<div class="readout__item">' +
-          '<div class="readout__value num">' + w + '</div>' +
-          '<span class="readout__key">' + (w === 1 ? 'Person' : 'People') + ' in line</span></div>' +
-        '<div class="readout__item">' +
-          '<div class="readout__value num">' + c + '</div>' +
-          '<span class="readout__key">In the chair</span></div>' +
+    return shopHead(true) +
+      '<div class="wrap">' +
+        errorBox() +
+        '<div class="ways">' +
+          '<button class="choice choice--lead is-queue" data-act="route" data-route="queue"' +
+            (openNow ? '' : ' disabled') + enter(4) + '>' +
+            '<span class="choice__label">Join the queue now</span>' +
+            '<span class="choice__note">' +
+              (openNow
+                ? (w === 0 ? 'Nobody waiting — walk straight in' :
+                   'About ' + waitMins() + ' min, you’ll be ' + (w + 1) + ordinal(w + 1) + ' in line')
+                : 'The shop is closed right now') +
+            '</span>' +
+          '</button>' +
+          '<button class="choice choice--lead is-book" data-act="route" data-route="book"' + enter(5) + '>' +
+            '<span class="choice__label">Book a slot for later</span>' +
+            '<span class="choice__note">Pick a day and a time that suits you</span>' +
+          '</button>' +
+        '</div>' +
+        '<p class="shopnote">Already have a booking? It shows up here automatically on the phone you booked with.</p>' +
       '</div>' +
-
-      '<div class="choices">' +
-        '<button class="choice choice--lead is-queue" data-act="route" data-route="queue"' +
-          (openNow ? '' : ' disabled') + '>' +
-          '<span class="choice__label">Join the queue now</span>' +
-          '<span class="choice__note">' +
-            (openNow
-              ? (w === 0 ? 'Nobody waiting — walk straight in' :
-                 'About ' + waitMins() + ' min, you’ll be ' + (w + 1) + ordinal(w + 1) + ' in line')
-              : 'The shop is closed right now') +
-          '</span>' +
-        '</button>' +
-        '<button class="choice choice--lead is-book" data-act="route" data-route="book">' +
-          '<span class="choice__label">Book a slot for later</span>' +
-          '<span class="choice__note">Pick a day and a time that suits you</span>' +
-        '</button>' +
-      '</div>' +
-
-      '<p class="muted" style="font-size:var(--t-xs);margin-top:var(--s5);text-align:center;">' +
-        'Already have a booking? It shows up here automatically on the phone you booked with.' +
-      '</p>';
+      profile();
   }
 
   function isOpenNow() {
@@ -510,9 +662,9 @@
     var opts = audienceOptions();
     return '' +
       backBtn() +
-      '<h1 class="step__title">Who’s it for?</h1>' +
-      '<p class="step__hint">So we show you the right services and prices.</p>' +
-      '<div class="choices choices--two">' +
+      '<h1 class="step__title"' + enter(1) + '>Who’s it for?</h1>' +
+      '<p class="step__hint"' + enter(2) + '>So we show you the right services and prices.</p>' +
+      '<div class="choices choices--two"' + enter(3) + '>' +
         opts.map(function (a) {
           var n = servicesFor(a).length;
           return '<button class="choice" data-act="audience" data-aud="' + a + '"' +
@@ -530,7 +682,7 @@
     var list = servicesFor(S.audience);
     if (list.length === 0) {
       return backBtn() +
-        '<h1 class="step__title">Nothing listed yet</h1>' +
+        '<h1 class="step__title"' + enter(1) + '>Nothing listed yet</h1>' +
         '<div class="empty"><strong>No services here</strong>' +
         'The shop hasn’t added services for this yet. Ask at the counter.</div>';
     }
@@ -540,15 +692,14 @@
     list.forEach(function (s) { (groups[s.category] = groups[s.category] || []).push(s); });
 
     var html = backBtn() +
-      '<h1 class="step__title">What do you want?</h1>' +
-      '<p class="step__hint">Prices and times are what the shop set.</p>';
+      '<h1 class="step__title"' + enter(1) + '>What do you want?</h1>' +
+      '<p class="step__hint"' + enter(2) + '>Prices and times are what the shop set.</p>';
 
-    Object.keys(groups).forEach(function (cat) {
+    Object.keys(groups).forEach(function (cat, gi) {
       if (Object.keys(groups).length > 1) {
-        html += '<h2 style="font-size:var(--t-sm);margin:var(--s5) 0 var(--s2);">' +
-                ICON.esc(CATEGORY_LABEL[cat] || cat) + '</h2>';
+        html += '<h2 class="step__sub"' + enter(gi + 3) + '>' + ICON.esc(CATEGORY_LABEL[cat] || cat) + '</h2>';
       }
-      html += '<div class="menu">' + groups[cat].map(function (s) {
+      html += '<div class="menu"' + enter(gi + 3) + '>' + groups[cat].map(function (s) {
         return '<button class="menu__item" data-act="service" data-id="' + s.id + '"' +
           (S.service && S.service.id === s.id ? ' aria-pressed="true"' : '') + '>' +
           '<span><span class="menu__name">' + ICON.esc(s.name) + '</span>' +
@@ -568,8 +719,8 @@
 
   function stepWhen() {
     var html = backBtn() +
-      '<h1 class="step__title">When suits you?</h1>' +
-      '<p class="step__hint">' +
+      '<h1 class="step__title"' + enter(1) + '>When suits you?</h1>' +
+      '<p class="step__hint"' + enter(2) + '>' +
         ICON.esc(S.service ? S.service.name + ' · ' + S.service.duration_minutes + ' min' : '') +
       '</p>' +
       errorBox();
@@ -581,7 +732,8 @@
     // Staff picker, only when there is a real choice
     var team = S.shop.staff || [];
     if (team.length > 1) {
-      html += '<div class="field"><label>With someone in particular?</label><div class="slots">' +
+      html += '<div class="field"' + enter(4) + '><label id="staffLabel">With someone in particular?</label>' +
+        '<div class="slots" role="group" aria-labelledby="staffLabel">' +
         '<button type="button" class="slot" data-act="staff" data-id=""' +
           (S.staffId ? '' : ' aria-pressed="true"') + '>Anyone</button>' +
         team.map(function (t) {
@@ -593,10 +745,15 @@
 
     // Slot grid for the chosen day
     if (S.day) {
-      html += '<h2 style="font-size:var(--t-sm);margin:var(--s5) 0 var(--s2);">' +
-              ICON.esc(ICON.fmtDate(S.day + 'T00:00:00')) + '</h2>';
+      html += '<h2 class="step__sub" id="slotsTitle">' +
+              ICON.esc(ICON.fmtDate(S.day + 'T00:00:00')) +
+              (ICON.fmtDate(S.day + 'T00:00:00').length < 9
+                ? ' <span class="soft" style="font-weight:500;">' +
+                  ICON.esc(ICON.fmtDate(S.day + 'T00:00:00', { absolute: true })) + '</span>'
+                : '') + '</h2>';
       if (S.slots === null) {
-        html += '<p class="muted" style="font-size:var(--t-sm);">Loading times…</p>';
+        html += '<p class="sr" role="status">Loading times…</p>' +
+          '<div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
       } else if (S.slots.length === 0) {
         html += '<div class="empty"><strong>No times left</strong>Try another day.</div>';
       } else {
@@ -659,8 +816,15 @@
     var canPrev = ICON.dateKey(prevEnd) >= todayKey;
     var canNext = ICON.dateKey(new Date(year, month + 1, 1)) <= lastKey;
 
+    // Cells are collected week by week so weeks wholly outside the booking
+    // window (the past, or beyond the horizon) can be left off the grid.
     var cells = '';
-    for (var i = 0; i < pad; i++) cells += '<button class="cal__cell" disabled></button>';
+    var week = [], weekLive = false;
+    function flush() {
+      if (week.length && weekLive) cells += week.join('');
+      week = []; weekLive = false;
+    }
+    for (var i = 0; i < pad; i++) week.push('<button class="cal__cell" disabled aria-hidden="true" tabindex="-1"></button>');
 
     for (var d = 1; d <= daysIn; d++) {
       var key = ICON.dateKey(new Date(year, month, d));
@@ -668,8 +832,9 @@
       var n = free[key];
       var known = n !== undefined;
       var bookable = inWindow && (!known || n > 0);
+      if (inWindow) weekLive = true;
 
-      cells += '<button class="cal__cell' + (key === todayKey ? ' is-today' : '') + '"' +
+      week.push('<button class="cal__cell' + (key === todayKey ? ' is-today' : '') + '"' +
         ' data-act="calDay" data-date="' + key + '"' +
         (S.day === key ? ' aria-pressed="true"' : '') +
         (bookable ? '' : ' disabled') +
@@ -678,10 +843,15 @@
         (known && n > 0
           ? '<span class="cal__count">' + n + '</span>'
           : known ? '<span class="cal__count">\u2014</span>' : '') +
-        '</button>';
+        '</button>');
+      if (week.length === 7) flush();
     }
+    while (week.length && week.length < 7) {
+      week.push('<button class="cal__cell" disabled aria-hidden="true" tabindex="-1"></button>');
+    }
+    flush();
 
-    return '<div class="cal">' +
+    return '<div class="cal"' + enter(3) + '>' +
       '<div class="cal__head">' +
         '<button class="btn btn--quiet" data-act="calMonth" data-d="-1"' +
           (canPrev ? '' : ' disabled') + ' aria-label="Previous month">\u2190</button>' +
@@ -694,7 +864,7 @@
           return '<div class="cal__dow">' + x + '</div>';
         }).join('') + cells +
       '</div>' +
-      '<p class="muted" style="font-size:var(--t-xs);margin-top:var(--s3);">' +
+      '<p class="cal__note">' +
         (S.calendar.length === 0
           ? 'Checking the diary\u2026'
           : 'The number is how many times are free. You can book up to ' +
@@ -708,16 +878,17 @@
   function stepDetails() {
     var needPhone = !!S.shop.phone_required;
     var html = backBtn() +
-      '<h1 class="step__title">Almost done</h1>' +
-      '<p class="step__hint">Just your name, and anything we should know.</p>' +
+      '<h1 class="step__title"' + enter(1) + '>Almost done</h1>' +
+      '<p class="step__hint"' + enter(2) + '>Just your name, and anything we should know.</p>' +
       errorBox() +
       recap() +
       // novalidate: keep `required` for screen readers, but let our own
       // checks produce the styled message instead of a native bubble.
-      '<form id="finalForm" novalidate>' +
+      '<form id="finalForm" novalidate' + enter(3) + '>' +
         '<div class="field">' +
           '<label for="fName">Your name</label>' +
           '<input type="text" id="fName" required maxlength="80" autocomplete="name" ' +
+            (/name/i.test(S.error) ? 'aria-invalid="true" ' : '') +
             'placeholder="Alex" value="' + ICON.esc(S.name) + '">' +
         '</div>' +
         '<div class="field">' +
@@ -727,6 +898,7 @@
               : 'Optional — only if you want a reminder.') + '</span>' +
           '</label>' +
           '<input type="tel" id="fPhone"' + (needPhone ? ' required' : '') +
+            (/number/i.test(S.error) ? ' aria-invalid="true"' : '') +
             ' autocomplete="tel" placeholder="98450 00000" value="' + ICON.esc(S.phone) + '">' +
         '</div>' +
         '<div class="field">' +
@@ -751,14 +923,14 @@
               ICON.esc(ICON.fmtTime(d)) + '</button>';
           }).join('') +
         '</div>' +
-        '<span class="help" style="margin-top:var(--s2);">' +
+        '<span class="help" style="margin-top:var(--s2);font-size:var(--f-sm);color:var(--c-soft);">' +
           (S.comeBack
             ? 'We’ll keep your place and expect you around ' + ICON.esc(ICON.fmtTime(S.comeBack)) + '.'
             : 'You keep your place and we take you as the chair frees up.') +
         '</span></div>';
     }
 
-    html += '<button type="submit" class="btn btn--block btn--lg" id="goBtn"' +
+    html += '<button type="submit" class="btn btn--accent btn--block btn--lg" id="goBtn"' +
       (S.busy ? ' disabled' : '') + '>' +
       (S.busy ? 'Working…' : (S.route === 'queue' ? 'Join the queue' : 'Confirm booking')) +
       '</button></form>';
@@ -786,7 +958,7 @@
     }
     if (rows.length === 0) return '';
 
-    return '<div class="recap"><dl>' + rows.map(function (r) {
+    return '<div class="recap recap--phone"><dl>' + rows.map(function (r) {
       return '<div class="ticket__row"><dt>' + ICON.esc(r[0]) + '</dt><dd>' + ICON.esc(r[1]) + '</dd></div>';
     }).join('') + '</dl></div>';
   }
@@ -825,6 +997,12 @@
     }
 
     if (act === 'backCat') {
+      S.category = null;
+      return renderBrowse();
+    }
+
+    if (act === 'clearSearch') {
+      query = '';
       S.category = null;
       return renderBrowse();
     }
@@ -1050,8 +1228,8 @@
     var pos = isUp ? 0 : ICON.queue.positionOf(S.rows, mine.entry_id);
     var ahead = Math.max(0, pos - 1);
 
-    root.innerHTML =
-      '<div class="ticket" id="tk">' +
+    paint('<div class="passview"><div class="passview__in">' +
+      '<div class="ticket" id="tk"' + enter(0) + '>' +
         '<div class="ticket__head">' +
           '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
           '<span class="chip ' + (isUp ? 'chip--go' : 'chip--wait') + '">' +
@@ -1104,7 +1282,8 @@
         '</div>' +
       '</div>' +
 
-      '<p class="foot">This updates on its own. Keep the page open.</p>';
+      '<p class="foot"' + enter(1) + '>This updates on its own. Keep the page open.</p>' +
+      '</div></div>', 'ticket');
 
     drawQr('ticketQr', shopUrl(), 'QR code to open this shop');
 
@@ -1255,8 +1434,8 @@
     var soon = new Date(b.starts_at) - Date.now();
     var isToday = ICON.fmtDate(b.starts_at) === 'Today';
 
-    root.innerHTML =
-      '<div class="ticket">' +
+    paint('<div class="passview"><div class="passview__in">' +
+      '<div class="ticket"' + enter(0) + '>' +
         '<div class="ticket__head">' +
           '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
           '<span class="chip chip--go">Booked</span>' +
@@ -1294,9 +1473,10 @@
         '</div>' +
       '</div>' +
 
-      '<p class="foot">Keep this on your phone \u2014 the desk can scan it.<br>' +
-        '<button class="step__back" data-act="restart" style="display:inline;padding:0;">' +
-        'Book something else</button></p>';
+      '<p class="foot"' + enter(1) + '>Keep this on your phone \u2014 the desk can scan it.<br>' +
+        '<button class="textlink" data-act="restart">' +
+        'Book something else</button></p>' +
+      '</div></div>', 'booking');
 
     drawPass(b.lookup_code, b.shop_slug);
 
@@ -1314,11 +1494,11 @@
     var cur = d.currency || '\u20ac';
     var live = d.status === 'booked' || d.status === 'arrived' || d.status === 'in_chair';
 
-    root.innerHTML =
-      '<div class="ticket">' +
+    paint('<div class="passview"><div class="passview__in">' +
+      '<div class="ticket"' + enter(0) + '>' +
         '<div class="ticket__head">' +
           '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
-          '<span class="label">' + ICON.esc(statusLabel(d.status)) + '</span>' +
+          '<span class="chip ' + (live ? 'chip--go' : 'chip--off') + '">' + ICON.esc(statusLabel(d.status)) + '</span>' +
         '</div>' +
         '<div class="ticket__number num' + (live ? '' : ' is-waiting') +
           '" style="font-size:clamp(2.4rem,10vw,3.6rem);padding-top:var(--s5);">' +
@@ -1339,7 +1519,8 @@
           '<a class="btn btn--quiet btn--block" href="./index.html?shop=' +
             encodeURIComponent(d.shop_slug || '') + '">Open the shop page</a>' +
         '</div>' +
-      '</div>';
+      '</div>' +
+      '</div></div>', 'scanned');
   }
 
   function statusLabel(st) {
@@ -1350,26 +1531,27 @@
   }
 
   function renderClosed() {
-    root.innerHTML =
-      '<h1 class="step__title">' + ICON.esc(S.shop.name) + '</h1>' +
-      '<div class="empty"><strong>Closed right now</strong>' +
-        (S.shop.contact_phone
-          ? 'Call ' + ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + ' if you need us.'
-          : 'Check back during opening hours.') +
-      '</div>' +
-      hoursTable();
+    paint(
+      shopHead(false) +
+      profile(
+        '<div class="empty" style="text-align:left;"' + enter(3) + '><strong>Closed right now</strong>' +
+          (S.shop.contact_phone
+            ? 'Call <a href="tel:' + ICON.esc(String(S.shop.contact_phone).replace(/[^0-9+]/g, '')) + '">' +
+              ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + '</a> if you need us.'
+            : 'Check back during opening hours.') +
+        '</div>') +
+      footer(), 'closed');
   }
 
   function hoursTable() {
     var hours = S.shop.hours || [];
     if (!hours.length) return '';
-    return '<div class="rows" style="margin-top:var(--s5);">' + hours.map(function (h) {
-      return '<div class="rowitem"><div class="rowitem__main">' +
-        '<div class="rowitem__name">' + ICON.fmtDay(h.weekday, true) + '</div></div>' +
-        '<div class="muted" style="font-size:var(--t-sm);">' +
-          (h.is_open ? ICON.esc(h.opens_at) + ' – ' + ICON.esc(h.closes_at) : 'Closed') +
-        '</div></div>';
-    }).join('') + '</div>';
+    var today = new Date().getDay();
+    return '<div class="js-reveal" style="--i:2"><h2 class="sect">Hours</h2><dl class="hours">' + hours.map(function (h) {
+      return '<div' + (h.weekday === today ? ' class="is-today"' : '') + '>' +
+        '<dt>' + ICON.fmtDay(h.weekday, true) + (h.weekday === today ? ' (today)' : '') + '</dt>' +
+        '<dd>' + (h.is_open ? ICON.esc(clock(h.opens_at)) + ' – ' + ICON.esc(clock(h.closes_at)) : 'Closed') + '</dd></div>';
+    }).join('') + '</dl></div>';
   }
 
   /* ---------- Bits ---------- */
