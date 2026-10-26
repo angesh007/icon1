@@ -21,24 +21,24 @@
 
 :root {
   /* Mapped onto the shared palette in tokens.css */
-  --lb-ground:   var(--ms-midnight);
-  --lb-raised:   #19233B;   /* elevated navy: the wait tile */
-  --lb-seat:     var(--ms-forest);    /* the chair's leather: seats */
-  --lb-seat-2:   var(--ms-forest-3);  /* a fresh call washes the seat */
-  --lb-sage:     var(--ms-sage);      /* secondary text on forest, 6.9:1 */
-  --lb-raised-2: #212D49;   /* one step above, for controls */
-  --lb-line:     #2A3654;   /* structural lines */
-  --lb-ivory:    var(--ms-offwhite);  /* text people read */
-  --lb-muted:    #98A5BB;   /* secondary text, 6.9:1 on the ground */
-  --lb-teal:     var(--ms-gold);      /* in the chair: gold, 6.2:1 on forest */
-  --lb-live:     var(--ms-mint);      /* the feed is live */
-  --lb-next-tint: rgba(227, 178, 79, 0.16);
-  --lb-coral:    var(--ms-red-on-dark); /* attention only: feed dropped, shop missing */
+  --lb-ground:   var(--ms-night);
+  --lb-raised:   var(--ms-ink-2);   /* elevated charcoal: the wait tile */
+  --lb-seat:     var(--ms-deep);    /* the chair's leather: seats */
+  --lb-seat-2:   var(--ms-deep-3);  /* a fresh call washes the seat */
+  --lb-sage:     var(--ms-on-deep-soft);      /* secondary text on espresso */
+  --lb-raised-2: var(--ms-ink-line);   /* one step above, for controls */
+  --lb-line:     #2E2B27;   /* structural lines */
+  --lb-ivory:    var(--ms-on-dark);  /* text people read */
+  --lb-muted:    var(--ms-on-ink-soft);   /* secondary text on the ground */
+  --lb-teal:     var(--ms-accent);      /* in the chair: champagne on espresso */
+  --lb-live:     var(--ms-live);      /* the feed is live */
+  --lb-next-tint: rgba(198, 167, 116, 0.16);
+  --lb-coral:    var(--ms-danger-on-dark); /* attention only: feed dropped, shop missing */
 
   --lb-gutter: clamp(1rem, 2.4vw, 3rem);
   --lb-gap: clamp(0.75rem, 1.6vw, 2rem);
 
-  /* Type: Anton for figures and the name, Archivo for reading */
+  /* Type: the display serif for figures and the name, the sans for reading */
   --lb-fs-label: clamp(1rem, 1.9vh, 1.375rem);
   --lb-fs-meta:  clamp(0.9375rem, 1.8vh, 1.3rem);
   --lb-fs-name:  clamp(1.375rem, 3.4vh, 2.5rem);
@@ -250,7 +250,7 @@ body.lb-body {
 }
 .lb-seat__no {
   font-family: var(--display);
-  font-size: clamp(6rem, min(36vh, 24vw), 26rem);
+  font-size: clamp(6rem, min(36vh, 19vw), 24rem);
   line-height: 0.8;
   letter-spacing: -0.01em;
   color: var(--lb-teal);
@@ -260,7 +260,7 @@ body.lb-body {
   font-size: clamp(1.75rem, 5.6vh, 4rem);
   font-weight: 700;
   line-height: 1.1;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .lb-seat__at { font-size: var(--lb-fs-meta); color: var(--lb-sage); }
 
@@ -272,7 +272,7 @@ body.lb-body {
   column-gap: clamp(1.25rem, 3vw, 3.5rem);
   align-items: end;
 }
-.lb-serving[data-count="1"] .lb-seat__no { grid-row: 1 / 4; font-size: clamp(6rem, min(60vh, 30vw), 34rem); }
+.lb-serving[data-count="1"] .lb-seat__no { grid-row: 1 / 4; font-size: clamp(6rem, min(48vh, 19vw), 26rem); }
 .lb-serving[data-count="1"] .lb-seat__who { grid-column: 2; grid-row: 2; }
 .lb-serving[data-count="1"] .lb-seat__at { grid-column: 2; grid-row: 3; padding-bottom: 0.4em; }
 

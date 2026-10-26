@@ -1,101 +1,155 @@
 /* ============================================================
-   ICON — shared design tokens and components
-   Loaded by every page, after icon.css and before the page's own
-   stylesheet (customer.css, board.css, console.css).
+   ICON — design system (v2)
+   Loaded by every page after icon.css and before the page's own
+   stylesheet (customer.css, console.css, board.css).
 
-   One palette for the whole product, from the barbershop itself:
-     deep navy     the brand ink, wordmarks, dark bars
-     midnight      wall screens and night surfaces
-     forest        the leather of the chair: heroes, seats, monograms
-     off-white     warm reading ground
-     gold          brass fittings: the one primary action, the number
-                   that matters most
-   Red is attention only (closed, errors, destructive actions).
+   A salon, art-directed like a beauty house: warm ivory and soft
+   white to read on, charcoal to write with, muted beige for quiet
+   surfaces, and champagne used sparingly where something matters.
+   Bodoni Moda sets the editorial voice in large sizes; Inter Tight
+   does the work everywhere else.
 
-   Everything here is prefixed ms- so it styles nothing until a page
-   opts in, which keeps it safe to load everywhere. Component shapes
-   follow shadcn/ui's variant pattern (one class, variant modifiers).
+   This file also redefines icon.css's palette and font variables, so
+   every older component on every page follows the same theme
+   without icon.css being edited.
+
+   Components follow shadcn/ui's variant pattern (one class, variant
+   modifiers). Motion lives in ui.js and switches off entirely under
+   prefers-reduced-motion.
    ============================================================ */
 
 :root {
-  /* Palette */
-  --ms-navy:        #141A2E;
-  --ms-navy-2:      #1E2641;   /* raised navy */
-  --ms-navy-line:   #2A3654;
-  --ms-midnight:    #10172A;
-  --ms-forest:      #1E3B32;
-  --ms-forest-2:    #274A3F;   /* raised forest */
-  --ms-forest-3:    #33594C;
-  --ms-offwhite:    #F4F3EE;   /* text on dark, warm surfaces */
-  --ms-porcelain:   #EEF0EB;   /* page ground */
-  --ms-paper:       #FFFFFF;
-  --ms-sunk:        #E2E6DF;
-  --ms-line:        #D5DBD2;
-  --ms-soft:        #56605A;   /* secondary text, 5.7:1 on porcelain */
-  --ms-sage:        #B9C7BF;   /* secondary text on forest, 6.9:1 */
-  --ms-mist:        #98A5BB;   /* secondary text on navy, 6.3:1 */
-  --ms-gold:        #E3B24F;
-  --ms-gold-strong: #D29E35;
-  --ms-gold-tint:   #F6E7C4;
-  --ms-on-gold:     #141A2E;   /* 8.8:1 */
-  --ms-mint:        #5EE0A8;   /* live, on dark grounds */
-  --ms-green:       #0B7A55;   /* positive text on light grounds, 5.3:1 */
-  --ms-green-tint:  #DDF1E7;
-  --ms-red:         #B51D24;   /* attention on light grounds, 4.9:1 */
-  --ms-red-tint:    #F8E1E1;
-  --ms-red-on-dark: #FF8A80;
+  /* ---- Palette (semantic names) ---- */
+  --ms-ground:        #F6F1E8;   /* warm ivory: the page */
+  --ms-paper:         #FFFCF7;   /* soft white: surfaces */
+  --ms-sunk:          #EDE5D7;   /* muted beige: quiet fills */
+  --ms-line:          #DDD2C0;   /* hairlines */
+  --ms-ink:           #1D1B18;   /* charcoal: text, dark surfaces */
+  --ms-ink-2:         #2A2723;   /* raised charcoal */
+  --ms-ink-line:      #3B3732;   /* lines on charcoal */
+  --ms-night:         #141311;   /* wall screens */
+  --ms-deep:          #2B2620;   /* espresso: the chair, monograms */
+  --ms-deep-2:        #36302A;
+  --ms-deep-3:        #4B433A;
+  --ms-soft:          #6A6257;   /* secondary text, 5.3:1 on ivory */
+  --ms-on-dark:       #F4EEE4;   /* text on charcoal, 14.9:1 */
+  --ms-on-ink-soft:   #B7AD9F;   /* secondary on charcoal, 7.8:1 */
+  --ms-on-deep-soft:  #BFB5A6;   /* secondary on espresso */
+  --ms-accent:        #C6A774;   /* champagne */
+  --ms-accent-strong: #B7955E;
+  --ms-accent-ink:    #7A5B28;   /* champagne as text on light, 5.0:1 */
+  --ms-accent-tint:   #F1E6D0;
+  --ms-on-accent:     #1D1B18;   /* 7.5:1 */
+  --ms-live:          #8CC7A6;   /* live, on dark */
+  --ms-positive:      #2F6B4B;   /* positive text on light, 5.9:1 */
+  --ms-positive-tint: #E2EEE6;
+  --ms-danger:        #A3322A;   /* attention on light, 6.1:1 */
+  --ms-danger-tint:   #F6E2DE;
+  --ms-danger-on-dark:#F0998F;
 
-  /* Type: Anton for the loud things, Archivo for everything read */
-  --ms-display: "Anton", "Arial Narrow", sans-serif;
-  --ms-text: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* ---- Type ---- */
+  --ms-serif: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --ms-sans: "Inter Tight", "SF Pro Text", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ms-display: var(--ms-serif);
+  --ms-text: var(--ms-sans);
   --ms-fs-xs: 0.8125rem;   /* 13 */
   --ms-fs-sm: 0.9375rem;   /* 15 */
-  --ms-fs-md: 1rem;        /* 16 */
-  --ms-fs-lg: 1.25rem;     /* 20 */
-  --ms-fs-xl: 1.75rem;     /* 28 */
+  --ms-fs-md: 1.0625rem;   /* 17, Apple's body size */
+  --ms-fs-lg: 1.3125rem;   /* 21 */
+  --ms-fs-xl: 2rem;        /* 32 */
+  --ms-fs-2xl: clamp(2.5rem, 5vw, 4rem);
+  --ms-fs-hero: clamp(3.25rem, 9vw, 8.5rem);
+  --ms-track-tight: -0.022em;
 
-  /* Shape: radius steps down with the surface */
-  --ms-r-xl: 28px;
-  --ms-r-lg: 20px;
-  --ms-r-md: 14px;
-  --ms-r-sm: 10px;
+  /* ---- Shape: restrained radii, pills for actions ---- */
+  --ms-r-xl: 24px;
+  --ms-r-lg: 16px;
+  --ms-r-md: 12px;
+  --ms-r-sm: 8px;
   --ms-r-pill: 999px;
 
-  /* Depth: only what floats gets one (taste-skill-ignore: a comment) */
-  --ms-shadow-float: 0 1px 2px rgba(20, 26, 46, 0.06), 0 12px 32px -12px rgba(20, 26, 46, 0.28); /* taste-skill-ignore: used only for a hover lift */
-  --ms-ring: 0 0 0 3px rgba(227, 178, 79, 0.55);
+  /* ---- Depth ---- */
+  --ms-shadow-float: 0 1px 2px rgba(29, 27, 24, 0.06), 0 18px 40px -18px rgba(29, 27, 24, 0.35); /* taste-skill-ignore: floating surfaces only */
+  --ms-ring: 0 0 0 3px rgba(198, 167, 116, 0.6);
+  --ms-glass: rgba(255, 252, 247, 0.72);
+  --ms-glass-dark: rgba(29, 27, 24, 0.55);
 
-  /* Motion (spring-like curves after motion.dev's defaults) */
-  --ms-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* ---- Motion ---- */
+  --ms-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ms-ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
-  --ms-t-fast: 150ms;
-  --ms-t-med: 260ms;
+  --ms-ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --ms-t-fast: 160ms;
+  --ms-t-med: 320ms;
+  --ms-t-slow: 900ms;
+
+  /* ---- icon.css variables, redefined onto this theme ---- */
+  --ink: var(--ms-ink);
+  --ink-raised: var(--ms-ink-2);
+  --ink-line: var(--ms-ink-line);
+  --porcelain: var(--ms-ground);
+  --paper: var(--ms-paper);
+  --on-ink: var(--ms-on-dark);
+  --on-ink-dim: var(--ms-on-ink-soft);
+  --on-paper: var(--ms-ink);
+  --on-paper-dim: var(--ms-soft);
+  --signal: var(--ms-danger);
+  --signal-dim: var(--ms-danger-tint);
+  --go: var(--ms-positive);
+  --go-dim: var(--ms-positive-tint);
+  --chrome: #B9AE9C;
+  --chrome-ink: #847A6C;
+  --note: #6B4A16;
+  --note-wash: var(--ms-accent-tint);
+  --display: var(--ms-serif);
+  --text: var(--ms-sans);
+  --radius-ticket: var(--ms-r-lg);
+  --radius-control: var(--ms-r-sm);
+  --edge: 1px solid var(--ms-line);
 }
 
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+::selection { background: var(--ms-accent-tint); color: var(--ms-ink); }
+
 /* ---------- Page transitions --------------------------------- */
-/* Same-origin navigations cross-fade where the browser supports it;
-   elsewhere pages simply load. */
+/* Same-origin navigations cross-fade with a slight rise where the
+   browser supports view transitions; elsewhere pages simply load. */
 @view-transition { navigation: auto; }
-::view-transition-old(root),
-::view-transition-new(root) { animation-duration: 220ms; animation-timing-function: var(--ms-ease-out); }
+::view-transition-old(root) { animation: 260ms var(--ms-ease-out) both ms-vt-out; }
+::view-transition-new(root) { animation: 420ms var(--ms-ease-out) both ms-vt-in; }
+@keyframes ms-vt-out { to { opacity: 0; transform: scale(0.985); } }
+@keyframes ms-vt-in  { from { opacity: 0; transform: translateY(12px); } }
+
+/* ---------- Display type ------------------------------------- */
+
+.ms-display {
+  font-family: var(--ms-serif);
+  font-weight: 500;
+  font-optical-sizing: auto;
+  letter-spacing: var(--ms-track-tight);
+  line-height: 0.98;
+  text-wrap: balance;
+}
 
 /* ---------- Button: one class, variants ---------------------- */
 
 .ms-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   min-height: 2.75rem;
-  padding: 0.6rem 1.15rem;
+  padding: 0.65rem 1.25rem;
   font: inherit;
+  font-family: var(--ms-sans);
   font-size: var(--ms-fs-sm);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -0.005em;
   line-height: 1.2;
   white-space: nowrap;
   text-decoration: none;
-  color: var(--ms-offwhite);
-  background: var(--ms-navy);
+  color: var(--ms-on-dark);
+  background: var(--ms-ink);
   border: 0;
   border-radius: var(--ms-r-pill);
   cursor: pointer;
@@ -108,65 +162,73 @@
 .ms-btn svg { width: 1.1em; height: 1.1em; flex: none; }
 .ms-btn:active:not(:disabled) { transform: scale(0.96); }
 .ms-btn:focus-visible { outline: none; box-shadow: var(--ms-ring); } /* taste-skill-ignore: focus ring */
-.ms-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.ms-btn:disabled { cursor: not-allowed; opacity: 0.45; }
 
-.ms-btn--primary   { background: var(--ms-gold); color: var(--ms-on-gold); }
-.ms-btn--forest    { background: var(--ms-forest); color: var(--ms-offwhite); }
-.ms-btn--secondary { background: var(--ms-sunk); color: var(--ms-navy); }
-.ms-btn--ghost     { background: transparent; color: var(--ms-navy); }
-.ms-btn--danger    { background: transparent; color: var(--ms-red); }
-.ms-btn--lg { min-height: 3.25rem; padding: 0.85rem 1.5rem; font-size: var(--ms-fs-md); }
-.ms-btn--sm { min-height: 2.25rem; padding: 0.4rem 0.85rem; font-size: var(--ms-fs-xs); }
+.ms-btn--primary   { background: var(--ms-ink); color: var(--ms-on-dark); }
+.ms-btn--accent    { background: var(--ms-accent); color: var(--ms-on-accent); }
+.ms-btn--forest    { background: var(--ms-deep); color: var(--ms-on-dark); }
+.ms-btn--secondary { background: var(--ms-sunk); color: var(--ms-ink); }
+.ms-btn--ghost     { background: transparent; color: var(--ms-ink); }
+.ms-btn--outline   { background: transparent; color: var(--ms-ink); box-shadow: inset 0 0 0 1px var(--ms-line); } /* taste-skill-ignore: outlined secondary action */
+.ms-btn--danger    { background: transparent; color: var(--ms-danger); }
+.ms-btn--lg { min-height: 3.25rem; padding: 0.9rem 1.75rem; font-size: var(--ms-fs-md); }
+.ms-btn--sm { min-height: 2.25rem; padding: 0.4rem 0.9rem; font-size: var(--ms-fs-xs); }
 .ms-btn--block { width: 100%; }
 
 @media (hover: hover) and (pointer: fine) {
-  .ms-btn:hover:not(:disabled)            { background: var(--ms-navy-2); }
-  .ms-btn--primary:hover:not(:disabled)   { background: var(--ms-gold-strong); }
-  .ms-btn--forest:hover:not(:disabled)    { background: var(--ms-forest-2); }
-  .ms-btn--secondary:hover:not(:disabled) { background: #D3D9D0; }
+  .ms-btn:hover:not(:disabled)            { background: var(--ms-ink-2); }
+  .ms-btn--accent:hover:not(:disabled)    { background: var(--ms-accent-strong); }
+  .ms-btn--forest:hover:not(:disabled)    { background: var(--ms-deep-2); }
+  .ms-btn--secondary:hover:not(:disabled) { background: #E3D9C8; }
   .ms-btn--ghost:hover:not(:disabled)     { background: var(--ms-sunk); }
-  .ms-btn--danger:hover:not(:disabled)    { background: var(--ms-red-tint); }
+  .ms-btn--outline:hover:not(:disabled)   { background: var(--ms-paper); box-shadow: inset 0 0 0 1px var(--ms-ink); } /* taste-skill-ignore: hover outline */
+  .ms-btn--danger:hover:not(:disabled)    { background: var(--ms-danger-tint); }
 }
 
+/* A text link with an underline that draws in */
+.ms-link {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  transition: background-size var(--ms-t-med) var(--ms-ease-out);
+  padding-bottom: 2px;
+}
+.ms-link:hover, .ms-link:focus-visible { background-size: 100% 1px; }
+
 /* ---------- Badge: statuses everywhere ----------------------- */
-/* A pale tint with dark text of the same hue, and always a word, so a
-   status never relies on colour alone. */
+/* A tint with dark text of the same hue, and always a word. */
 
 .ms-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
-  padding: 0.18rem 0.6rem;
+  padding: 0.2rem 0.65rem;
+  font-family: var(--ms-sans);
   font-size: var(--ms-fs-xs);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
   border-radius: var(--ms-r-pill);
   background: var(--ms-sunk);
-  color: var(--ms-navy);
+  color: var(--ms-ink);
 }
-.ms-badge::before {
-  content: "";
-  width: 0.5rem; height: 0.5rem;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.85;
-}
+.ms-badge::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; opacity: 0.85; }
 .ms-badge--plain::before { content: none; }
-.ms-badge--waiting  { background: var(--ms-sunk);       color: var(--ms-navy); }
-.ms-badge--booked   { background: #E4E8F3;              color: #24356B; }
-.ms-badge--arrived  { background: var(--ms-gold-tint);  color: #6B4A0B; }
-.ms-badge--chair    { background: var(--ms-green-tint); color: #075238; }
-.ms-badge--done     { background: var(--ms-sunk);       color: var(--ms-soft); }
-.ms-badge--off      { background: var(--ms-red-tint);   color: #7E1317; }
-.ms-badge--men      { background: #E4E8F3; color: #24356B; }
-.ms-badge--women    { background: #F6E2EA; color: #7A1E46; }
-.ms-badge--kids     { background: var(--ms-gold-tint); color: #6B4A0B; }
-.ms-badge--unisex   { background: var(--ms-green-tint); color: #075238; }
+.ms-badge--waiting { background: var(--ms-sunk);          color: var(--ms-ink); }
+.ms-badge--booked  { background: #E7E4EE;                 color: #3B3560; }
+.ms-badge--arrived { background: var(--ms-accent-tint);   color: #6B4A16; }
+.ms-badge--chair   { background: var(--ms-positive-tint); color: #1F5136; }
+.ms-badge--done    { background: var(--ms-sunk);          color: var(--ms-soft); }
+.ms-badge--off     { background: var(--ms-danger-tint);   color: #7E2119; }
+.ms-badge--men     { background: #E7E4EE;                 color: #3B3560; }
+.ms-badge--women   { background: #F4E1E4;                 color: #7A2B3A; }
+.ms-badge--kids    { background: var(--ms-accent-tint);   color: #6B4A16; }
+.ms-badge--unisex  { background: var(--ms-positive-tint); color: #1F5136; }
 .ms-badge--men::before, .ms-badge--women::before,
 .ms-badge--kids::before, .ms-badge--unisex::before { content: none; }
 
-/* ---------- Monogram: a person without a photograph ---------- */
+/* ---------- Monogram ---------------------------------------- */
 
 .ms-mono {
   display: inline-grid;
@@ -174,66 +236,225 @@
   flex: none;
   width: 2.75rem; height: 2.75rem;
   border-radius: 50%;
-  background: var(--ms-forest);
-  color: var(--ms-offwhite);
-  font-family: var(--ms-display);
-  font-size: 1.125rem;
+  background: var(--ms-deep);
+  color: var(--ms-accent);
+  font-family: var(--ms-serif);
+  font-size: 1.25rem;
+  font-weight: 500;
   line-height: 1;
 }
-.ms-mono--lg { width: 3.75rem; height: 3.75rem; font-size: 1.5rem; }
+.ms-mono--lg { width: 3.75rem; height: 3.75rem; font-size: 1.65rem; }
 .ms-mono--off { background: var(--ms-sunk); color: var(--ms-soft); }
 
 /* ---------- Live dot --------------------------------------- */
 
-.ms-live {
-  position: relative;
-  display: inline-block;
-  width: 0.6rem; height: 0.6rem;
-  border-radius: 50%;
-  background: var(--ms-green);
-  flex: none;
-}
-.ms-live--on-dark { background: var(--ms-mint); }
+.ms-live { position: relative; display: inline-block; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--ms-positive); flex: none; }
+.ms-live--on-dark { background: var(--ms-live); }
 @media (prefers-reduced-motion: no-preference) {
   .ms-live::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 2px solid currentColor;
-    color: inherit;
-    border-color: var(--ms-green);
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid var(--ms-positive);
     animation: ms-ring 2.4s ease-out infinite;
   }
-  .ms-live--on-dark::after { border-color: var(--ms-mint); }
+  .ms-live--on-dark::after { border-color: var(--ms-live); }
 }
 @keyframes ms-ring { from { transform: scale(1); opacity: 0.7; } to { transform: scale(2.6); opacity: 0; } }
 
-/* ---------- Skeleton: the layout before the data -------------- */
+/* ---------- Photo slot -------------------------------------- */
+/* Every picture on the site sits in one of these. With no photo in
+   assets/photos.js it shows a tonal plate with a monogram or icon;
+   when a photo is added it fades in over the plate. The ratio is set
+   up front, so nothing shifts when it loads. */
+
+.ms-ph {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: var(--ar, 4 / 5);
+  border-radius: var(--ms-r-lg);
+  background: var(--ms-sunk);
+  isolation: isolate;
+  margin: 0;
+}
+.ms-ph__art {
+  position: absolute;
+  inset: -8% 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(120% 80% at 18% 12%, rgba(255, 252, 247, 0.85), transparent 55%),
+    radial-gradient(90% 70% at 85% 90%, rgba(198, 167, 116, 0.38), transparent 60%),
+    linear-gradient(160deg, #EFE6D6 0%, #E2D5C0 55%, #D6C5AA 100%);
+  color: rgba(29, 27, 24, 0.82);
+  transition: transform var(--ms-t-slow) var(--ms-ease-out);
+}
+.ms-ph--dark .ms-ph__art {
+  background:
+    radial-gradient(110% 80% at 20% 10%, rgba(198, 167, 116, 0.22), transparent 55%),
+    radial-gradient(80% 60% at 90% 95%, rgba(198, 167, 116, 0.16), transparent 60%),
+    linear-gradient(165deg, #2E2A25 0%, #211F1B 60%, #181614 100%);
+  color: rgba(244, 238, 228, 0.9);
+}
+.ms-ph__mono {
+  font-family: var(--ms-serif);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(3rem, 14cqi, 9rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  opacity: 0.85;
+}
+.ms-ph { container-type: inline-size; }
+.ms-ph__icon { width: clamp(2.5rem, 22cqi, 6rem); height: auto; opacity: 0.55; }
+.ms-ph__label {
+  position: absolute;
+  left: 1rem; bottom: 0.9rem;
+  font-family: var(--ms-sans);
+  font-size: var(--ms-fs-xs);
+  font-weight: 600;
+  opacity: 0.7;
+}
+.ms-ph img {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 600ms var(--ms-ease-out), transform var(--ms-t-slow) var(--ms-ease-out);
+}
+.ms-ph img.is-loaded { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  a:hover .ms-ph--zoom img, button:hover .ms-ph--zoom img, .ms-ph--zoom:hover img,
+  a:hover .ms-ph--zoom .ms-ph__art, button:hover .ms-ph--zoom .ms-ph__art, .ms-ph--zoom:hover .ms-ph__art { transform: scale(1.045); }
+}
+
+/* ---------- Glass ------------------------------------------ */
+
+.ms-glass {
+  background: var(--ms-glass);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ms-glass { background: var(--ms-paper); }
+}
+
+/* ---------- Skeleton --------------------------------------- */
 
 .ms-skel {
   display: block;
   border-radius: var(--ms-r-sm);
-  background: var(--ms-sunk);
+  background: linear-gradient(100deg, var(--ms-sunk) 30%, #F4EDE1 50%, var(--ms-sunk) 70%) 0 0 / 220% 100%;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .ms-skel { animation: ms-pulse 1.2s ease-in-out infinite alternate; }
+  .ms-skel { animation: ms-sheen 1.4s linear infinite; }
 }
-@keyframes ms-pulse { from { opacity: 1; } to { opacity: 0.5; } }
+@keyframes ms-sheen { from { background-position: 120% 0; } to { background-position: -100% 0; } }
 
-/* ---------- Entrance: cards arrive in order, once -------------- */
+/* ---------- Reveal on scroll (ui.js adds html.ms-motion) ------ */
+/* Content is only hidden when script is running and motion is
+   allowed, so nothing stays invisible otherwise. */
 
+html.ms-motion [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition: opacity 0.9s var(--ms-ease-out), transform 0.9s var(--ms-ease-out);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+html.ms-motion [data-reveal="fade"]  { transform: none; }
+html.ms-motion [data-reveal="scale"] { transform: scale(0.96); }
+html.ms-motion [data-reveal="left"]  { transform: translate3d(-32px, 0, 0); }
+html.ms-motion [data-reveal="right"] { transform: translate3d(32px, 0, 0); }
+html.ms-motion [data-reveal].is-in { opacity: 1; transform: none; }
+html.ms-motion [data-reveal].is-now { transition: none; }
+
+/* Older entrance helpers, still used by the console */
 @media (prefers-reduced-motion: no-preference) {
-  .ms-enter > * {
-    animation: ms-rise 0.42s var(--ms-ease-out) both;
-    animation-delay: calc(var(--i, 0) * 45ms);
-  }
-  .ms-fade { animation: ms-fade 0.28s var(--ms-ease-out) both; }
+  .ms-enter > * { animation: ms-rise 0.6s var(--ms-ease-out) both; animation-delay: calc(var(--i, 0) * 50ms); }
+  .ms-fade { animation: ms-fade 0.4s var(--ms-ease-out) both; }
 }
-@keyframes ms-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes ms-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes ms-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ms-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-/* ---------- Screen-reader text and reduced motion -------------- */
+/* ---------- Dialog (ui.js MS.confirm) ------------------------ */
+
+.ms-dialog {
+  width: min(26rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 0;
+  border-radius: var(--ms-r-xl);
+  background: var(--ms-paper);
+  color: var(--ms-ink);
+  box-shadow: var(--ms-shadow-float); /* taste-skill-ignore: a dialog floats */
+}
+.ms-dialog::backdrop {
+  background: rgba(29, 27, 24, 0.38);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.ms-dialog__body { padding: 1.75rem 1.75rem 1.25rem; }
+.ms-dialog__title { font-family: var(--ms-serif); font-weight: 500; font-size: 1.75rem; line-height: 1.1; letter-spacing: var(--ms-track-tight); margin: 0 0 0.5rem; }
+.ms-dialog__text { margin: 0; color: var(--ms-soft); font-family: var(--ms-sans); font-size: var(--ms-fs-sm); line-height: 1.5; }
+.ms-dialog__acts { display: flex; justify-content: flex-end; gap: 0.5rem; padding: 0 1.25rem 1.25rem; }
+/* In a dialog the destructive choice is the filled one */
+.ms-dialog .ms-btn--danger { background: var(--ms-danger); color: #FFFCF7; }
+@media (hover: hover) and (pointer: fine) { .ms-dialog .ms-btn--danger:hover:not(:disabled) { background: #8A2A23; } }
+@media (prefers-reduced-motion: no-preference) {
+  .ms-dialog[open] { animation: ms-pop 0.38s var(--ms-ease-spring); }
+  .ms-dialog[open]::backdrop { animation: ms-fadein 0.3s var(--ms-ease-out); }
+}
+@keyframes ms-pop { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes ms-fadein { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- Toast (ui.js MS.toast) --------------------------- */
+
+.ms-toasts {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+  width: min(30rem, calc(100vw - 2rem));
+}
+.ms-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--ms-r-pill);
+  background: var(--ms-ink);
+  color: var(--ms-on-dark);
+  font-family: var(--ms-sans);
+  font-size: var(--ms-fs-sm);
+  font-weight: 600;
+  box-shadow: var(--ms-shadow-float); /* taste-skill-ignore: a toast floats */
+  pointer-events: auto;
+}
+.ms-toast::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--ms-live); flex: none; }
+.ms-toast--bad::before { background: var(--ms-danger-on-dark); }
+@media (prefers-reduced-motion: no-preference) {
+  .ms-toast { animation: ms-toast-in 0.45s var(--ms-ease-spring) both; }
+  .ms-toast.is-leaving { animation: ms-toast-out 0.3s var(--ms-ease-out) both; }
+}
+@keyframes ms-toast-in  { from { opacity: 0; transform: translateY(16px) scale(0.96); } }
+@keyframes ms-toast-out { to { opacity: 0; transform: translateY(8px); } }
+
+/* ---------- Success mark ----------------------------------- */
+
+.ms-check { width: 4rem; height: 4rem; color: var(--ms-positive); }
+.ms-check circle { stroke: currentColor; stroke-width: 2; fill: none; opacity: 0.25; }
+.ms-check path { stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+@media (prefers-reduced-motion: no-preference) {
+  .ms-check path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: ms-draw 0.7s 0.25s var(--ms-ease-out) forwards; }
+  .ms-check circle { animation: ms-fadein 0.5s var(--ms-ease-out) both; }
+}
+@keyframes ms-draw { to { stroke-dashoffset: 0; } }
+
+/* ---------- Screen-reader text ----------------------------- */
 
 .ms-sr {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; /* taste-skill-ignore: screen-reader text, not a line */
@@ -242,4 +463,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   @view-transition { navigation: none; }
+  *, *::before, *::after { scroll-behavior: auto !important; }
 }

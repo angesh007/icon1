@@ -6,13 +6,13 @@
 <title>ICON — Book or join the queue</title>
 <!-- Bump this when the file changes. Check it with View Source, or read the
      banner this page logs to the console, to confirm what is actually live. -->
-<meta name="icon-build" content="3.4-redesign">
+<meta name="icon-build" content="4.0-atelier">
 <meta name="description" content="See the live wait, join the queue, or book a slot for later.">
-<meta name="theme-color" content="#EEF0EB">
+<meta name="theme-color" content="#F6F1E8">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@100..125,400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..600&family=Inter+Tight:wght@400..700&display=swap">
 <link rel="stylesheet" href="./icon.css">
 <!-- Customer page only; the other screens use icon.css alone. -->
 <link rel="stylesheet" href="./tokens.css">
@@ -40,19 +40,20 @@
 <body>
 
 <a class="skip" href="#root">Skip to content</a>
-<header class="cbar">
-  <div class="wrap cbar__in">
-    <span class="wordmark" id="brand" translate="no">Icon</span>
-    <nav aria-label="Main">
+<header class="nav ms-glass" id="nav">
+  <div class="wrap nav__in">
+    <span class="nav__brand" id="brand" translate="no">Icon</span>
+    <nav class="nav__links" aria-label="Main" id="navLinks">
       <!-- Shown on a shop's page only (body.is-home) -->
-      <a href="#menu" class="cnav__sec">Menu</a>
+      <a href="#menu" class="cnav__sec">Services</a>
       <a href="#team" class="cnav__sec">Team</a>
       <a href="#hours" class="cnav__sec">Hours</a>
-      <span class="cnav__sep" aria-hidden="true"></span>
       <a href="#" id="navBoard">Live board</a>
-      <a href="./login.html">Staff sign in</a>
+      <a href="./login.html" class="nav__cta">Staff sign in</a>
     </nav>
+    <button class="nav__toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navSheet" aria-label="Menu"><span></span></button>
   </div>
+  <nav class="nav__sheet" id="navSheet" aria-label="Menu" hidden></nav>
 </header>
 
 <main id="root" tabindex="-1">
@@ -61,6 +62,8 @@
 
 <script src="./config.js"></script>
 <script src="./icon.js"></script>
+<script src="./assets/photos.js"></script>
+<script src="./ui.js"></script>
 <script>
 (function () {
   'use strict';
@@ -99,6 +102,7 @@
   var AUDIENCE_LABEL = { men: 'Men', women: 'Women', kids: 'Kids', unisex: 'Everyone' };
   var query = '';         // directory search, filters the shops already loaded
   var lastView = null;    // which view is on screen, so re-renders don't replay the entrance
+  var lastStep = null;    // the step shown last, to slide the next one in from the right side
   var CATEGORY_LABEL = {
     hair: 'Hair', beard: 'Beard', nails: 'Nails', skin: 'Skin', spa: 'Spa', other: 'Other'
   };
@@ -170,37 +174,22 @@
 
   // Every view goes through here. The entrance plays only when the view
   // changes: the live queue re-renders every few seconds and must not
-  // replay it each time.
+  // replay it, so a repaint of the same view shows everything at once.
   function paint(html, view) {
+    var fresh = view !== lastView;
     root.innerHTML = html;
     document.body.classList.toggle('is-home', view === 'step:route' || view === 'closed');
-    if (view !== lastView) {
+    if (fresh) {
       root.classList.remove('is-entering');
       void root.offsetWidth;
       root.classList.add('is-entering');
       lastView = view;
     } else {
-      // Same view, new data: what was already revealed stays revealed.
       root.classList.remove('is-entering');
-      root.querySelectorAll('.js-reveal').forEach(function (el) { el.classList.add('is-in'); });
     }
-    reveal();
-  }
-
-  // Sections further down rise in as they are scrolled to.
-  function reveal() {
-    var items = root.querySelectorAll('.js-reveal:not(.is-in)');
-    if (!items.length) return;
-    if (!('IntersectionObserver' in window)) {
-      items.forEach(function (el) { el.classList.add('is-in'); });
-      return;
-    }
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
-      });
-    }, { rootMargin: '0px 0px -10% 0px' });
-    items.forEach(function (el) { io.observe(el); });
+    if (window.MS) MS.refresh(root, { instant: !fresh });
+    placeSeg();
+    watchDock();
   }
 
   function notice(title, bodyHtml) {
@@ -208,93 +197,150 @@
       ICON.esc(title) + '</strong>' + bodyHtml + '</div></div>';
   }
 
-  // A short close: what this is, and the links people come back for.
+  // The close: the mark set large, one line, the links people come back for.
   function footer() {
     var onShop = S.shop && !S.browsing;
-    return '<footer class="cfoot"><div class="wrap cfoot__in">' +
-      '<span class="wordmark" translate="no">Icon</span>' +
-      '<p class="cfoot__line">Live queues and bookings for local barbers, nail salons and car washes.</p>' +
-      '<nav class="cfoot__links" aria-label="Footer">' +
-        (onShop ? '<a href="./tv.html?shop=' + encodeURIComponent(S.shop.slug) + '">Live board</a>' : '') +
-        (onShop && S.shops.length > 1 ? '<a href="./index.html">All shops</a>' : '') +
-        '<a href="./login.html">Staff sign in</a>' +
-      '</nav>' +
+    return '<footer class="cfoot"><div class="wrap">' +
+      '<p class="cfoot__mark" translate="no" data-reveal="fade">Icon</p>' +
+      '<div class="cfoot__row">' +
+        '<p>Live queues and appointments for neighbourhood barbers, nail studios and car washes.</p>' +
+        '<nav class="cfoot__links" aria-label="Footer">' +
+          (onShop ? '<a href="./tv.html?shop=' + encodeURIComponent(S.shop.slug) + '">Live board</a>' : '') +
+          (onShop && S.shops.length > 1 ? '<a href="./index.html">All shops</a>' : '') +
+          '<a href="./login.html">Staff sign in</a>' +
+        '</nav>' +
+      '</div>' +
     '</div></footer>';
   }
 
   // The order an element enters in, for the staggered entrance.
   function enter(i) { return ' data-enter style="--i:' + i + '"'; }
 
-  /* ---------- Directory: categories, then shops ---------- */
+  /* ---------- Shared pieces: pictures, header, dock ---------- */
 
-  var CATEGORY_ART = {
-    'barbers':    '\u2702\uFE0F',
-    'nail-salon': '\u1F485',
-    'car-wash':   '\u1F697'
-  };
+  // Which drawn glyph stands in for a picture of each kind of thing.
+  var CAT_GLYPH = { barbers: 'scissors', 'nail-salon': 'polish', 'car-wash': 'drop' };
+  var SVC_GLYPH = { hair: 'scissors', beard: 'comb', nails: 'polish', skin: 'drop', spa: 'towel', other: 'drop' };
+
+  function initial(name) { return String(name || '?').trim().charAt(0).toUpperCase(); }
+
+  // Slide the segmented control's pill under the pressed button.
+  function placeSeg() {
+    root.querySelectorAll('.seg').forEach(function (seg) {
+      var pill = seg.querySelector('.seg__pill');
+      var on = seg.querySelector('[aria-pressed="true"]');
+      if (!pill || !on) return;
+      pill.style.width = on.offsetWidth + 'px';
+      pill.style.transform = 'translate(' + on.offsetLeft + 'px,' + (on.offsetTop - 4) + 'px)';
+    });
+  }
+  window.addEventListener('resize', placeSeg);
+
+  // The booking dock rises once the hero's buttons have scrolled away.
+  var dockIo = null;
+  function watchDock() {
+    if (dockIo) { dockIo.disconnect(); dockIo = null; }
+    var dock = document.getElementById('dock');
+    var anchor = document.getElementById('heroActs');
+    if (!dock || !anchor || !('IntersectionObserver' in window)) return;
+    dockIo = new IntersectionObserver(function (en) {
+      var gone = !en[0].isIntersecting && en[0].boundingClientRect.top < 0;
+      dock.classList.toggle('is-up', gone);
+      dock.toggleAttribute('inert', !gone);
+    });
+    dockIo.observe(anchor);
+  }
+
+  // Header: a hairline once the page scrolls, and the phone menu sheet.
+  (function header() {
+    var nav = document.getElementById('nav');
+    var toggle = document.getElementById('navToggle');
+    var sheet = document.getElementById('navSheet');
+    var onScroll = function () { nav.classList.toggle('is-scrolled', window.scrollY > 8); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    function close() {
+      toggle.setAttribute('aria-expanded', 'false');
+      sheet.hidden = true;
+    }
+    toggle.addEventListener('click', function () {
+      var open = toggle.getAttribute('aria-expanded') !== 'true';
+      if (!open) return close();
+      // The sheet mirrors whichever header links this view shows.
+      sheet.innerHTML = '';
+      document.querySelectorAll('#navLinks a').forEach(function (a, i) {
+        if (getComputedStyle(a).display === 'none' || a.style.display === 'none') return;
+        var c = document.createElement('a');
+        c.href = a.getAttribute('href');
+        c.textContent = a.textContent;
+        c.style.setProperty('--i', i);
+        c.addEventListener('click', close);
+        sheet.appendChild(c);
+      });
+      toggle.setAttribute('aria-expanded', 'true');
+      sheet.hidden = false;
+      var first = sheet.querySelector('a');
+      if (first) first.focus();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !sheet.hidden) { close(); toggle.focus(); }
+    });
+    window.addEventListener('resize', function () { if (window.innerWidth > 832) close(); });
+  })();
+
+  /* ---------- Directory: categories, then shops ---------- */
 
   function renderBrowse() {
     var cats = S.categories.filter(function (c) { return Number(c.shop_count) > 0; });
     var open = S.shops.filter(function (x) { return x.is_open; });
 
-    // The stub on the poster carries real figures from the directory.
+    // Real figures from the directory, not marketing numbers.
     var cheapest = open.filter(function (x) { return x.from_price_minor; })
       .sort(function (a, b) { return a.from_price_minor - b.from_price_minor; })[0];
 
-    var stub =
-      '<div class="poster__stub" data-ui>' +
-        '<div class="shutter"><div class="mini" style="width:100%;">' +
-          '<div class="mini__head"><span>Icon</span><span>Today</span></div>' +
-          '<div class="mini__no num">' + ICON.padTicket(open.length) + '</div>' +
-          '<p class="mini__line">' + (open.length === 1 ? 'shop' : 'shops') + ' taking customers</p>' +
-          '<div class="ticket__tear" style="margin:0 var(--s3);"></div>' +
-          '<dl style="margin:0;padding:var(--s2) var(--s4) var(--s3);text-align:left;">' +
-            '<div class="ticket__row"><dt>Categories</dt><dd>' + cats.length + '</dd></div>' +
-            (cheapest
-              ? '<div class="ticket__row"><dt>Services from</dt><dd>' +
-                  ICON.esc(ICON.fmtMoney(cheapest.from_price_minor, cheapest.currency)) + '</dd></div>'
-              : '') +
-          '</dl>' +
-        '</div></div>' +
-      '</div>';
-
     var html =
-      '<section class="poster" aria-labelledby="dirTitle">' +
-        '<div class="wrap poster__field">' +
-          '<h1 class="poster__shout" id="dirTitle"' + enter(0) + '><span>Wait</span> <span>from home</span></h1>' +
-          stub +
-        '</div>' +
-        '<div class="poster__band"><div class="wrap">' +
-          '<p class="lead poster__lede"' + enter(2) + '>Join the line at a barber, nail salon or car wash from your phone and ' +
-            'watch your number come up. Or book a time for later.</p>' +
-          '<form class="search" role="search" id="searchForm"' + enter(3) + '>' +
-            '<label for="q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">' +
+      '<section class="dhero" aria-labelledby="dirTitle"><div class="wrap dhero__grid">' +
+        '<div>' +
+          '<h1 class="ms-display dhero__title" id="dirTitle"' + enter(0) + '>Your chair, without the wait.</h1>' +
+          '<p class="lede"' + enter(1) + '>Join the live line at a barber, nail studio or car wash from your phone, ' +
+            'or reserve a time that suits you.</p>' +
+          '<form class="search" role="search" id="searchForm"' + enter(2) + '>' +
+            '<label for="q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
               '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>' +
-              '<span class="sr">Search shops</span>' +
-              '<input type="search" id="q" autocomplete="off" placeholder="Shop name, street or area" value="' +
+              '<span class="ms-sr">Search shops</span>' +
+              '<input type="search" id="q" autocomplete="off" placeholder="Shop name, street or area…" value="' +
                 ICON.esc(query) + '"></label>' +
-            '<button type="submit" class="btn btn--accent">Find a shop</button>' +
+            '<button type="submit" class="ms-btn ms-btn--primary" data-magnetic>Find a shop</button>' +
           '</form>' +
-        '</div></div>' +
-      '</section>' +
+          '<dl class="dstats"' + enter(3) + '>' +
+            '<div><dt>Open now</dt><dd>' + open.length + '</dd></div>' +
+            '<div><dt>Categories</dt><dd>' + cats.length + '</dd></div>' +
+            (cheapest ? '<div><dt>Services from</dt><dd>' + ICON.esc(ICON.fmtMoney(cheapest.from_price_minor, cheapest.currency)) + '</dd></div>' : '') +
+          '</dl>' +
+        '</div>' +
+        '<div class="dhero__media"' + enter(2) + '>' +
+          MS.photo('hero', { ratio: '4 / 5', glyph: 'chair', parallax: 0.06, eager: true, alt: 'Inside the salon' }) +
+          '<div class="dhero__float ms-glass" aria-hidden="true"><span class="ms-live"></span>' +
+            '<div><strong>' + open.length + '</strong><span>' + (open.length === 1 ? 'shop' : 'shops') + ' taking customers</span></div></div>' +
+        '</div>' +
+      '</div></section>' +
 
       '<section class="wrap find" id="find" aria-labelledby="findTitle">' +
-        '<div class="find__head">' +
-          '<h2 class="sect" id="findTitle">' + ICON.esc(findTitle()) + '</h2>' +
-          '<p class="find__count" id="findCount" aria-live="polite"></p>' +
-        '</div>' +
+        '<div class="sec-head"><h2 class="h-sec" id="findTitle" data-reveal>' + ICON.esc(findTitle()) + '</h2>' +
+          '<p class="find__count" id="findCount" aria-live="polite"></p></div>' +
         errorBox() +
         (cats.length
-          ? '<div class="rail" role="group" aria-label="Categories">' +
-              '<button class="rail__item" data-act="backCat"' + (S.category ? '' : ' aria-pressed="true"') + '>' +
+          ? '<div class="find__bar"><div class="seg" role="group" aria-label="Categories"><span class="seg__pill" aria-hidden="true"></span>' +
+              '<button type="button" data-act="backCat"' + (S.category ? '' : ' aria-pressed="true"') + '>' +
                 'All <small>' + open.length + '</small></button>' +
               cats.map(function (c) {
-                return '<button class="rail__item" data-act="cat" data-slug="' + ICON.esc(c.slug) + '"' +
+                return '<button type="button" data-act="cat" data-slug="' + ICON.esc(c.slug) + '"' +
                   (S.category === c.slug ? ' aria-pressed="true"' : '') +
                   (c.tagline ? ' title="' + ICON.esc(c.tagline) + '"' : '') + '>' +
                   ICON.esc(c.name) + ' <small>' + c.shop_count + '</small></button>';
               }).join('') +
-            '</div>'
+            '</div></div>'
           : '') +
         '<div id="results"></div>' +
       '</section>' +
@@ -303,8 +349,8 @@
       footer();
 
     paint(html, 'browse');
+    bind();          // the page's own buttons; drawResults binds its cards
     drawResults();
-    bind();
 
     var q = document.getElementById('q');
     q.addEventListener('input', function () { query = q.value; drawResults(); });
@@ -354,51 +400,45 @@
         (query.trim()
           ? 'No shop matches “' + ICON.esc(query.trim()) + '”' + (S.category ? ' in ' + ICON.esc(findTitle()) : '') + '.'
           : 'Try another category.') +
-        '<br><button type="button" class="btn btn--quiet" data-act="clearSearch">Show every shop</button></div>';
+        '<br><button type="button" class="ms-btn ms-btn--secondary" data-act="clearSearch">Show every shop</button></div>';
       box.querySelectorAll('[data-act]').forEach(function (el) { el.addEventListener('click', onAction); });
       return;
     }
 
-    box.innerHTML = '<div class="board-list">' + list.map(function (x, i) {
+    box.innerHTML = '<div class="shops" data-stagger>' + list.map(function (x) {
       var cat = S.categories.filter(function (c) { return c.slug === x.category; })[0];
       var bits = [];
       if (cat && !S.category) bits.push('<span>' + ICON.esc(cat.name) + '</span>');
       if (x.from_price_minor) bits.push('<span>From <b>' + ICON.esc(ICON.fmtMoney(x.from_price_minor, x.currency)) + '</b></span>');
       if (x.service_count) bits.push('<span>' + x.service_count + ' services</span>');
       if (x.staff_count) bits.push('<span>' + x.staff_count + (Number(x.staff_count) === 1 ? ' person' : ' people') + '</span>');
-      return '<button class="shoprow" data-act="shop" data-slug="' + ICON.esc(x.slug) + '"' +
-        (x.is_open ? '' : ' disabled') + enter(Math.min(i, 8) + 4) + '>' +
-        '<span class="shoprow__name"><span class="shoprow__title">' + ICON.esc(x.name) + '</span>' +
-          (x.address ? '<span class="shoprow__addr">' + ICON.esc(x.address) + '</span>' : '') + '</span>' +
-        '<span class="shoprow__meta">' + bits.join('') + '</span>' +
-        '<span class="shoprow__status' + (x.is_open ? '' : ' is-off') + '">' +
-          (x.is_open ? 'Open now' : 'Closed') + '</span>' +
-        '<span class="shoprow__go" aria-hidden="true">→</span>' +
+      return '<button class="shopcard" data-act="shop" data-slug="' + ICON.esc(x.slug) + '"' +
+        (x.is_open ? '' : ' disabled') + ' data-reveal>' +
+        MS.photo('shop:' + x.slug, { ratio: '4 / 3', mono: initial(x.name), zoom: true, alt: x.name }) +
+        '<span class="shopcard__body">' +
+          '<span class="shopcard__top"><span class="shopcard__name">' + ICON.esc(x.name) + '</span>' +
+            (x.is_open ? '<span class="ms-badge ms-badge--chair">Open</span>' : '<span class="ms-badge ms-badge--done">Closed</span>') +
+          '</span>' +
+          (x.address ? '<span class="shopcard__addr">' + ICON.esc(x.address) + '</span>' : '') +
+          '<span class="shopcard__meta">' + bits.join('') + '</span>' +
+        '</span>' +
       '</button>';
     }).join('') + '</div>';
 
     box.querySelectorAll('[data-act]').forEach(function (el) { el.addEventListener('click', onAction); });
+    if (window.MS) MS.refresh(box);
   }
 
-  // How the walk-in line moves, shown as the same ticket four times.
+  // How a visit works, as the real sequence it is.
   function howItWorks() {
-    var steps = [
-      { clause: 'Join from your phone.', no: '14', head: 'In line', line: '3 ahead of you', waiting: true },
-      { clause: 'Watch your number move.', no: '14', head: 'In line', line: '1 ahead · about 15 min', waiting: true },
-      { clause: 'Head over when you’re next.', no: '14', head: 'Next', line: 'You’re next', waiting: false },
-      { clause: 'Take the chair.', no: '14', head: 'In the chair', line: 'You’re up', waiting: false }
-    ];
-    return '<section class="how" aria-labelledby="howTitle">' + steps.map(function (st, i) {
-      return '<div class="how__field">' +
-        '<div class="how__head">' + (i === 0 ? '<h2 class="sect" id="howTitle">How the line works</h2>' : '') + '</div>' +
-        '<div class="mini js-reveal" style="--i:' + i + '" data-ui aria-hidden="true">' +
-          '<div class="mini__head"><span>Ticket</span><span>' + st.head + '</span></div>' +
-          '<div class="mini__no num' + (st.waiting ? ' is-waiting' : '') + '">' + st.no + '</div>' +
-          '<p class="mini__line">' + st.line + '</p>' +
-        '</div>' +
-        '<p class="how__clause">' + st.clause + '</p>' +
-      '</div>';
-    }).join('') + '</section>';
+    return '<section class="how" aria-labelledby="howTitle"><div class="wrap">' +
+      '<h2 class="h-sec" id="howTitle" data-reveal>How a visit works</h2>' +
+      '<ol class="how__steps" data-stagger>' +
+        '<li data-reveal><h3>Choose a shop</h3><p>See who is open, what everything costs and how long the line is right now.</p></li>' +
+        '<li data-reveal><h3>Join the line or book</h3><p>Take a place in the live queue, or pick a day and a time for later.</p></li>' +
+        '<li data-reveal><h3>Arrive for your turn</h3><p>Your ticket updates on its own, so you come in when the chair is ready.</p></li>' +
+      '</ol>' +
+    '</div></section>';
   }
 
   function bind() {
@@ -483,19 +523,31 @@
     if (name === 'when')     html += stepWhen();
     if (name === 'details')  html += stepDetails();
 
+    // Slide the new step in from the side it came from, once per step.
+    var view = 'step:' + name;
+    var dir = view === lastView || lastStep === null ? '' : (S.step >= lastStep ? 'fwd' : 'back');
+    lastStep = S.step;
+
     paint(
-      '<div class="flowhead"><div class="wrap">' + trail() + '</div></div>' +
-      '<div class="wrap flow"><div class="flow__main">' + html + '</div>' + summary() + '</div>',
-      'step:' + name);
+      '<div class="bk"><div class="wrap">' + trail() + '</div>' +
+      '<div class="wrap bk__grid"><div class="bk__main"' + (dir ? ' data-dir="' + dir + '"' : '') + '>' + html + '</div>' +
+        summary() + '</div></div>',
+      view);
     wire(name);
   }
 
+  // Progress: each step by name, with a line that fills as you go.
+  var STEP_LABEL = { route: 'Visit', audience: 'Who', service: 'Service', when: 'Time', details: 'Details' };
   function trail() {
     var all = steps();
     if (all.length < 2) return '';
-    return '<div class="trail">' + all.map(function (_, i) {
-      return '<span class="' + (i < S.step ? 'is-done' : i === S.step ? 'is-here' : '') + '"></span>';
-    }).join('') + '</div>';
+    var p = S.step / (all.length - 1);
+    return '<nav class="prog" aria-label="Booking progress">' +
+      '<div class="prog__bar"><span class="prog__fill" style="--p:' + p.toFixed(3) + '"></span></div>' +
+      '<ol class="prog__steps">' + all.map(function (n, i) {
+        return '<li class="' + (i < S.step ? 'is-done' : i === S.step ? 'is-here' : '') + '"' +
+          (i === S.step ? ' aria-current="step"' : '') + '>' + STEP_LABEL[n] + '</li>';
+      }).join('') + '</ol></nav>';
   }
 
   function backBtn(label) {
@@ -520,16 +572,18 @@
     row('Price', S.service && S.service.price_minor > 0 ? ICON.fmtMoney(S.service.price_minor, S.shop.currency) : null);
 
     return '<aside class="stub" aria-label="Your booking so far"' + enter(2) + '>' +
-      '<div class="stub__head"><span>' + (S.route === 'queue' ? 'Walk-in ticket' : 'Booking') + '</span>' +
-        '<span>' + (isOpenNow() ? 'Open now' : 'Closed now') + '</span></div>' +
-      '<p class="stub__shop">' + ICON.esc(S.shop.name) + '</p>' +
-      (S.shop.address ? '<p class="stub__addr">' + ICON.esc(S.shop.address) + '</p>' : '') +
-      '<div class="stub__tear"></div>' +
-      '<dl>' + rows.map(function (r) {
-        return '<div class="ticket__row' + (r[1] ? '' : ' is-pending') + '"><dt>' + ICON.esc(r[0]) + '</dt><dd>' +
-          ICON.esc(r[1] || 'Not chosen yet') + '</dd></div>';
-      }).join('') + '</dl>' +
-      '<p class="stub__foot">Nothing is held until you confirm.</p>' +
+      MS.photo('shop:' + S.shop.slug, { ratio: '16 / 9', mono: initial(S.shop.name), dark: true, alt: S.shop.name }) +
+      '<div class="stub__body">' +
+        '<div class="stub__kind"><span>' + (S.route === 'queue' ? 'Walk-in ticket' : 'Booking') + '</span>' +
+          '<span>' + (isOpenNow() ? 'Open now' : 'Closed now') + '</span></div>' +
+        '<p class="stub__shop">' + ICON.esc(S.shop.name) + '</p>' +
+        (S.shop.address ? '<p class="stub__addr">' + ICON.esc(S.shop.address) + '</p>' : '') +
+        '<dl>' + rows.map(function (r) {
+          return '<div class="ticket__row' + (r[1] ? '' : ' is-pending') + '"><dt>' + ICON.esc(r[0]) + '</dt><dd>' +
+            ICON.esc(r[1] || 'Not chosen yet') + '</dd></div>';
+        }).join('') + '</dl>' +
+        '<p class="stub__foot">Nothing is held until you confirm.</p>' +
+      '</div>' +
     '</aside>';
   }
 
@@ -566,95 +620,113 @@
     return { open: false, text: 'Closed right now', next: '' };
   }
 
-  // The forest hero: name, status, address, the ways in, and the live line.
+  // The hero: the shop's picture full-bleed, its name set large, the
+  // status in words, the ways in and the live line on glass.
   function hero(actionsHtml) {
     var st = shopStatus();
     var w = waiting().length;
     var c = inChair().length;
 
-    return '<section class="wrap hh" aria-labelledby="shopTitle"><div class="hh__panel">' +
-      '<div>' +
-        (S.shops.length > 1 ? '<a class="hh__back" href="./index.html"' + enter(0) + '>← All shops</a>' : '') +
-        '<h1 class="hh__name" id="shopTitle"' + enter(1) + '>' + ICON.esc(S.shop.name) + '</h1>' +
-        '<p class="hh__facts"' + enter(2) + '>' +
-          '<span class="hh__status' + (st.open ? '' : ' is-closed') + '"><i class="hh__dot" aria-hidden="true"></i>' +
-            ICON.esc(st.text) + '</span>' +
-          (S.shop.address ? '<span class="hh__addr">' + ICON.esc(S.shop.address) + '</span>' : '') +
-        '</p>' +
+    return '<section class="shero" aria-labelledby="shopTitle" data-spotlight>' +
+      '<div class="shero__media">' +
+        MS.photo('shop:' + S.shop.slug, { dark: true, mono: initial(S.shop.name), parallax: 0.12, eager: true, alt: S.shop.name }) +
+      '</div>' +
+      '<div class="wrap shero__in"><div>' +
+        (S.shops.length > 1 ? '<a class="shero__back" href="./index.html"' + enter(0) + '>← All shops</a>' : '') +
+        '<h1 class="shero__name" id="shopTitle"' + enter(1) + '>' + ICON.esc(S.shop.name) + '</h1>' +
+        '<div class="shero__facts"' + enter(2) + '>' +
+          '<span class="status' + (st.open ? '' : ' is-closed') + '"><i aria-hidden="true"></i>' + ICON.esc(st.text) + '</span>' +
+          (S.shop.address ? '<span class="shero__addr">' + ICON.esc(S.shop.address) + '</span>' : '') +
+        '</div>' +
         actionsHtml +
       '</div>' +
       (S.shop.is_open
-        ? '<aside class="hh__live" aria-label="The line right now"' + enter(4) + '>' +
-            '<p class="hh__live-head"><span class="pip pip--live" aria-hidden="true"></span>The line right now</p>' +
-            '<p class="hh__wait"><span class="num">' + waitMins() + '</span><span>min wait</span></p>' +
-            '<dl class="hh__stats">' +
+        ? '<aside class="live" aria-label="The line right now"' + enter(4) + '>' +
+            '<p class="live__head"><span class="ms-live ms-live--on-dark" aria-hidden="true"></span>The line right now</p>' +
+            '<p class="live__wait"><span class="num">' + waitMins() + '</span><span>min wait</span></p>' +
+            '<dl>' +
               '<div><dt>Waiting</dt><dd>' + w + '</dd></div>' +
               '<div><dt>In the chair</dt><dd>' + c + '</dd></div>' +
               '<div><dt>Chairs</dt><dd>' + ICON.queue.chairs() + '</dd></div>' +
             '</dl>' +
-            '<a class="hh__board" href="./tv.html?shop=' + encodeURIComponent(S.shop.slug) + '">Open the live board</a>' +
+            '<a class="ms-link" href="./tv.html?shop=' + encodeURIComponent(S.shop.slug) + '">Open the live board</a>' +
           '</aside>'
         : '') +
     '</div></section>';
   }
 
-  // The menu, the team and the hours: everything below the hero.
-  function sections() {
+  // Services, team, hours: everything below the hero. `bookable` adds a
+  // Book button to each service (the shop is taking customers).
+  var svcCat = 'all';
+  function sections(bookable) {
     var list = S.shop.services || [];
-    var groups = {};
-    list.forEach(function (s) { (groups[s.category] = groups[s.category] || []).push(s); });
-    var keys = Object.keys(groups);
+    var keys = [];
+    list.forEach(function (s) { if (keys.indexOf(s.category) < 0) keys.push(s.category); });
+    if (keys.indexOf(svcCat) < 0) svcCat = 'all';
+    var clockIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 
-    var menu = '<section class="wrap sec" id="menu" aria-labelledby="menuTitle"><div class="js-reveal">' +
-      '<div class="sec__head"><h2 class="sec__title" id="menuTitle">Menu</h2>' +
-        '<p class="sec__note">Prices and times are set by the shop.</p></div>' +
+    var menu = '<section class="wrap sec" id="menu" aria-labelledby="menuTitle">' +
+      '<div class="sec-head"><h2 class="h-sec" id="menuTitle" data-reveal>Services</h2>' +
+        '<p data-reveal>Prices and times are set by the shop.</p></div>' +
+      (keys.length > 1
+        ? '<div class="seg" role="group" aria-label="Service type"><span class="seg__pill" aria-hidden="true"></span>' +
+            ['all'].concat(keys).map(function (k) {
+              var n = k === 'all' ? list.length : list.filter(function (s) { return s.category === k; }).length;
+              return '<button type="button" data-act="svcCat" data-cat="' + ICON.esc(k) + '"' +
+                (svcCat === k ? ' aria-pressed="true"' : '') + '>' +
+                ICON.esc(k === 'all' ? 'All' : (CATEGORY_LABEL[k] || k)) + ' <small>' + n + '</small></button>';
+            }).join('') + '</div>'
+        : '') +
       (list.length === 0
-        ? '<p class="mempty">The shop hasn’t added services yet. Ask at the counter.</p>'
-        : '<div class="mgrid' + (keys.length === 1 ? ' mgrid--flat' : '') + '">' + keys.map(function (cat) {
-            return '<div class="mgroup">' +
-              (keys.length > 1 ? '<h3>' + ICON.esc(CATEGORY_LABEL[cat] || cat) + '</h3>' : '<h3 class="sr">Services</h3>') +
-              '<ul class="mlist">' + groups[cat].map(function (s) {
-                return '<li><span class="mname">' + ICON.esc(s.name) + '</span>' +
-                  '<span class="mprice">' +
-                    (s.price_minor > 0 ? ICON.esc(ICON.fmtMoney(s.price_minor, S.shop.currency)) : '—') + '</span>' +
-                  '<span class="mmeta"><span>' + s.duration_minutes + '&nbsp;min</span>' +
-                    (s.audience !== 'unisex' ? '<span class="mtag">' + AUDIENCE_LABEL[s.audience] + '</span>' : '') +
-                  '</span></li>';
-              }).join('') + '</ul></div>';
+        ? '<p class="mempty" style="margin-top:2rem;">The shop hasn’t added services yet. Ask at the counter.</p>'
+        : '<div class="svcgrid" data-stagger>' + list.map(function (s) {
+            return '<article class="svc" data-cat="' + ICON.esc(s.category) + '" data-reveal' +
+              (svcCat !== 'all' && s.category !== svcCat ? ' hidden' : '') + '>' +
+              MS.photo('service:' + s.category, { ratio: '5 / 4', glyph: SVC_GLYPH[s.category] || 'scissors', zoom: true, alt: s.name }) +
+              '<div class="svc__body">' +
+                '<div class="svc__top"><h3 class="svc__name">' + ICON.esc(s.name) + '</h3>' +
+                  '<span class="svc__price">' + (s.price_minor > 0 ? ICON.esc(ICON.fmtMoney(s.price_minor, S.shop.currency)) : '—') + '</span></div>' +
+                '<div class="svc__meta"><span>' + clockIcon + s.duration_minutes + '&nbsp;min</span>' +
+                  (s.audience !== 'unisex' ? '<span class="ms-badge ms-badge--' + s.audience + '">' + AUDIENCE_LABEL[s.audience] + '</span>' : '') +
+                '</div>' +
+                (bookable ? '<button type="button" class="ms-btn ms-btn--outline ms-btn--sm" data-act="bookService" data-id="' + s.id + '">Book this</button>' : '') +
+              '</div></article>';
           }).join('') + '</div>') +
-    '</div></section>';
+    '</section>';
 
     var team = S.shop.staff || [];
-    var crew = '<section class="wrap sec" id="team" aria-labelledby="teamTitle"><div class="js-reveal">' +
-      '<div class="sec__head"><h2 class="sec__title" id="teamTitle">Team</h2></div>' +
+    var crew = '<section class="wrap sec" id="team" aria-labelledby="teamTitle">' +
+      '<div class="sec-head"><h2 class="h-sec" id="teamTitle" data-reveal>The team</h2>' +
+        (team.length ? '<p data-reveal>' + team.length + (team.length === 1 ? ' person' : ' people') + ' taking customers.</p>' : '') + '</div>' +
       (team.length
-        ? '<ul class="crew">' + team.map(function (t) {
-            return '<li><span class="crew__mono" aria-hidden="true">' + ICON.esc(String(t.name || '?').charAt(0)) + '</span>' +
-              '<span class="crew__who"><b>' + ICON.esc(t.name) + '</b>' + (t.title ? '<span class="crew__role">' + ICON.esc(t.title) + '</span>' : '') + '</span></li>';
-          }).join('') + '</ul>'
+        ? '<div class="team" data-stagger>' + team.map(function (t) {
+            return '<article class="member" data-reveal>' +
+              MS.photo('staff:' + S.shop.slug + ':' + String(t.name || '').toLowerCase(), { ratio: '4 / 5', mono: initial(t.name), zoom: true, alt: t.name }) +
+              '<div class="member__cap"><span class="member__name">' + ICON.esc(t.name) + '</span>' +
+                (t.title ? '<span class="member__title">' + ICON.esc(t.title) + '</span>' : '') + '</div>' +
+            '</article>';
+          }).join('') + '</div>'
         : '<p class="mempty">No team listed yet.</p>') +
-    '</div></section>';
+    '</section>';
 
-    var hours = '<section class="sec" id="hours" aria-labelledby="hoursTitle"><div class="js-reveal" style="--i:1">' +
-      '<div class="sec__head"><h2 class="sec__title" id="hoursTitle">Opening hours</h2></div>' +
-      hoursTable() +
-    '</div></section>';
-
-    // Where to find the shop, with the ways in again for whoever scrolled
-    // this far. A shop not taking customers gets no buttons here.
     var st = shopStatus();
     var tel = S.shop.contact_phone ? String(S.shop.contact_phone).replace(/[^0-9+]/g, '') : '';
-    var visit = '<aside class="visit js-reveal" style="--i:2" aria-labelledby="visitTitle"><div>' +
-      '<h2 class="visit__title" id="visitTitle">Visit ' + ICON.esc(S.shop.name) + '</h2>' +
-      (S.shop.address ? '<p class="visit__addr">' + ICON.esc(S.shop.address) + '</p>' : '') +
-      '<p class="hh__facts"><span class="hh__status' + (st.open ? '' : ' is-closed') + '"><i class="hh__dot" aria-hidden="true"></i>' +
-        ICON.esc(st.text) + '</span>' +
-        (tel ? '<a class="visit__tel" href="tel:' + ICON.esc(tel) + '">' + ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + '</a>' : '') +
-      '</p></div>' +
-      (S.shop.is_open ? '<div class="hh__actions">' + waysButtons() + '</div>' : '') +
-    '</aside>';
+    var visit = '<div class="wrap sec visitgrid">' +
+      '<section id="hours" aria-labelledby="hoursTitle">' +
+        '<h2 class="h-sec" id="hoursTitle" data-reveal>Opening hours</h2>' +
+        '<div data-reveal>' + hoursTable() + '</div>' +
+      '</section>' +
+      '<aside class="visit" aria-labelledby="visitTitle" data-reveal="right">' +
+        '<h2 class="h-sec" id="visitTitle">Visit ' + ICON.esc(S.shop.name) + '</h2>' +
+        (S.shop.address ? '<p class="visit__addr">' + ICON.esc(S.shop.address) + '</p>' : '') +
+        '<div class="visit__facts"><span class="status' + (st.open ? '' : ' is-closed') + '"><i aria-hidden="true"></i>' + ICON.esc(st.text) + '</span>' +
+          (tel ? '<a class="visit__tel ms-link" href="tel:' + ICON.esc(tel) + '">' + ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + '</a>' : '') +
+        '</div>' +
+        (bookable ? '<div class="shero__acts">' + waysButtons() + '</div>' : '') +
+      '</aside>' +
+    '</div>';
 
-    return menu + crew + '<div class="wrap duo">' + hours + visit + '</div>';
+    return menu + crew + visit;
   }
 
   function errorBox() {
@@ -665,11 +737,13 @@
 
   // The two ways in. Joining the queue leads while the shop is open now;
   // otherwise booking leads and the queue button is disabled.
-  function waysButtons() {
+  function waysButtons(size) {
     var openNow = isOpenNow();
-    var queueBtn = '<button class="pill ' + (openNow ? 'pill--primary' : 'pill--ghost') + '" data-act="route" data-route="queue"' +
-      (openNow ? '' : ' disabled') + '>Join the queue</button>';
-    var bookBtn = '<button class="pill ' + (openNow ? 'pill--ghost' : 'pill--primary') + '" data-act="route" data-route="book">Book a time</button>';
+    var sz = size === 'sm' ? ' ms-btn--sm' : ' ms-btn--lg';
+    var queueBtn = '<button class="ms-btn ' + (openNow ? 'ms-btn--accent' : 'ms-btn--outline') + sz + '" data-act="route" data-route="queue"' +
+      (openNow ? ' data-magnetic' : ' disabled') + '>Join the queue</button>';
+    var bookBtn = '<button class="ms-btn ' + (openNow ? 'ms-btn--outline' : 'ms-btn--accent') + sz + '" data-act="route" data-route="book"' +
+      (openNow ? '' : ' data-magnetic') + '>Book a time</button>';
     return openNow ? queueBtn + bookBtn : bookBtn + queueBtn;
   }
 
@@ -683,12 +757,16 @@
                  : 'About ' + waitMins() + ' min. You’d be ' + (w + 1) + ordinal(w + 1) + ' in line.')
       : 'The queue opens when the shop does' + (st.next ? ', ' + st.next : '') + '. You can book a time now.';
 
-    return (S.error ? '<div class="wrap" style="padding-top:var(--s4);">' + errorBox() + '</div>' : '') +
+    return (S.error ? '<div class="wrap" style="padding-top:var(--nav-h);">' + errorBox() + '</div>' : '') +
       hero(
-        '<div class="hh__actions"' + enter(3) + '>' + waysButtons() + '</div>' +
-        '<p class="hh__hint"' + enter(3) + ' aria-live="polite">' + ICON.esc(hint) + '</p>' +
-        '<p class="hh__note"' + enter(3) + '>Already have a booking? It shows up here automatically on the phone you booked with.</p>') +
-      sections();
+        '<div class="shero__acts" id="heroActs"' + enter(3) + '>' + waysButtons() + '</div>' +
+        '<p class="shero__hint"' + enter(3) + ' aria-live="polite">' + ICON.esc(hint) + '</p>' +
+        '<p class="shero__note"' + enter(3) + '>Already have a booking? It shows up here automatically on the phone you booked with.</p>') +
+      sections(true) +
+      '<div class="dock ms-glass" id="dock" inert>' +
+        '<div class="dock__who"><b>' + ICON.esc(S.shop.name) + '</b><span>' + ICON.esc(st.text) + '</span></div>' +
+        '<div class="dock__acts">' + waysButtons('sm') + '</div>' +
+      '</div>';
   }
 
   function isOpenNow() {
@@ -748,15 +826,14 @@
       if (Object.keys(groups).length > 1) {
         html += '<h2 class="step__sub"' + enter(gi + 3) + '>' + ICON.esc(CATEGORY_LABEL[cat] || cat) + '</h2>';
       }
-      html += '<div class="menu"' + enter(gi + 3) + '>' + groups[cat].map(function (s) {
-        return '<button class="menu__item" data-act="service" data-id="' + s.id + '"' +
+      html += '<div class="picks"' + enter(gi + 3) + '>' + groups[cat].map(function (s) {
+        return '<button class="pick" data-act="service" data-id="' + s.id + '"' +
           (S.service && S.service.id === s.id ? ' aria-pressed="true"' : '') + '>' +
-          '<span><span class="menu__name">' + ICON.esc(s.name) + '</span>' +
-          '<span class="menu__meta">' + s.duration_minutes + ' min' +
-            (s.audience !== 'unisex' ? ' &middot; ' + AUDIENCE_LABEL[s.audience] : '') +
-          '</span></span>' +
-          '<span class="menu__price">' +
-            (s.price_minor > 0 ? ICON.esc(ICON.fmtMoney(s.price_minor, S.shop.currency)) : '—') +
+          MS.photo('service:' + s.category, { glyph: SVC_GLYPH[s.category] || 'drop', zoom: true }) +
+          '<span class="pick__name">' + ICON.esc(s.name) + '</span>' +
+          '<span class="pick__row"><span>' + s.duration_minutes + ' min' +
+            (s.audience !== 'unisex' ? ' &middot; ' + AUDIENCE_LABEL[s.audience] : '') + '</span>' +
+          '<b>' + (s.price_minor > 0 ? ICON.esc(ICON.fmtMoney(s.price_minor, S.shop.currency)) : '—') + '</b>' +
           '</span></button>';
       }).join('') + '</div>';
     });
@@ -788,6 +865,7 @@
         team.map(function (t) {
           return '<button type="button" class="slot" data-act="staff" data-id="' + t.id + '"' +
             (String(S.staffId) === String(t.id) ? ' aria-pressed="true"' : '') + '>' +
+            '<span class="ms-mono" aria-hidden="true">' + ICON.esc(initial(t.name)) + '</span>' +
             ICON.esc(t.name) + '</button>';
         }).join('') + '</div></div>';
     }
@@ -1086,6 +1164,40 @@
       return go(1);
     }
 
+    if (act === 'bookService') {
+      // "Book this" on the shop page: straight to picking a time.
+      var sid = Number(el.dataset.id);
+      var pick = (S.shop.services || []).filter(function (s) { return s.id === sid; })[0];
+      if (!pick) return;
+      S.route = 'book';
+      var auds = audienceOptions();
+      S.audience = auds.indexOf(pick.audience) >= 0 ? pick.audience : (auds.length === 1 ? auds[0] : null);
+      S.service = pick;
+      S.day = null; S.slot = null; S.slots = []; S.calendar = [];
+      S.step = steps().indexOf('when');
+      S.error = '';
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (act === 'svcCat') {
+      // Filter the menu in place; no re-render, so nothing jumps.
+      svcCat = el.dataset.cat;
+      document.querySelectorAll('[data-act="svcCat"]').forEach(function (b) {
+        b.setAttribute('aria-pressed', b === el ? 'true' : 'false');
+      });
+      var n = 0;
+      document.querySelectorAll('.svc[data-cat]').forEach(function (c) {
+        var show = svcCat === 'all' || c.dataset.cat === svcCat;
+        c.hidden = !show;
+        c.classList.remove('is-shown');
+        if (show) { c.style.setProperty('--i', Math.min(n++, 8)); void c.offsetWidth; c.classList.add('is-shown'); }
+      });
+      placeSeg();
+      return;
+    }
+
     if (act === 'audience') {
       S.audience = el.dataset.aud;
       S.service = null;
@@ -1144,14 +1256,14 @@
     if (act === 'restart') return restart();
 
     if (act === 'dropTicket') {
-      if (!confirm('Give up your place in line?')) return;
+      if (!(await MS.confirm({ title: 'Give up your place?', text: 'You’ll leave the line and lose your spot.', ok: 'Leave the line', cancel: 'Stay in line', danger: true }))) return;
       ICON.ticket.forget();
       restart();
       return refreshQueue();
     }
 
     if (act === 'cancelBooking') {
-      if (!confirm('Cancel this booking?')) return;
+      if (!(await MS.confirm({ title: 'Cancel this booking?', text: 'Your time will be released for someone else.', ok: 'Cancel booking', cancel: 'Keep it', danger: true }))) return;
       var b = ICON.book.mine();
       if (!b) return restart();
       var out = await ICON.book.cancel(b.lookup_code);
@@ -1278,7 +1390,11 @@
     var ahead = Math.max(0, pos - 1);
 
     paint('<div class="passview"><div class="passview__in">' +
-      '<div class="ticket" id="tk"' + enter(0) + '>' +
+      '<header class="done"' + enter(0) + '>' + '<svg class="ms-check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-15"/></svg>' +
+        '<h1>' + (isUp ? 'You\u2019re up.' : 'You\u2019re in line.') + '</h1>' +
+        '<p>' + ICON.esc((S.shop && S.shop.name) || '') + '</p>' +
+      '</header>' +
+      '<div class="ticket" id="tk"' + enter(1) + '>' +
         '<div class="ticket__head">' +
           '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
           '<span class="chip ' + (isUp ? 'chip--go' : 'chip--wait') + '">' +
@@ -1331,7 +1447,7 @@
         '</div>' +
       '</div>' +
 
-      '<p class="foot"' + enter(1) + '>This updates on its own. Keep the page open.</p>' +
+      '<p class="foot"' + enter(2) + '>This updates on its own. Keep the page open.</p>' +
       '</div></div>', 'ticket');
 
     drawQr('ticketQr', shopUrl(), 'QR code to open this shop');
@@ -1484,7 +1600,11 @@
     var isToday = ICON.fmtDate(b.starts_at) === 'Today';
 
     paint('<div class="passview"><div class="passview__in">' +
-      '<div class="ticket"' + enter(0) + '>' +
+      '<header class="done"' + enter(0) + '>' + '<svg class="ms-check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-15"/></svg>' +
+        '<h1>You\u2019re booked.</h1>' +
+        '<p>' + ICON.esc(ICON.fmtDate(b.starts_at, { absolute: true })) + ' at ' + ICON.esc((S.shop && S.shop.name) || '') + '</p>' +
+      '</header>' +
+      '<div class="ticket"' + enter(1) + '>' +
         '<div class="ticket__head">' +
           '<span class="wordmark" style="font-size:var(--t-sm);">Icon</span>' +
           '<span class="chip chip--go">Booked</span>' +
@@ -1522,7 +1642,7 @@
         '</div>' +
       '</div>' +
 
-      '<p class="foot"' + enter(1) + '>Keep this on your phone \u2014 the desk can scan it.<br>' +
+      '<p class="foot"' + enter(2) + '>Keep this on your phone \u2014 the desk can scan it.<br>' +
         '<button class="textlink" data-act="restart">' +
         'Book something else</button></p>' +
       '</div></div>', 'booking');
@@ -1584,21 +1704,21 @@
     paint(
       hero(
         (tel
-          ? '<div class="hh__actions"' + enter(3) + '><a class="pill pill--primary" href="tel:' + ICON.esc(tel) + '">Call ' +
+          ? '<div class="shero__acts"' + enter(3) + '><a class="ms-btn ms-btn--accent ms-btn--lg" data-magnetic href="tel:' + ICON.esc(tel) + '">Call ' +
               ICON.esc(ICON.fmtPhone(S.shop.contact_phone)) + '</a></div>'
           : '') +
-        '<p class="hh__hint"' + enter(3) + '>This shop isn’t taking walk-ins or bookings right now. ' +
+        '<p class="shero__hint"' + enter(3) + '>This shop isn’t taking walk-ins or bookings right now. ' +
           (tel ? 'Call if you need them.' : 'Check back during opening hours.') + '</p>') +
-      sections() +
+      sections(false) +
       footer(), 'closed');
   }
 
   function hoursTable() {
     var hours = S.shop.hours || [];
-    if (!hours.length) return '<p class="mempty">The shop hasn’t listed its hours yet.</p>';
+    if (!hours.length) return '<p class="mempty" style="margin-top:1.5rem;">The shop hasn’t listed its hours yet.</p>';
     var today = new Date().getDay();
     var st = shopStatus();
-    return '<div class="hours2"><table>' +
+    return '<table class="hours">' +
       '<caption><span class="' + (st.open ? 'is-open' : 'is-closed') + '">' + ICON.esc(st.text) + '</span></caption>' +
       '<tbody>' + hours.map(function (h) {
         var isToday = h.weekday === today;
@@ -1606,7 +1726,7 @@
           '<th scope="row">' + ICON.fmtDay(h.weekday, true) + (isToday ? '<span class="today">Today</span>' : '') + '</th>' +
           '<td' + (h.is_open ? '' : ' class="is-off"') + '>' +
             (h.is_open ? ICON.esc(clock(h.opens_at)) + ' – ' + ICON.esc(clock(h.closes_at)) : 'Closed') + '</td></tr>';
-      }).join('') + '</tbody></table></div>';
+      }).join('') + '</tbody></table>';
   }
 
   /* ---------- Bits ---------- */
