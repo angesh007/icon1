@@ -15,26 +15,26 @@
    The shop page (the one a QR code opens) is set apart: a forest-green
    hero like the barber's leather chair, one brass action like its
    fittings, porcelain for reading, rounded surfaces and pill buttons.
-   Its colour roles live in the tokens below and the rest of the
-   customer site picks them up from there.
+   Its colour roles map onto the shared palette in tokens.css, which
+   the staff console and the live board use too.
    ============================================================ */
 
 :root {
-  --c-ground:  #EEF0EB;            /* porcelain, a cool sage-grey */
+  --c-ground:  var(--ms-porcelain);            /* porcelain, a cool sage-grey */
   --c-surface: #FFFFFF;
-  --c-sunk:    #E2E6DF;            /* one step below the ground */
-  --c-line:    #D5DBD2;            /* separators inside lists */
+  --c-sunk:    var(--ms-sunk);            /* one step below the ground */
+  --c-line:    var(--ms-line);            /* separators inside lists */
   --c-ink:     var(--ink);         /* #141A2E, the brand ink */
   --c-raised:  var(--ink-raised);  /* #1E2641 */
-  --c-soft:    #56605A;            /* secondary text, 5.7:1 on the ground */
-  --c-forest:  #1E3B32;            /* the shop page's hero surface */
-  --c-forest-2: #274A3F;           /* one step up on the forest */
-  --c-sage:    #B9C7BF;            /* secondary text on forest, 6.9:1 */
-  --c-ivory:   #F4F3EE;            /* text on forest and ink */
-  --c-accent:  #E3B24F;            /* brass: the one primary action */
-  --c-accent-strong: #D29E35;
+  --c-soft:    var(--ms-soft);            /* secondary text, 5.7:1 on the ground */
+  --c-forest:  var(--ms-forest);            /* the shop page's hero surface */
+  --c-forest-2: var(--ms-forest-2);           /* one step up on the forest */
+  --c-sage:    var(--ms-sage);            /* secondary text on forest, 6.9:1 */
+  --c-ivory:   var(--ms-offwhite);            /* text on forest and ink */
+  --c-accent:  var(--ms-gold);            /* brass: the one primary action */
+  --c-accent-strong: var(--ms-gold-strong);
   --c-on-accent: var(--ink);       /* ink on brass, 8.8:1 */
-  --c-signal:  #B51D24;            /* brand red, for closed and errors (4.9:1) */
+  --c-signal:  var(--ms-red);            /* brand red, for closed and errors (4.9:1) */
   --c-go:      #0B7A55;            /* brand green, deepened for white text */
   --c-go-strong: #09664A;
   --c-go-light: #6EE7B7;

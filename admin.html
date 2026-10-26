@@ -8,32 +8,44 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@100..125,400..700&display=swap">
 <link rel="stylesheet" href="./icon.css">
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./console.css">
+<meta name="theme-color" content="#141A2E">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="./vendor/qrcode.js"></script>
 <style>
   body[data-gate="pending"] .gated { visibility: hidden; }
 </style>
 </head>
-<body data-gate="pending">
+<body class="cs" data-gate="pending">
 
-<header class="bar">
-  <span class="wordmark" id="shopName">Icon</span>
-  <nav>
-    <a href="#" id="viewLink" target="_blank" rel="noopener">Customer view</a>
-    <a href="#" id="boardLink" target="_blank" rel="noopener">Board</a>
-    <span class="muted" style="color:var(--on-ink-dim);font-size:var(--t-sm);" id="who"></span>
-    <button class="btn btn--quiet" id="signOut"
-            style="color:var(--on-ink);border-color:var(--ink-line);padding:0.35rem 0.7rem;font-size:var(--t-sm);">
-      Sign out
-    </button>
-  </nav>
+<header class="cs-bar">
+  <div class="cs-bar__in">
+    <div class="cs-brand">
+      <span class="wordmark" id="shopName">Icon</span>
+      <small>Shop console</small>
+    </div>
+    <nav aria-label="Console">
+      <a href="#" class="cs-link" id="viewLink" target="_blank" rel="noopener" aria-label="Customer view (opens in a new tab)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span>Customer view</span></a>
+      <a href="#" class="cs-link" id="boardLink" target="_blank" rel="noopener" aria-label="Live board (opens in a new tab)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <span>Live board</span></a>
+      <div class="cs-who" id="who"></div>
+      <button class="ms-btn ms-btn--ghost ms-btn--sm" id="signOut">Sign out</button>
+    </nav>
+  </div>
 </header>
 
-<main class="shell gated">
-  <div class="tabs" role="tablist" id="tabs"></div>
-  <p class="msg msg--bad" id="topMsg" hidden></p>
+<div class="cs-tabs-wrap gated">
+  <div class="cs-tabs" role="tablist" aria-label="Console sections" id="tabs"></div>
+</div>
+
+<main class="cs-main gated">
+  <p class="msg msg--bad" id="topMsg" role="status" hidden></p>
   <div id="panel"></div>
 </main>
 
@@ -114,14 +126,104 @@
 
   function esc(v) { return ICON.esc(v); }
 
+  /* ---------- Icons (one outline set, drawn inline) ---------- */
+
+  var ICONS = {
+    line: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    services: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/>',
+    team: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
+    hours: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M17 20h4v-3"/>',
+    shop: '<path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-6h6v6"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
+    scissors: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    empty: '<path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>'
+  };
+  // A barber chair: back, seat, arm and pump, for the chairs strip.
+  var CHAIR = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="2" width="10" height="3" rx="1.5"/>' +
+    '<path d="M7 6h10a1 1 0 0 1 1 1v7H6V7a1 1 0 0 1 1-1z"/><rect x="3" y="13" width="18" height="4" rx="2"/>' +
+    '<rect x="11" y="17" width="2" height="4"/><rect x="6" y="21" width="12" height="2" rx="1"/></svg>';
+
+  function icon(name) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+      'stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+  }
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // Counts a figure up or down to its new value when it changes, the
+  // way magicui's number-ticker does; instant under reduced motion.
+  var lastFigures = {};
+  function tick(root) {
+    root.querySelectorAll('[data-tick]').forEach(function (el) {
+      var key = el.dataset.tick;
+      var to = Number(el.textContent);
+      var from = lastFigures[key];
+      lastFigures[key] = to;
+      if (from === undefined || from === to || reduceMotion.matches || !isFinite(to)) return;
+      var start = null;
+      function step(ts) {
+        if (start === null) start = ts;
+        var t = Math.min(1, (ts - start) / 500);
+        var e = 1 - Math.pow(1 - t, 3);
+        el.textContent = String(Math.round(from + (to - from) * e));
+        if (t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  // The tab's frame with bars where the content will land.
+  function skeleton() {
+    var card = '<div class="cs-card"><span class="ms-skel" style="height:1.25rem;width:55%;"></span>' +
+      '<span class="ms-skel" style="height:2.25rem;width:35%;margin-top:1.25rem;"></span></div>';
+    return '<div class="cs-skel-head"><span class="ms-skel" style="height:2rem;width:14rem;"></span>' +
+      '<span class="ms-skel" style="height:1rem;width:22rem;max-width:80%;"></span></div>' +
+      '<div class="cs-skel-grid" aria-hidden="true">' + card + card + card + '</div>' +
+      '<p class="ms-sr" role="status">Loading\u2026</p>';
+  }
+
+  // Paints a tab. Cards enter only when the tab changes, never on the
+  // line's live refresh.
+  var shownTab = null;
+  function fill(html) {
+    panel.innerHTML = html;
+    if (shownTab !== S.tab) {
+      panel.classList.remove('ms-enter');
+      void panel.offsetWidth;
+      panel.classList.add('ms-enter');
+      shownTab = S.tab;
+    } else {
+      panel.classList.remove('ms-enter');
+    }
+    tick(panel);
+    wirePanel();
+  }
+
+  function head(title, lede, right) {
+    return '<div class="cs-head"><div><h1 class="cs-title">' + title + '</h1>' +
+      (lede ? '<p class="cs-lede">' + lede + '</p>' : '') + '</div>' + (right || '') + '</div>';
+  }
+
+  function badge(kind, text) { return '<span class="ms-badge ms-badge--' + kind + '">' + esc(text) + '</span>'; }
+
+  var STATUS = {
+    booked: ['booked', 'Booked'], arrived: ['arrived', 'Arrived'], in_chair: ['chair', 'In the chair'],
+    done: ['done', 'Finished'], cancelled: ['off', 'Cancelled'], no_show: ['off', 'No show']
+  };
+
   /* ---------- Tabs ---------- */
 
   function renderTabs() {
     tabsEl.innerHTML = TABS
       .filter(function (t) { return !t.manager || ICON.auth.isManager(); })
       .map(function (t) {
-        return '<button class="tab" role="tab" data-tab="' + t.id + '"' +
-          (S.tab === t.id ? ' aria-selected="true"' : '') + '>' + t.label + '</button>';
+        return '<button class="cs-tab" role="tab" data-tab="' + t.id + '"' +
+          ' aria-selected="' + (S.tab === t.id ? 'true' : 'false') + '">' + icon(t.id) + t.label + '</button>';
       }).join('');
 
     tabsEl.querySelectorAll('[data-tab]').forEach(function (b) {
@@ -129,6 +231,7 @@
         S.tab = b.dataset.tab;
         say('');
         renderTabs();
+        panel.innerHTML = skeleton();
         route();
       });
     });
@@ -155,86 +258,95 @@
 
     var waiting = S.queue.filter(function (r) { return r.status === 'waiting'; });
     var chair = S.queue.filter(function (r) { return r.status === 'in_chair'; });
+    var chairs = Math.max(1, (S.shop && S.shop.active_chairs) || 1);
 
-    var html =
-      '<div class="spread" style="margin-bottom:var(--s4);">' +
-        '<div><h1 style="font-size:var(--t-xl);">Today’s line</h1>' +
-        '<p class="muted" style="margin:var(--s1) 0 0;font-size:var(--t-sm);">' +
-          (S.queue.length === 0 ? 'Nobody in the shop.'
-            : waiting.length + ' waiting · ' + chair.length + ' in the chair · about ' +
-              ICON.queue.estimate(waiting.length) + ' min for a new walk-in') +
-        '</p></div>' +
-        (ICON.auth.isManager() && S.queue.length
-          ? '<button class="btn btn--danger" data-act="purge">Clear the line</button>' : '') +
-      '</div>';
+    var seats = '';
+    for (var c = 0; c < chairs; c++) {
+      seats += CHAIR.replace('<svg ', '<svg class="' + (c < chair.length ? 'is-busy' : '') + '" ');
+    }
 
-    html += '<div class="split"><section>';
+    var html = head('Today’s line',
+        S.queue.length === 0 ? 'Nobody in the shop.'
+          : 'Call the next person when a chair frees up. The line updates on its own.',
+        ICON.auth.isManager() && S.queue.length
+          ? '<button class="ms-btn ms-btn--danger" data-act="purge">Clear the line</button>' : '') +
+
+      '<dl class="cs-stats">' +
+        '<div class="cs-stat"><dt>' + icon('line') + 'Waiting</dt>' +
+          '<dd><span class="v" data-tick="waiting">' + waiting.length + '</span></dd></div>' +
+        '<div class="cs-stat cs-stat--forest"><dt>In the chair</dt>' +
+          '<dd><span class="v" data-tick="chair">' + chair.length + '</span><span class="u">of ' + chairs + '</span></dd>' +
+          '<dd class="cs-chairs" aria-hidden="true">' + seats + '</dd></div>' +
+        '<div class="cs-stat"><dt>' + icon('clock') + 'Wait for a new walk-in</dt>' +
+          '<dd><span class="v" data-tick="wait">' + ICON.queue.estimate(waiting.length) + '</span><span class="u">min</span></dd></div>' +
+      '</dl>';
+
+    html += '<div class="cs-split"><section aria-label="The line">';
 
     if (S.queue.length === 0) {
-      html += '<div class="empty"><strong>The line is empty</strong>' +
+      html += '<div class="cs-empty">' + icon('empty') + '<strong>The line is empty</strong>' +
               'Add a walk-in, or wait for someone to scan the QR code.</div>';
     } else {
       var seen = 0;
-      html += '<div class="queue">' + S.queue.map(function (r) {
+      html += '<div class="cs-list ms-enter">' + S.queue.map(function (r, i) {
         var active = r.status === 'in_chair';
         if (!active) seen += 1;
         var meta = [];
-        meta.push(active
+        meta.push(icon('clock') + (active
           ? 'In the chair since ' + esc(ICON.fmtTime(r.called_at))
-          : seen + ordinal(seen) + ' · about ' + esc(ICON.fmtTime(ICON.queue.etaFor(seen))));
-        if (r.service_name) meta.push(esc(r.service_name));
-        meta.push(r.phone_number ? esc(ICON.fmtPhone(r.phone_number)) : 'no number');
-        meta.push('joined ' + esc(ICON.fmtRelative(r.join_time)));
-        if (r.preferred_time) meta.push('said ' + esc(ICON.fmtTime(r.preferred_time)));
+          : 'About ' + esc(ICON.fmtTime(ICON.queue.etaFor(seen)))));
+        if (r.service_name) meta.push(icon('scissors') + esc(r.service_name));
+        meta.push(icon('phone') + (r.phone_number ? esc(ICON.fmtPhone(r.phone_number)) : 'No number'));
+        meta.push('Joined ' + esc(ICON.fmtRelative(r.join_time)));
+        if (r.preferred_time) meta.push('Said ' + esc(ICON.fmtTime(r.preferred_time)));
 
-        return '<div class="entry' + (active ? ' is-active' : '') + '">' +
-          '<div class="entry__ticket num">' + ICON.padTicket(r.ticket_no) + '</div>' +
-          '<div><div class="entry__name">' + esc(r.customer_name) + '</div>' +
-          '<div class="entry__meta">' + meta.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div>' +
-          (r.clip_notes ? '<span class="entry__note">' + esc(r.clip_notes) + '</span>' : '') +
-          '</div><div class="entry__actions">' +
+        return '<article class="cs-ticket' + (active ? ' is-chair' : '') + '" style="--i:' + i + '">' +
+          '<div class="cs-ticket__no num" aria-label="Ticket ' + ICON.padTicket(r.ticket_no) + '">' + ICON.padTicket(r.ticket_no) + '</div>' +
+          '<div><div class="cs-ticket__who"><span class="cs-ticket__name">' + esc(r.customer_name) + '</span>' +
+            (active ? badge('chair', 'In the chair') : badge('waiting', seen + ordinal(seen) + ' in line')) + '</div>' +
+          '<div class="cs-meta">' + meta.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div>' +
+          (r.clip_notes ? '<span class="cs-note">' + esc(r.clip_notes) + '</span>' : '') +
+          '</div><div class="cs-actions">' +
             (active
-              ? '<button class="btn btn--go" data-act="q" data-id="' + Number(r.id) + '" data-s="done">Finished</button>'
-              : '<button class="btn" data-act="q" data-id="' + Number(r.id) + '" data-s="in_chair">Call to chair</button>') +
-            '<button class="btn btn--quiet" data-act="q" data-id="' + Number(r.id) + '" data-s="cancelled">Remove</button>' +
-          '</div></div>';
+              ? '<button class="ms-btn ms-btn--forest" data-act="q" data-id="' + Number(r.id) + '" data-s="done">Finished</button>'
+              : '<button class="ms-btn ms-btn--primary" data-act="q" data-id="' + Number(r.id) + '" data-s="in_chair">Call to chair</button>') +
+            '<button class="ms-btn ms-btn--ghost" data-act="q" data-id="' + Number(r.id) + '" data-s="cancelled">Remove</button>' +
+          '</div></article>';
       }).join('') + '</div>';
     }
 
-    html += '</section><aside>' + deskForm() + '</aside></div>';
+    html += '</section><aside class="cs-sticky">' + deskForm() + '</aside></div>';
 
-    panel.innerHTML = html;
-    wirePanel();
+    fill(html);
   }
 
   function deskForm() {
     var svcs = (S.services.length ? S.services : (S.shop && S.shop.services) || [])
       .filter(function (s) { return s.is_active !== false; });
 
-    return '<form class="ticket" id="deskForm" novalidate>' +
-      '<div class="ticket__head"><span class="label">Walk-in desk</span></div>' +
-      '<div class="ticket__stub">' +
-        '<p class="msg msg--bad" id="deskMsg" hidden></p>' +
-        '<div class="field"><label for="dName">Name</label>' +
-          '<input type="text" id="dName" required maxlength="80" placeholder="Walk-in"></div>' +
-        '<div class="field"><label for="dPhone">Mobile' +
-          '<span class="help">' + (S.shop && S.shop.phone_required ? 'Required at this shop.' : 'Optional.') +
-          '</span></label>' +
-          '<input type="tel" id="dPhone"' + (S.shop && S.shop.phone_required ? ' required' : '') +
-          ' placeholder="98450 00000"></div>' +
-        (svcs.length
-          ? '<div class="field"><label for="dService">Service</label><select id="dService">' +
-            '<option value="">Not sure yet</option>' +
-            svcs.map(function (s) {
-              return '<option value="' + s.id + '">' + esc(s.name) + ' · ' +
-                     s.duration_minutes + 'm' + (s.price_minor ? ' · ' + esc(money(s.price_minor)) : '') +
-                     '</option>';
-            }).join('') + '</select></div>'
-          : '') +
-        '<div class="field"><label for="dNotes">Notes<span class="help">Optional.</span></label>' +
-          '<textarea id="dNotes" maxlength="500" placeholder="#4 guard fade"></textarea></div>' +
-        '<button type="submit" class="btn btn--block btn--lg btn--go" id="dBtn">Add to the line</button>' +
-      '</div></form>';
+    return '<form class="cs-card" id="deskForm" novalidate>' +
+      '<div class="cs-card__head"><h2 class="cs-card__title">' + icon('plus') + 'Walk-in desk</h2></div>' +
+      '<p class="msg msg--bad" id="deskMsg" role="alert" hidden></p>' +
+      '<div class="field"><label for="dName">Name</label>' +
+        '<input type="text" id="dName" required maxlength="80" autocomplete="off" placeholder="Walk-in"></div>' +
+      '<div class="field"><label for="dPhone">Mobile' +
+        '<span class="help">' + (S.shop && S.shop.phone_required ? 'Required at this shop.' : 'Optional.') +
+        '</span></label>' +
+        '<input type="tel" id="dPhone"' + (S.shop && S.shop.phone_required ? ' required' : '') +
+        ' autocomplete="off" placeholder="98450 00000"></div>' +
+      (svcs.length
+        ? '<div class="field"><label for="dService">Service</label><select id="dService">' +
+          '<option value="">Not sure yet</option>' +
+          svcs.map(function (s) {
+            return '<option value="' + s.id + '">' + esc(s.name) + ' · ' +
+                   s.duration_minutes + 'm' + (s.price_minor ? ' · ' + esc(money(s.price_minor)) : '') +
+                   '</option>';
+          }).join('') + '</select></div>'
+        : '') +
+      '<div class="field"><label for="dNotes">Notes<span class="help">Optional.</span></label>' +
+        '<textarea id="dNotes" maxlength="500" placeholder="#4 guard fade"></textarea></div>' +
+      '<button type="submit" class="ms-btn ms-btn--primary ms-btn--lg ms-btn--block" id="dBtn">Add to the line</button>' +
+    '</form>';
   }
 
   /* ============================================================
@@ -256,10 +368,24 @@
     if (!day) return;
     S.appts = day.data || [];
 
-    panel.innerHTML =
-      '<div class="split split--even"><section>' + monthGrid() + newBooking() + '</section>' +
-      '<aside class="apptwrap">' + dayList() + '</aside></div>';
-    wirePanel();
+    // Re-rendering (a new service or barber reloads the free times) must
+    // not throw away what the desk already typed into the booking form.
+    var draft = {};
+    ['bName', 'bPhone', 'bNotes'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) draft[id] = el.value;
+    });
+
+    fill(
+      head('Calendar', 'Pick a day to see its bookings, or take one over the phone.') +
+      '<div class="cs-split--even"><section>' +
+        '<div class="cs-card">' + monthGrid() + '</div>' + newBooking() +
+      '</section><aside class="apptwrap">' + dayList() + '</aside></div>');
+
+    Object.keys(draft).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && draft[id]) el.value = draft[id];
+    });
   }
 
   function firstOfMonth(d) { var x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
@@ -273,7 +399,7 @@
     var todayKey = ICON.dateKey(new Date());
 
     var cells = '';
-    for (var i = 0; i < pad; i++) cells += '<button class="cal__cell" disabled></button>';
+    for (var i = 0; i < pad; i++) cells += '<button class="cal__cell" disabled aria-hidden="true" tabindex="-1"></button>';
 
     for (var d = 1; d <= daysIn; d++) {
       var dt = new Date(year, month, d);
@@ -282,9 +408,10 @@
       var booked = c ? Number(c.booked) : 0;
       cells += '<button class="cal__cell' + (key === todayKey ? ' is-today' : '') + '"' +
         ' data-act="pickDay" data-date="' + key + '"' +
-        (S.apptDay === key ? ' aria-pressed="true"' : '') + '>' +
+        (S.apptDay === key ? ' aria-pressed="true"' : '') +
+        ' aria-label="' + key + (booked ? ', ' + booked + ' booked' : '') + '">' +
         '<span class="cal__num">' + d + '</span>' +
-        (booked ? '<span class="cal__count">' + booked + '</span>' : '<span class="cal__dot" style="opacity:0"></span>') +
+        (booked ? '<span class="cal__count">' + booked + '</span>' : '') +
         '</button>';
     }
 
@@ -293,17 +420,16 @@
 
     return '<div class="cal">' +
       '<div class="cal__head">' +
-        '<button class="btn btn--quiet" data-act="month" data-d="-1">←</button>' +
+        '<button class="ms-btn ms-btn--secondary" data-act="month" data-d="-1" aria-label="Previous month">←</button>' +
         '<span class="cal__month">' + MONTHS[month] + ' ' + year + '</span>' +
-        '<button class="btn btn--quiet" data-act="month" data-d="1">→</button>' +
+        '<button class="ms-btn ms-btn--secondary" data-act="month" data-d="1" aria-label="Next month">→</button>' +
       '</div>' +
       '<div class="cal__grid">' +
         ['S','M','T','W','T','F','S'].map(function (d) {
           return '<div class="cal__dow">' + d + '</div>';
         }).join('') + cells +
       '</div>' +
-      '<p class="muted" style="font-size:var(--t-xs);margin-top:var(--s3);">' +
-        'The number on a day is how many bookings it holds.</p>' +
+      '<p class="cal__note">The gold number on a day is how many bookings it holds.</p>' +
     '</div>';
   }
 
@@ -315,45 +441,50 @@
     var dayLabel = ICON.fmtDate(S.apptDay + 'T00:00:00');
 
     if (!S.bookOpen) {
-      return '<button class="btn btn--block" data-act="openBook" style="margin-top:var(--s5);">' +
-             'Take a booking for ' + esc(dayLabel) + '</button>';
+      return '<button class="ms-btn ms-btn--forest ms-btn--lg ms-btn--block" data-act="openBook" style="margin-top:1rem;">' +
+             icon('plus') + 'Take a booking for ' + esc(dayLabel) + '</button>';
     }
 
-    return '<form class="miniform" id="bookForm" style="margin-top:var(--s5);">' +
-      '<div class="spread">' +
-        '<strong>New booking \u00b7 ' + esc(dayLabel) + '</strong>' +
-        '<button type="button" class="btn btn--quiet" data-act="closeBook">Cancel</button>' +
+    return '<form class="cs-card" id="bookForm" style="margin-top:1rem;" novalidate>' +
+      '<div class="cs-card__head">' +
+        '<h2 class="cs-card__title">' + icon('calendar') + 'New booking, ' + esc(dayLabel) + '</h2>' +
+        '<button type="button" class="ms-btn ms-btn--ghost ms-btn--sm" data-act="closeBook">Cancel</button>' +
       '</div>' +
-      '<p class="msg msg--bad" id="bookMsg" hidden></p>' +
+      '<p class="msg msg--bad" id="bookMsg" role="alert" hidden></p>' +
 
-      '<div class="field"><label for="bName">Name</label>' +
-        '<input type="text" id="bName" required maxlength="80" placeholder="Customer name"></div>' +
+      '<div class="cs-form-grid cs-form-grid--two">' +
+        '<div class="field"><label for="bName">Name</label>' +
+          '<input type="text" id="bName" required maxlength="80" autocomplete="off" placeholder="Customer name"></div>' +
+        '<div class="field"><label for="bPhone">Mobile' +
+          '<span class="help">' + (S.shop && S.shop.phone_required ? 'Required at this shop.' : 'Optional.') +
+          '</span></label><input type="tel" id="bPhone" autocomplete="off" placeholder="98450 00000"></div>' +
+      '</div>' +
 
-      '<div class="field"><label for="bPhone">Mobile' +
-        '<span class="help">' + (S.shop && S.shop.phone_required ? 'Required at this shop.' : 'Optional.') +
-        '</span></label><input type="tel" id="bPhone" placeholder="98450 00000"></div>' +
+      '<div class="cs-form-grid cs-form-grid--two">' +
+        '<div class="field"><label for="bService">Service</label><select id="bService" required>' +
+          '<option value="">Pick a service…</option>' +
+          svcs.map(function (x) {
+            return '<option value="' + x.id + '"' + (String(S.bookService) === String(x.id) ? ' selected' : '') + '>' +
+              esc(x.name) + ' · ' + x.duration_minutes + 'm' +
+              (x.price_minor ? ' · ' + esc(money(x.price_minor)) : '') + '</option>';
+          }).join('') + '</select></div>' +
 
-      '<div class="field"><label for="bService">Service</label><select id="bService" required>' +
-        '<option value="">Pick a service\u2026</option>' +
-        svcs.map(function (x) {
-          return '<option value="' + x.id + '"' + (String(S.bookService) === String(x.id) ? ' selected' : '') + '>' +
-            esc(x.name) + ' \u00b7 ' + x.duration_minutes + 'm' +
-            (x.price_minor ? ' \u00b7 ' + esc(money(x.price_minor)) : '') + '</option>';
-        }).join('') + '</select></div>' +
-
-      (team.length > 1
-        ? '<div class="field"><label for="bStaff">With</label><select id="bStaff">' +
-          '<option value="">Anyone</option>' +
-          team.map(function (t) {
-            return '<option value="' + t.id + '"' + (String(S.bookStaff) === String(t.id) ? ' selected' : '') + '>' +
-              esc(t.name) + '</option>';
-          }).join('') + '</select></div>'
-        : '') +
+        (team.length > 1
+          ? '<div class="field"><label for="bStaff">With</label><select id="bStaff">' +
+            '<option value="">Anyone</option>' +
+            team.map(function (t) {
+              return '<option value="' + t.id + '"' + (String(S.bookStaff) === String(t.id) ? ' selected' : '') + '>' +
+                esc(t.name) + '</option>';
+            }).join('') + '</select></div>'
+          : '') +
+      '</div>' +
 
       '<div class="field"><label>Time</label>' +
         (S.bookService
           ? (S.bookSlots === null
-              ? '<p class="muted" style="font-size:var(--t-sm);margin:0;">Checking what\u2019s free\u2026</p>'
+              ? '<div class="slotgrid" aria-hidden="true"><span class="ms-skel" style="height:2.75rem"></span>' +
+                '<span class="ms-skel" style="height:2.75rem"></span><span class="ms-skel" style="height:2.75rem"></span></div>' +
+                '<p class="ms-sr" role="status">Checking what’s free…</p>'
               : S.bookSlots.length === 0
                 ? '<p class="msg msg--bad" style="margin:0;">Nothing free on this day for that service. ' +
                   'Pick another day on the calendar.</p>'
@@ -362,13 +493,13 @@
                       sl.starts_at + '"' + (S.bookSlot === sl.starts_at ? ' aria-pressed="true"' : '') + '>' +
                       esc(ICON.fmtTime(sl.starts_at)) + '</button>';
                   }).join('') + '</div>')
-          : '<p class="muted" style="font-size:var(--t-sm);margin:0;">Pick a service first.</p>') +
+          : '<p class="cs-lede" style="margin:0;">Pick a service first.</p>') +
       '</div>' +
 
       '<div class="field"><label for="bNotes">Notes<span class="help">Optional.</span></label>' +
         '<textarea id="bNotes" maxlength="500" placeholder="Called ahead"></textarea></div>' +
 
-      '<button type="submit" class="btn btn--lg btn--go" id="bBtn"' +
+      '<button type="submit" class="ms-btn ms-btn--primary ms-btn--lg ms-btn--block" id="bBtn"' +
         (S.bookSlot ? '' : ' disabled') + '>' +
         (S.bookSlot ? 'Book ' + esc(ICON.fmtTime(S.bookSlot)) : 'Pick a time above') +
       '</button>' +
@@ -386,45 +517,49 @@
   }
 
   function dayList() {
-    var head = '<div class="spread" style="margin-bottom:var(--s3);">' +
-      '<h2 style="font-size:var(--t-lg);">' + esc(ICON.fmtDate(S.apptDay + 'T00:00:00')) + '</h2>' +
-      '<button class="btn btn--quiet" data-act="today">Today</button></div>';
+    var live = S.appts.filter(function (a) { return a.status !== 'cancelled' && a.status !== 'no_show'; }).length;
+    var top = '<div class="cs-card__head">' +
+      '<h2 class="cs-card__title">' + icon('calendar') + esc(ICON.fmtDate(S.apptDay + 'T00:00:00')) +
+        (S.appts.length ? ' <span class="ms-badge ms-badge--plain">' + live + ' booked</span>' : '') + '</h2>' +
+      '<button class="ms-btn ms-btn--secondary ms-btn--sm" data-act="today">Today</button></div>';
 
     if (S.appts.length === 0) {
-      return head + '<div class="empty"><strong>No bookings</strong>' +
+      return top + '<div class="cs-empty">' + icon('calendar') + '<strong>No bookings</strong>' +
              'Nothing booked for this day yet.</div>';
     }
 
     var now = Date.now();
-    return head + '<div class="rows">' + S.appts.map(function (a) {
+    return top + '<div class="cs-list ms-enter">' + S.appts.map(function (a, i) {
       var cancelled = a.status === 'cancelled' || a.status === 'no_show';
       var isNow = new Date(a.starts_at) <= now && new Date(a.ends_at) > now && !cancelled;
+      var st = STATUS[a.status] || ['done', a.status];
       var meta = [];
-      if (a.service_name) meta.push(esc(a.service_name));
-      if (a.staff_name) meta.push('with ' + esc(a.staff_name));
-      if (a.phone_number) meta.push(esc(ICON.fmtPhone(a.phone_number)));
+      if (a.service_name) meta.push(icon('scissors') + esc(a.service_name));
+      if (a.staff_name) meta.push(icon('user') + 'With ' + esc(a.staff_name));
+      if (a.phone_number) meta.push(icon('phone') + esc(ICON.fmtPhone(a.phone_number)));
       if (a.price_minor) meta.push(esc(money(a.price_minor)));
-      meta.push(esc(a.status));
 
-      return '<div class="appt' + (cancelled ? ' is-cancelled' : '') + (isNow ? ' is-now' : '') + '">' +
-        '<div class="appt__time">' + esc(ICON.fmtTime(a.starts_at)) + '</div>' +
-        '<div><div class="appt__name">' + esc(a.customer_name) + '</div>' +
-        '<div class="appt__meta">' + meta.join(' · ') + '</div>' +
-        (a.notes ? '<span class="entry__note">' + esc(a.notes) + '</span>' : '') +
-        '</div><div class="appt__actions">' +
+      return '<article class="cs-appt' + (cancelled ? ' is-cancelled' : '') + (isNow ? ' is-now' : '') + '" style="--i:' + i + '">' +
+        '<div class="cs-appt__time num">' + esc(ICON.fmtTime(a.starts_at)) +
+          '<small>to ' + esc(ICON.fmtTime(a.ends_at)) + '</small></div>' +
+        '<div><div class="cs-ticket__who"><span class="cs-ticket__name">' + esc(a.customer_name) + '</span>' +
+          badge(st[0], st[1]) + (isNow ? badge('chair', 'Now') : '') + '</div>' +
+        '<div class="cs-meta">' + meta.map(function (m) { return '<span>' + m + '</span>'; }).join('') + '</div>' +
+        (a.notes ? '<span class="cs-note">' + esc(a.notes) + '</span>' : '') +
+        '</div><div class="cs-actions">' +
           (cancelled ? '' :
             (a.status === 'booked'
-              ? '<button class="btn" data-act="a" data-id="' + Number(a.id) + '" data-s="arrived">Arrived</button>'
+              ? '<button class="ms-btn ms-btn--primary ms-btn--sm" data-act="a" data-id="' + Number(a.id) + '" data-s="arrived">Arrived</button>'
               : '') +
             (a.status === 'arrived'
-              ? '<button class="btn btn--go" data-act="a" data-id="' + Number(a.id) + '" data-s="in_chair">In the chair</button>'
+              ? '<button class="ms-btn ms-btn--forest ms-btn--sm" data-act="a" data-id="' + Number(a.id) + '" data-s="in_chair">In the chair</button>'
               : '') +
             (a.status === 'in_chair'
-              ? '<button class="btn btn--go" data-act="a" data-id="' + Number(a.id) + '" data-s="done">Finished</button>'
+              ? '<button class="ms-btn ms-btn--forest ms-btn--sm" data-act="a" data-id="' + Number(a.id) + '" data-s="done">Finished</button>'
               : '') +
-            '<button class="btn btn--quiet" data-act="a" data-id="' + Number(a.id) + '" data-s="cancelled">Cancel</button>'
+            '<button class="ms-btn ms-btn--ghost ms-btn--sm" data-act="a" data-id="' + Number(a.id) + '" data-s="cancelled">Cancel</button>'
           ) +
-        '</div></div>';
+        '</div></article>';
     }).join('') + '</div>';
   }
 
@@ -438,56 +573,62 @@
     S.services = out.data || [];
 
     var e = S.editService;
-    panel.innerHTML =
-      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Services</h1>' +
-      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
-        'What customers can pick, and what it costs. A service switched off stops ' +
-        'appearing for customers but stays on old bookings.</p>' +
+    var on = S.services.filter(function (s) { return s.is_active; }).length;
 
-      '<form class="miniform miniform--wide" id="svcForm">' +
-        '<div class="field"><label for="sName">' + (e ? 'Edit service' : 'New service') + '</label>' +
-          '<input type="text" id="sName" required maxlength="60" placeholder="Haircut" value="' +
-          esc(e ? e.name : '') + '"></div>' +
-        '<div class="field"><label for="sAud">For</label><select id="sAud">' +
-          AUD.map(function (a) {
-            return '<option value="' + a + '"' + (e && e.audience === a ? ' selected' : '') + '>' +
-              a.charAt(0).toUpperCase() + a.slice(1) + '</option>';
-          }).join('') + '</select></div>' +
-        '<div class="field"><label for="sCat">Type</label><select id="sCat">' +
-          CAT.map(function (c) {
-            return '<option value="' + c + '"' + (e && e.category === c ? ' selected' : '') + '>' +
-              c.charAt(0).toUpperCase() + c.slice(1) + '</option>';
-          }).join('') + '</select></div>' +
-        '<div class="field"><label for="sMins">Minutes</label>' +
-          '<input type="text" inputmode="numeric" id="sMins" value="' +
-          esc(e ? e.duration_minutes : 30) + '"></div>' +
-        '<div class="field"><label for="sPrice">Price</label>' +
-          '<input type="text" inputmode="decimal" id="sPrice" value="' +
-          esc(e ? (e.price_minor / 100) : '') + '" placeholder="20"></div>' +
-        '<button type="submit" class="btn">' + (e ? 'Save' : 'Add') + '</button>' +
-        (e ? '<button type="button" class="btn btn--quiet" data-act="cancelEdit">Cancel</button>' : '') +
+    fill(
+      head('Services',
+        'What customers can pick, and what it costs. A service switched off stops ' +
+        'appearing for customers but stays on old bookings.',
+        '<span class="ms-badge ms-badge--plain">' + on + ' on the menu</span>') +
+
+      '<form class="cs-card" id="svcForm">' +
+        '<div class="cs-card__head"><h2 class="cs-card__title">' + icon(e ? 'scissors' : 'plus') +
+          (e ? 'Edit ' + esc(e.name) : 'New service') + '</h2></div>' +
+        '<div class="cs-form-grid cs-form-grid--svc">' +
+          '<div class="field"><label for="sName">Name</label>' +
+            '<input type="text" id="sName" required maxlength="60" autocomplete="off" placeholder="Haircut" value="' +
+            esc(e ? e.name : '') + '"></div>' +
+          '<div class="field"><label for="sAud">For</label><select id="sAud">' +
+            AUD.map(function (a) {
+              return '<option value="' + a + '"' + (e && e.audience === a ? ' selected' : '') + '>' +
+                a.charAt(0).toUpperCase() + a.slice(1) + '</option>';
+            }).join('') + '</select></div>' +
+          '<div class="field"><label for="sCat">Type</label><select id="sCat">' +
+            CAT.map(function (c) {
+              return '<option value="' + c + '"' + (e && e.category === c ? ' selected' : '') + '>' +
+                c.charAt(0).toUpperCase() + c.slice(1) + '</option>';
+            }).join('') + '</select></div>' +
+          '<div class="field"><label for="sMins">Minutes</label>' +
+            '<input type="text" inputmode="numeric" id="sMins" autocomplete="off" value="' +
+            esc(e ? e.duration_minutes : 30) + '"></div>' +
+          '<div class="field"><label for="sPrice">Price</label>' +
+            '<input type="text" inputmode="decimal" id="sPrice" autocomplete="off" value="' +
+            esc(e ? (e.price_minor / 100) : '') + '" placeholder="20"></div>' +
+        '</div>' +
+        '<div class="cs-form-actions">' +
+          '<button type="submit" class="ms-btn ms-btn--primary">' + (e ? 'Save' : 'Add service') + '</button>' +
+          (e ? '<button type="button" class="ms-btn ms-btn--ghost" data-act="cancelEdit">Cancel</button>' : '') +
+        '</div>' +
       '</form>' +
 
       (S.services.length === 0
-        ? '<div class="empty"><strong>No services yet</strong>Add your first one above.</div>'
-        : '<div class="rows">' + S.services.map(function (s) {
-            return '<div class="rowitem' + (s.is_active ? '' : ' is-off') + '">' +
-              '<div class="rowitem__main"><div class="rowitem__name">' +
-                audTag(s.audience) + esc(s.name) +
-                (s.is_active ? '' : ' <span class="tag">off</span>') +
-              '</div><div class="rowitem__meta">' +
-                s.duration_minutes + ' min · ' + esc(money(s.price_minor)) +
-                ' · ' + esc(s.category) +
-              '</div></div>' +
-              '<div class="rowitem__actions">' +
-                '<button class="btn btn--quiet" data-act="editSvc" data-id="' + s.id + '">Edit</button>' +
+        ? '<div class="cs-empty" style="margin-top:1.25rem;">' + icon('scissors') +
+          '<strong>No services yet</strong>Add your first one above.</div>'
+        : '<div class="cs-cards ms-enter">' + S.services.map(function (s, i) {
+            return '<article class="cs-svc' + (s.is_active ? '' : ' is-off') + '" style="--i:' + i + '">' +
+              '<div class="cs-svc__top"><div><h3 class="cs-svc__name">' + esc(s.name) + '</h3>' +
+                '<span class="cs-svc__cat">' + esc(s.category) + '</span></div>' +
+                (s.is_active ? badge(s.audience, s.audience.charAt(0).toUpperCase() + s.audience.slice(1))
+                             : badge('off', 'Off')) + '</div>' +
+              '<div class="cs-svc__figs"><span class="cs-svc__price num">' + esc(money(s.price_minor)) + '</span>' +
+                '<span class="cs-svc__time">' + icon('clock') + s.duration_minutes + ' min</span></div>' +
+              '<div class="cs-actions">' +
+                '<button class="ms-btn ms-btn--secondary ms-btn--sm" data-act="editSvc" data-id="' + s.id + '">Edit</button>' +
                 (s.is_active
-                  ? '<button class="btn btn--quiet" data-act="offSvc" data-id="' + s.id + '">Turn off</button>'
-                  : '<button class="btn btn--quiet" data-act="onSvc" data-id="' + s.id + '">Turn on</button>') +
-              '</div></div>';
-          }).join('') + '</div>');
-
-    wirePanel();
+                  ? '<button class="ms-btn ms-btn--ghost ms-btn--sm" data-act="offSvc" data-id="' + s.id + '">Turn off</button>'
+                  : '<button class="ms-btn ms-btn--ghost ms-btn--sm" data-act="onSvc" data-id="' + s.id + '">Turn on</button>') +
+              '</div></article>';
+          }).join('') + '</div>'));
   }
 
   /* ============================================================
@@ -502,40 +643,46 @@
     var e = S.editStaff;
     var active = S.team.filter(function (t) { return t.is_active; }).length;
 
-    panel.innerHTML =
-      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Team</h1>' +
-      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
-        'Everyone who takes a chair. This is also how many bookings can run at once — ' +
+    fill(
+      head('Team',
+        'Everyone who takes a chair. This is also how many bookings can run at once: ' +
         'right now <strong>' + active + '</strong> ' + (active === 1 ? 'person' : 'people') +
-        ', so ' + active + ' booking' + (active === 1 ? '' : 's') + ' per slot.</p>' +
+        ', so ' + active + ' booking' + (active === 1 ? '' : 's') + ' per slot.') +
 
-      '<form class="miniform" id="staffForm" style="grid-template-columns:2fr 2fr auto;align-items:end;">' +
-        '<div class="field"><label for="tName">' + (e ? 'Edit person' : 'Add someone') + '</label>' +
-          '<input type="text" id="tName" required maxlength="60" placeholder="Ravi" value="' +
-          esc(e ? e.name : '') + '"></div>' +
-        '<div class="field"><label for="tTitle">Title<span class="help">Optional.</span></label>' +
-          '<input type="text" id="tTitle" maxlength="40" placeholder="Senior stylist" value="' +
-          esc(e && e.title ? e.title : '') + '"></div>' +
-        '<button type="submit" class="btn">' + (e ? 'Save' : 'Add') + '</button>' +
-        (e ? '<button type="button" class="btn btn--quiet" data-act="cancelEdit">Cancel</button>' : '') +
+      '<form class="cs-card" id="staffForm">' +
+        '<div class="cs-card__head"><h2 class="cs-card__title">' + icon(e ? 'user' : 'plus') +
+          (e ? 'Edit ' + esc(e.name) : 'Add someone') + '</h2></div>' +
+        '<div class="cs-form-grid cs-form-grid--two">' +
+          '<div class="field"><label for="tName">Name</label>' +
+            '<input type="text" id="tName" required maxlength="60" autocomplete="off" placeholder="Ravi" value="' +
+            esc(e ? e.name : '') + '"></div>' +
+          '<div class="field"><label for="tTitle">Title<span class="help">Optional.</span></label>' +
+            '<input type="text" id="tTitle" maxlength="40" autocomplete="off" placeholder="Senior stylist" value="' +
+            esc(e && e.title ? e.title : '') + '"></div>' +
+        '</div>' +
+        '<div class="cs-form-actions">' +
+          '<button type="submit" class="ms-btn ms-btn--primary">' + (e ? 'Save' : 'Add to the team') + '</button>' +
+          (e ? '<button type="button" class="ms-btn ms-btn--ghost" data-act="cancelEdit">Cancel</button>' : '') +
+        '</div>' +
       '</form>' +
 
       (S.team.length === 0
-        ? '<div class="empty"><strong>Nobody added</strong>Add at least one person so slots open up.</div>'
-        : '<div class="rows">' + S.team.map(function (t) {
-            return '<div class="rowitem' + (t.is_active ? '' : ' is-off') + '">' +
-              '<div class="rowitem__main"><div class="rowitem__name">' + esc(t.name) +
-                (t.is_active ? '' : ' <span class="tag">away</span>') + '</div>' +
-              '<div class="rowitem__meta">' + esc(t.title || 'Stylist') + '</div></div>' +
-              '<div class="rowitem__actions">' +
-                '<button class="btn btn--quiet" data-act="editStaff" data-id="' + t.id + '">Edit</button>' +
+        ? '<div class="cs-empty" style="margin-top:1.25rem;">' + icon('team') +
+          '<strong>Nobody added</strong>Add at least one person so slots open up.</div>'
+        : '<div class="cs-cards ms-enter">' + S.team.map(function (t, i) {
+            return '<article class="cs-person' + (t.is_active ? '' : ' is-off') + '" style="--i:' + i + '">' +
+              '<span class="ms-mono ms-mono--lg' + (t.is_active ? '' : ' ms-mono--off') + '" aria-hidden="true">' +
+                esc(String(t.name || '?').charAt(0)) + '</span>' +
+              '<div><h3 class="cs-person__name">' + esc(t.name) + '</h3>' +
+                '<p class="cs-person__title">' + esc(t.title || 'Stylist') + '</p>' +
+                (t.is_active ? badge('chair', 'Taking customers') : badge('done', 'Away')) + '</div>' +
+              '<div class="cs-actions">' +
+                '<button class="ms-btn ms-btn--secondary ms-btn--sm" data-act="editStaff" data-id="' + t.id + '">Edit</button>' +
                 (t.is_active
-                  ? '<button class="btn btn--quiet" data-act="offStaff" data-id="' + t.id + '">Mark away</button>'
-                  : '<button class="btn btn--quiet" data-act="onStaff" data-id="' + t.id + '">Bring back</button>') +
-              '</div></div>';
-          }).join('') + '</div>');
-
-    wirePanel();
+                  ? '<button class="ms-btn ms-btn--ghost ms-btn--sm" data-act="offStaff" data-id="' + t.id + '">Mark away</button>'
+                  : '<button class="ms-btn ms-btn--ghost ms-btn--sm" data-act="onStaff" data-id="' + t.id + '">Bring back</button>') +
+              '</div></article>';
+          }).join('') + '</div>'));
   }
 
   /* ============================================================
@@ -553,48 +700,47 @@
 
     // Monday first reads better than Sunday first for a shop.
     var order = [1, 2, 3, 4, 5, 6, 0];
+    var today = new Date().getDay();
 
-    panel.innerHTML =
-      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Opening hours</h1>' +
-      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
-        'These decide which booking slots exist. Change a day and press Save on that row.</p>' +
+    fill(
+      head('Opening hours', 'These decide which booking slots exist. Change a day and press Save on that row.') +
 
-      '<div class="rows" id="hoursRows">' + order.map(function (wd) {
+      '<div class="cs-card"><div class="cs-week" id="hoursRows">' + order.map(function (wd) {
         var row = S.hours.filter(function (x) { return x.weekday === wd; })[0] ||
                   { weekday: wd, is_open: true, opens_at: '09:00', closes_at: '19:00' };
-        return '<div class="hourrow' + (row.is_open ? '' : ' is-closed') + '" data-wd="' + wd + '">' +
-          '<div class="hourrow__day">' + ICON.fmtDay(wd) + '</div>' +
+        return '<div class="hourrow' + (row.is_open ? '' : ' is-closed') + (wd === today ? ' is-today' : '') + '" data-wd="' + wd + '">' +
+          '<div class="hourrow__day">' + ICON.fmtDay(wd, true) + '</div>' +
           '<label class="toggle"><input type="checkbox" data-role="open"' +
             (row.is_open ? ' checked' : '') + '> Open</label>' +
           '<div class="hourrow__times">' +
-            '<input type="text" data-role="from" value="' + esc(row.opens_at) + '" placeholder="09:00">' +
-            '<span class="muted">to</span>' +
-            '<input type="text" data-role="to" value="' + esc(row.closes_at) + '" placeholder="19:00">' +
-            '<button class="btn btn--quiet" data-act="saveHour" data-wd="' + wd + '">Save</button>' +
+            '<input type="text" data-role="from" value="' + esc(row.opens_at) + '" placeholder="09:00" aria-label="' + ICON.fmtDay(wd, true) + ' opens">' +
+            '<span class="cs-lede" style="margin:0;">to</span>' +
+            '<input type="text" data-role="to" value="' + esc(row.closes_at) + '" placeholder="19:00" aria-label="' + ICON.fmtDay(wd, true) + ' closes">' +
+            '<button class="ms-btn ms-btn--secondary ms-btn--sm" data-act="saveHour" data-wd="' + wd + '">Save</button>' +
           '</div></div>';
-      }).join('') + '</div>' +
+      }).join('') + '</div></div>' +
 
-      '<h2 style="font-size:var(--t-lg);margin:var(--s7) 0 var(--s2);">Days closed</h2>' +
-      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s4);">' +
+      '<h2 class="cs-sub">Days closed</h2>' +
+      '<p class="cs-lede" style="margin:0 0 1rem;">' +
         'Holidays and one-offs. A closed day takes all its slots off the customer calendar.</p>' +
-      '<form class="miniform" id="closeForm" style="grid-template-columns:1fr 2fr auto;align-items:end;">' +
-        '<div class="field"><label for="cDate">Date</label>' +
-          '<input type="date" id="cDate" required></div>' +
-        '<div class="field"><label for="cWhy">Reason<span class="help">Optional.</span></label>' +
-          '<input type="text" id="cWhy" maxlength="60" placeholder="Diwali"></div>' +
-        '<button type="submit" class="btn">Close that day</button>' +
+      '<form class="cs-card" id="closeForm">' +
+        '<div class="cs-form-grid cs-form-grid--two">' +
+          '<div class="field"><label for="cDate">Date</label>' +
+            '<input type="date" id="cDate" required></div>' +
+          '<div class="field"><label for="cWhy">Reason<span class="help">Optional.</span></label>' +
+            '<input type="text" id="cWhy" maxlength="60" autocomplete="off" placeholder="Diwali"></div>' +
+        '</div>' +
+        '<button type="submit" class="ms-btn ms-btn--primary">Close that day</button>' +
       '</form>' +
       (S.closures.length === 0
-        ? '<p class="muted" style="font-size:var(--t-sm);">No closures coming up.</p>'
-        : '<div class="rows">' + S.closures.map(function (x) {
+        ? '<p class="cs-lede" style="margin-top:1rem;">No closures coming up.</p>'
+        : '<div class="cs-rowlist" style="margin-top:1rem;">' + S.closures.map(function (x) {
             return '<div class="rowitem"><div class="rowitem__main">' +
               '<div class="rowitem__name">' + esc(ICON.fmtDate(String(x.on_date).slice(0,10) + 'T00:00:00', { absolute: true })) + '</div>' +
               '<div class="rowitem__meta">' + esc(x.reason || 'Closed') + '</div></div>' +
-              '<div class="rowitem__actions"><button class="btn btn--quiet" data-act="reopen" data-date="' +
+              '<div class="rowitem__actions"><button class="ms-btn ms-btn--secondary ms-btn--sm" data-act="reopen" data-date="' +
                 String(x.on_date).slice(0, 10) + '">Reopen</button></div></div>';
-          }).join('') + '</div>');
-
-    wirePanel();
+          }).join('') + '</div>'));
   }
 
   /* ============================================================
@@ -604,31 +750,29 @@
   function showQR() {
     var url = ICON.shop.customerUrl(S.staff.salon_slug);
 
-    panel.innerHTML =
-      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Your QR code</h1>' +
-      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
+    fill(
+      head('Your QR code',
         'Print this and stick it on the counter, the mirror or the door. Scanning it ' +
-        'opens your shop’s page — no app, no typing.</p>' +
+        'opens your shop’s page: no app, no typing.') +
       '<div class="qrwrap">' +
         '<div class="qrcard"><div id="qrBox"></div>' +
           '<p class="qrcard__cap">' + esc(S.shop ? S.shop.name : '') + '<br>Scan to join the queue or book</p>' +
         '</div>' +
-        '<div>' +
+        '<div class="cs-card">' +
           '<div class="field"><label for="qrUrl">The link it opens</label>' +
             '<div class="urlbox"><input type="text" id="qrUrl" readonly value="' + esc(url) + '">' +
-            '<button class="btn btn--quiet" data-act="copyUrl">Copy</button></div></div>' +
-          '<div class="row" style="margin-top:var(--s4);">' +
-            '<button class="btn" data-act="printQR">Print</button>' +
-            '<button class="btn btn--quiet" data-act="downloadQR">Download SVG</button>' +
+            '<button class="ms-btn ms-btn--secondary" data-act="copyUrl">Copy</button></div></div>' +
+          '<div class="cs-form-actions" style="margin-top:1rem;">' +
+            '<button class="ms-btn ms-btn--primary" data-act="printQR">Print</button>' +
+            '<button class="ms-btn ms-btn--secondary" data-act="downloadQR">Download SVG</button>' +
           '</div>' +
-          '<p class="muted" style="font-size:var(--t-xs);margin-top:var(--s5);">' +
+          '<p class="cs-lede" style="margin-top:1.25rem;">' +
             'The code is drawn on this device. Nothing is sent to a QR service, so your ' +
             'link never leaves the shop.</p>' +
         '</div>' +
-      '</div>';
+      '</div>');
 
     drawQR(url);
-    wirePanel();
   }
 
   function drawQR(url) {
@@ -667,30 +811,33 @@
     S.shop = Object.assign({}, S.shop, out.data);
     var s = S.shop;
 
-    panel.innerHTML =
-      '<h1 style="font-size:var(--t-xl);margin-bottom:var(--s2);">Shop settings</h1>' +
-      '<p class="muted" style="font-size:var(--t-sm);margin:0 0 var(--s5);">' +
-        'Your shop link is <strong>?shop=' + esc(s.slug) + '</strong> — that’s what the QR code uses.</p>' +
+    fill(
+      head('Shop settings',
+        'Your shop link is <strong>?shop=' + esc(s.slug) + '</strong>, which is what the QR code uses.') +
 
-      '<form id="shopForm" style="max-width:34rem;">' +
+      '<div class="cs-split--even">' +
+      '<form class="cs-card" id="shopForm">' +
+        '<div class="cs-card__head"><h2 class="cs-card__title">' + icon('shop') + 'The shop</h2></div>' +
         '<div class="field"><label for="pName">Shop name</label>' +
           '<input type="text" id="pName" required maxlength="80" value="' + esc(s.name) + '"></div>' +
         '<div class="field"><label for="pAddr">Address</label>' +
           '<input type="text" id="pAddr" maxlength="160" value="' + esc(s.address || '') + '"></div>' +
         '<div class="field"><label for="pPhone">Shop phone<span class="help">Shown when you’re closed.</span></label>' +
           '<input type="tel" id="pPhone" value="' + esc(s.contact_phone || '') + '"></div>' +
-        '<div class="field"><label for="pCategory">Category' +
-          '<span class="help">Which list customers find you under.</span></label>' +
-          '<select id="pCategory">' +
-          CATEGORIES.map(function (c) {
-            return '<option value="' + c.slug + '"' + (s.category === c.slug ? ' selected' : '') + '>' +
-              c.name + '</option>';
-          }).join('') + '</select></div>' +
-        '<div class="field"><label for="pKind">Type of shop</label><select id="pKind">' +
-          KINDS.map(function (k) {
-            return '<option value="' + k + '"' + (s.kind === k ? ' selected' : '') + '>' +
-              k.charAt(0).toUpperCase() + k.slice(1) + '</option>';
-          }).join('') + '</select></div>' +
+        '<div class="cs-form-grid cs-form-grid--two">' +
+          '<div class="field"><label for="pCategory">Category' +
+            '<span class="help">Which list customers find you under.</span></label>' +
+            '<select id="pCategory">' +
+            CATEGORIES.map(function (c) {
+              return '<option value="' + c.slug + '"' + (s.category === c.slug ? ' selected' : '') + '>' +
+                c.name + '</option>';
+            }).join('') + '</select></div>' +
+          '<div class="field"><label for="pKind">Type of shop<span class="help">A label only.</span></label><select id="pKind">' +
+            KINDS.map(function (k) {
+              return '<option value="' + k + '"' + (s.kind === k ? ' selected' : '') + '>' +
+                k.charAt(0).toUpperCase() + k.slice(1) + '</option>';
+            }).join('') + '</select></div>' +
+        '</div>' +
 
         '<div class="field"><label class="toggle"><input type="checkbox" id="pOpen"' +
           (s.is_open ? ' checked' : '') + '> Taking customers</label>' +
@@ -700,33 +847,35 @@
           (s.phone_required ? ' checked' : '') + '> Mobile number required</label>' +
           '<span class="help">Leave off to let customers skip it.</span></div>' +
 
-        '<div class="field"><label for="pChairs">Chairs running</label>' +
-          '<input type="text" inputmode="numeric" id="pChairs" value="' + esc(s.active_chairs) + '">' +
-          '<span class="help">Used for the walk-in wait estimate.</span></div>' +
-        '<div class="field"><label for="pAvg">Average service, minutes</label>' +
-          '<input type="text" inputmode="numeric" id="pAvg" value="' + esc(s.avg_service_minutes) + '"></div>' +
-        '<div class="field"><label for="pSlot">Booking slot size, minutes</label>' +
-          '<input type="text" inputmode="numeric" id="pSlot" value="' + esc(s.slot_minutes) + '">' +
-          '<span class="help">30 means slots at 9:00, 9:30, 10:00…</span></div>' +
-        '<div class="field"><label for="pLead">Shortest notice, minutes</label>' +
-          '<input type="text" inputmode="numeric" id="pLead" value="' + esc(s.lead_minutes) + '">' +
-          '<span class="help">Hides slots sooner than this.</span></div>' +
+        '<h3 class="cs-card__title" style="margin:1.5rem 0 1rem;">' + icon('clock') + 'Queue and bookings</h3>' +
+        '<div class="cs-form-grid cs-form-grid--two">' +
+          '<div class="field"><label for="pChairs">Chairs running' +
+            '<span class="help">Used for the walk-in wait estimate.</span></label>' +
+            '<input type="text" inputmode="numeric" id="pChairs" value="' + esc(s.active_chairs) + '"></div>' +
+          '<div class="field"><label for="pAvg">Average service, minutes<span class="help">&nbsp;</span></label>' +
+            '<input type="text" inputmode="numeric" id="pAvg" value="' + esc(s.avg_service_minutes) + '"></div>' +
+          '<div class="field"><label for="pSlot">Booking slot size, minutes' +
+            '<span class="help">30 means slots at 9:00, 9:30, 10:00…</span></label>' +
+            '<input type="text" inputmode="numeric" id="pSlot" value="' + esc(s.slot_minutes) + '"></div>' +
+          '<div class="field"><label for="pLead">Shortest notice, minutes' +
+            '<span class="help">Hides slots sooner than this.</span></label>' +
+            '<input type="text" inputmode="numeric" id="pLead" value="' + esc(s.lead_minutes) + '"></div>' +
+        '</div>' +
         '<div class="field"><label for="pHorizon">How far ahead people can book, days</label>' +
           '<input type="text" inputmode="numeric" id="pHorizon" value="' + esc(s.horizon_days) + '"></div>' +
 
-        '<button type="submit" class="btn btn--lg">Save settings</button>' +
+        '<button type="submit" class="ms-btn ms-btn--primary ms-btn--lg">Save settings</button>' +
       '</form>' +
 
-      '<h2 style="font-size:var(--t-lg);margin:var(--s7) 0 var(--s2);">Your password</h2>' +
-      '<form id="pwForm" style="max-width:34rem;">' +
+      '<form class="cs-card" id="pwForm">' +
+        '<div class="cs-card__head"><h2 class="cs-card__title">' + icon('user') + 'Your password</h2></div>' +
         '<div class="field"><label for="pwOld">Current password</label>' +
           '<input type="password" id="pwOld" required autocomplete="current-password"></div>' +
         '<div class="field"><label for="pwNew">New password<span class="help">At least 8 characters.</span></label>' +
           '<input type="password" id="pwNew" required autocomplete="new-password"></div>' +
-        '<button type="submit" class="btn btn--quiet">Change password</button>' +
-      '</form>';
-
-    wirePanel();
+        '<button type="submit" class="ms-btn ms-btn--secondary">Change password</button>' +
+      '</form>' +
+      '</div>');
   }
 
   /* ============================================================
@@ -1099,8 +1248,9 @@
     if (!S.staff) return;
 
     document.body.dataset.gate = 'open';
-    document.getElementById('who').textContent =
-      S.staff.display_name + ' · ' + S.staff.role;
+    document.getElementById('who').innerHTML =
+      '<span class="ms-mono" aria-hidden="true">' + esc(String(S.staff.display_name || '?').charAt(0)) + '</span>' +
+      '<div><b>' + esc(S.staff.display_name) + '</b><span>' + esc(S.staff.role) + '</span></div>';
 
     var slug = S.staff.salon_slug || '';
     document.getElementById('viewLink').href = './index.html?shop=' + encodeURIComponent(slug);

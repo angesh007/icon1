@@ -1,0 +1,245 @@
+/* ============================================================
+   ICON — shared design tokens and components
+   Loaded by every page, after icon.css and before the page's own
+   stylesheet (customer.css, board.css, console.css).
+
+   One palette for the whole product, from the barbershop itself:
+     deep navy     the brand ink, wordmarks, dark bars
+     midnight      wall screens and night surfaces
+     forest        the leather of the chair: heroes, seats, monograms
+     off-white     warm reading ground
+     gold          brass fittings: the one primary action, the number
+                   that matters most
+   Red is attention only (closed, errors, destructive actions).
+
+   Everything here is prefixed ms- so it styles nothing until a page
+   opts in, which keeps it safe to load everywhere. Component shapes
+   follow shadcn/ui's variant pattern (one class, variant modifiers).
+   ============================================================ */
+
+:root {
+  /* Palette */
+  --ms-navy:        #141A2E;
+  --ms-navy-2:      #1E2641;   /* raised navy */
+  --ms-navy-line:   #2A3654;
+  --ms-midnight:    #10172A;
+  --ms-forest:      #1E3B32;
+  --ms-forest-2:    #274A3F;   /* raised forest */
+  --ms-forest-3:    #33594C;
+  --ms-offwhite:    #F4F3EE;   /* text on dark, warm surfaces */
+  --ms-porcelain:   #EEF0EB;   /* page ground */
+  --ms-paper:       #FFFFFF;
+  --ms-sunk:        #E2E6DF;
+  --ms-line:        #D5DBD2;
+  --ms-soft:        #56605A;   /* secondary text, 5.7:1 on porcelain */
+  --ms-sage:        #B9C7BF;   /* secondary text on forest, 6.9:1 */
+  --ms-mist:        #98A5BB;   /* secondary text on navy, 6.3:1 */
+  --ms-gold:        #E3B24F;
+  --ms-gold-strong: #D29E35;
+  --ms-gold-tint:   #F6E7C4;
+  --ms-on-gold:     #141A2E;   /* 8.8:1 */
+  --ms-mint:        #5EE0A8;   /* live, on dark grounds */
+  --ms-green:       #0B7A55;   /* positive text on light grounds, 5.3:1 */
+  --ms-green-tint:  #DDF1E7;
+  --ms-red:         #B51D24;   /* attention on light grounds, 4.9:1 */
+  --ms-red-tint:    #F8E1E1;
+  --ms-red-on-dark: #FF8A80;
+
+  /* Type: Anton for the loud things, Archivo for everything read */
+  --ms-display: "Anton", "Arial Narrow", sans-serif;
+  --ms-text: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --ms-fs-xs: 0.8125rem;   /* 13 */
+  --ms-fs-sm: 0.9375rem;   /* 15 */
+  --ms-fs-md: 1rem;        /* 16 */
+  --ms-fs-lg: 1.25rem;     /* 20 */
+  --ms-fs-xl: 1.75rem;     /* 28 */
+
+  /* Shape: radius steps down with the surface */
+  --ms-r-xl: 28px;
+  --ms-r-lg: 20px;
+  --ms-r-md: 14px;
+  --ms-r-sm: 10px;
+  --ms-r-pill: 999px;
+
+  /* Depth: only what floats gets one (taste-skill-ignore: a comment) */
+  --ms-shadow-float: 0 1px 2px rgba(20, 26, 46, 0.06), 0 12px 32px -12px rgba(20, 26, 46, 0.28); /* taste-skill-ignore: used only for a hover lift */
+  --ms-ring: 0 0 0 3px rgba(227, 178, 79, 0.55);
+
+  /* Motion (spring-like curves after motion.dev's defaults) */
+  --ms-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ms-ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ms-t-fast: 150ms;
+  --ms-t-med: 260ms;
+}
+
+/* ---------- Page transitions --------------------------------- */
+/* Same-origin navigations cross-fade where the browser supports it;
+   elsewhere pages simply load. */
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 220ms; animation-timing-function: var(--ms-ease-out); }
+
+/* ---------- Button: one class, variants ---------------------- */
+
+.ms-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.15rem;
+  font: inherit;
+  font-size: var(--ms-fs-sm);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--ms-offwhite);
+  background: var(--ms-navy);
+  border: 0;
+  border-radius: var(--ms-r-pill);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--ms-t-fast) var(--ms-ease-out),
+              color var(--ms-t-fast) var(--ms-ease-out),
+              box-shadow var(--ms-t-fast) var(--ms-ease-out),
+              transform var(--ms-t-med) var(--ms-ease-spring);
+}
+.ms-btn svg { width: 1.1em; height: 1.1em; flex: none; }
+.ms-btn:active:not(:disabled) { transform: scale(0.96); }
+.ms-btn:focus-visible { outline: none; box-shadow: var(--ms-ring); } /* taste-skill-ignore: focus ring */
+.ms-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.ms-btn--primary   { background: var(--ms-gold); color: var(--ms-on-gold); }
+.ms-btn--forest    { background: var(--ms-forest); color: var(--ms-offwhite); }
+.ms-btn--secondary { background: var(--ms-sunk); color: var(--ms-navy); }
+.ms-btn--ghost     { background: transparent; color: var(--ms-navy); }
+.ms-btn--danger    { background: transparent; color: var(--ms-red); }
+.ms-btn--lg { min-height: 3.25rem; padding: 0.85rem 1.5rem; font-size: var(--ms-fs-md); }
+.ms-btn--sm { min-height: 2.25rem; padding: 0.4rem 0.85rem; font-size: var(--ms-fs-xs); }
+.ms-btn--block { width: 100%; }
+
+@media (hover: hover) and (pointer: fine) {
+  .ms-btn:hover:not(:disabled)            { background: var(--ms-navy-2); }
+  .ms-btn--primary:hover:not(:disabled)   { background: var(--ms-gold-strong); }
+  .ms-btn--forest:hover:not(:disabled)    { background: var(--ms-forest-2); }
+  .ms-btn--secondary:hover:not(:disabled) { background: #D3D9D0; }
+  .ms-btn--ghost:hover:not(:disabled)     { background: var(--ms-sunk); }
+  .ms-btn--danger:hover:not(:disabled)    { background: var(--ms-red-tint); }
+}
+
+/* ---------- Badge: statuses everywhere ----------------------- */
+/* A pale tint with dark text of the same hue, and always a word, so a
+   status never relies on colour alone. */
+
+.ms-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.18rem 0.6rem;
+  font-size: var(--ms-fs-xs);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  border-radius: var(--ms-r-pill);
+  background: var(--ms-sunk);
+  color: var(--ms-navy);
+}
+.ms-badge::before {
+  content: "";
+  width: 0.5rem; height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+.ms-badge--plain::before { content: none; }
+.ms-badge--waiting  { background: var(--ms-sunk);       color: var(--ms-navy); }
+.ms-badge--booked   { background: #E4E8F3;              color: #24356B; }
+.ms-badge--arrived  { background: var(--ms-gold-tint);  color: #6B4A0B; }
+.ms-badge--chair    { background: var(--ms-green-tint); color: #075238; }
+.ms-badge--done     { background: var(--ms-sunk);       color: var(--ms-soft); }
+.ms-badge--off      { background: var(--ms-red-tint);   color: #7E1317; }
+.ms-badge--men      { background: #E4E8F3; color: #24356B; }
+.ms-badge--women    { background: #F6E2EA; color: #7A1E46; }
+.ms-badge--kids     { background: var(--ms-gold-tint); color: #6B4A0B; }
+.ms-badge--unisex   { background: var(--ms-green-tint); color: #075238; }
+.ms-badge--men::before, .ms-badge--women::before,
+.ms-badge--kids::before, .ms-badge--unisex::before { content: none; }
+
+/* ---------- Monogram: a person without a photograph ---------- */
+
+.ms-mono {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem; height: 2.75rem;
+  border-radius: 50%;
+  background: var(--ms-forest);
+  color: var(--ms-offwhite);
+  font-family: var(--ms-display);
+  font-size: 1.125rem;
+  line-height: 1;
+}
+.ms-mono--lg { width: 3.75rem; height: 3.75rem; font-size: 1.5rem; }
+.ms-mono--off { background: var(--ms-sunk); color: var(--ms-soft); }
+
+/* ---------- Live dot --------------------------------------- */
+
+.ms-live {
+  position: relative;
+  display: inline-block;
+  width: 0.6rem; height: 0.6rem;
+  border-radius: 50%;
+  background: var(--ms-green);
+  flex: none;
+}
+.ms-live--on-dark { background: var(--ms-mint); }
+@media (prefers-reduced-motion: no-preference) {
+  .ms-live::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    color: inherit;
+    border-color: var(--ms-green);
+    animation: ms-ring 2.4s ease-out infinite;
+  }
+  .ms-live--on-dark::after { border-color: var(--ms-mint); }
+}
+@keyframes ms-ring { from { transform: scale(1); opacity: 0.7; } to { transform: scale(2.6); opacity: 0; } }
+
+/* ---------- Skeleton: the layout before the data -------------- */
+
+.ms-skel {
+  display: block;
+  border-radius: var(--ms-r-sm);
+  background: var(--ms-sunk);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ms-skel { animation: ms-pulse 1.2s ease-in-out infinite alternate; }
+}
+@keyframes ms-pulse { from { opacity: 1; } to { opacity: 0.5; } }
+
+/* ---------- Entrance: cards arrive in order, once -------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .ms-enter > * {
+    animation: ms-rise 0.42s var(--ms-ease-out) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+  .ms-fade { animation: ms-fade 0.28s var(--ms-ease-out) both; }
+}
+@keyframes ms-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes ms-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Screen-reader text and reduced motion -------------- */
+
+.ms-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; /* taste-skill-ignore: screen-reader text, not a line */
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
