@@ -8,11 +8,11 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@100..125,400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..600&family=Inter+Tight:wght@400..700&display=swap">
 <link rel="stylesheet" href="./icon.css">
 <link rel="stylesheet" href="./tokens.css">
 <link rel="stylesheet" href="./console.css">
-<meta name="theme-color" content="#141A2E">
+<meta name="theme-color" content="#1D1B18">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="./vendor/qrcode.js"></script>
 <style>
@@ -51,6 +51,7 @@
 
 <script src="./config.js"></script>
 <script src="./icon.js"></script>
+<script src="./ui.js"></script>
 <script>
 (function () {
   'use strict';
@@ -924,7 +925,7 @@
     /* queue */
     if (act === 'q') {
       el.disabled = true;
-      if (el.dataset.s === 'cancelled' && !confirm('Remove this person from the line?')) {
+      if (el.dataset.s === 'cancelled' && !(await MS.confirm({ title: 'Remove from the line?', text: 'They will lose their place in the queue.', ok: 'Remove', cancel: 'Keep them', danger: true }))) {
         el.disabled = false; return;
       }
       await call(ICON.admin.setStatus(Number(el.dataset.id), el.dataset.s));
@@ -932,7 +933,7 @@
     }
 
     if (act === 'purge') {
-      if (!confirm('Close out everyone in the shop right now? This cannot be undone.')) return;
+      if (!(await MS.confirm({ title: 'Close out everyone?', text: 'Everyone in the shop right now is closed out. This cannot be undone.', ok: 'Close out all', cancel: 'Not now', danger: true }))) return;
       var p = await call(ICON.admin.purge());
       if (p) say('Cleared ' + p.data + (p.data === 1 ? ' ticket.' : ' tickets.'), true);
       return showLine();
@@ -941,7 +942,7 @@
     /* appointments */
     if (act === 'a') {
       el.disabled = true;
-      if (el.dataset.s === 'cancelled' && !confirm('Cancel this booking?')) {
+      if (el.dataset.s === 'cancelled' && !(await MS.confirm({ title: 'Cancel this booking?', text: 'The time is released and the customer\u2019s pass stops working.', ok: 'Cancel booking', cancel: 'Keep it', danger: true }))) {
         el.disabled = false; return;
       }
       await call(ICON.admin.setAppointmentStatus(Number(el.dataset.id), el.dataset.s));

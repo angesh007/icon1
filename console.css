@@ -2,21 +2,21 @@
    ICON — staff side: sign-in and the shop console
    (login.html, admin.html). Built on tokens.css.
 
-   The console is worked in all day, so it stays calm: porcelain
-   ground, white cards, navy text, forest for the chair and gold for
-   the one action that moves the line. Figures people glance at
-   (tickets, waits, times) are set in Anton; everything else in
-   Archivo.
+   The console is worked in all day, so it stays calm: ivory
+   ground, paper cards, charcoal text, espresso for the chair and
+   champagne for the one action that moves the line. Figures people
+   glance at (tickets, waits, times) are set in the display serif;
+   everything else in the text sans.
    ============================================================ */
 
 body.cs {
   margin: 0;
-  background: var(--ms-porcelain);
-  color: var(--ms-navy);
+  background: var(--ms-ground);
+  color: var(--ms-ink);
   font-family: var(--ms-text);
   -webkit-tap-highlight-color: transparent;
 }
-.cs :focus-visible { outline: 2px solid var(--ms-navy); outline-offset: 2px; }
+.cs :focus-visible { outline: 2px solid var(--ms-ink); outline-offset: 2px; }
 .cs .num { font-variant-numeric: tabular-nums; }
 .cs svg[aria-hidden="true"]:not([class]) { width: 1rem; height: 1rem; flex: none; }
 
@@ -26,8 +26,8 @@ body.cs {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: var(--ms-navy);
-  color: var(--ms-offwhite);
+  background: var(--ms-ink);
+  color: var(--ms-on-dark);
 }
 .cs-bar__in {
   display: flex;
@@ -49,7 +49,7 @@ body.cs {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cs-brand small { margin-top: 3px; font-size: var(--ms-fs-xs); color: var(--ms-mist); }
+.cs-brand small { margin-top: 3px; font-size: var(--ms-fs-xs); color: var(--ms-on-ink-soft); }
 
 .cs-bar nav { display: flex; align-items: center; gap: 0.25rem; margin-left: auto; flex: none; }
 .cs-link {
@@ -59,25 +59,25 @@ body.cs {
   min-height: 2.5rem;
   padding: 0.45rem 0.8rem;
   border-radius: var(--ms-r-pill);
-  color: var(--ms-mist);
+  color: var(--ms-on-ink-soft);
   font-size: var(--ms-fs-sm);
   font-weight: 600;
   text-decoration: none;
   transition: color var(--ms-t-fast), background-color var(--ms-t-fast);
 }
 .cs-link svg { width: 1rem; height: 1rem; }
-.cs-bar :focus-visible { outline-color: var(--ms-offwhite); }
+.cs-bar :focus-visible { outline-color: var(--ms-on-dark); }
 @media (hover: hover) and (pointer: fine) {
-  .cs-link:hover { color: var(--ms-offwhite); background: var(--ms-navy-2); }
+  .cs-link:hover { color: var(--ms-on-dark); background: var(--ms-ink-2); }
 }
 
 .cs-who { display: flex; align-items: center; gap: 0.6rem; padding: 0 0.5rem; }
-.cs-who .ms-mono { width: 2.25rem; height: 2.25rem; font-size: 0.95rem; background: var(--ms-forest-2); }
+.cs-who .ms-mono { width: 2.25rem; height: 2.25rem; font-size: 0.95rem; background: var(--ms-deep-2); }
 .cs-who b { display: block; font-size: var(--ms-fs-sm); line-height: 1.2; white-space: nowrap; }
-.cs-who div span { display: block; font-size: var(--ms-fs-xs); color: var(--ms-mist); text-transform: capitalize; }
-.cs-bar .ms-btn--ghost { color: var(--ms-offwhite); box-shadow: inset 0 0 0 1px var(--ms-navy-line); } /* taste-skill-ignore: 1px card edge on an app screen, app-screens.md §13 */
+.cs-who div span { display: block; font-size: var(--ms-fs-xs); color: var(--ms-on-ink-soft); text-transform: capitalize; }
+.cs-bar .ms-btn--ghost { color: var(--ms-on-dark); box-shadow: inset 0 0 0 1px var(--ms-ink-line); } /* taste-skill-ignore: 1px card edge on an app screen, app-screens.md §13 */
 @media (hover: hover) and (pointer: fine) {
-  .cs-bar .ms-btn--ghost:hover { background: var(--ms-navy-2); }
+  .cs-bar .ms-btn--ghost:hover { background: var(--ms-ink-2); }
 }
 
 @media (max-width: 60rem) {
@@ -93,7 +93,7 @@ body.cs {
   position: sticky;
   top: 4rem;
   z-index: 20;
-  background: var(--ms-porcelain);
+  background: var(--ms-ground);
   box-shadow: 0 1px 0 var(--ms-line); /* taste-skill-ignore: 1px card edge on an app screen, app-screens.md §13 */
 }
 .cs-tabs {
@@ -125,9 +125,9 @@ body.cs {
 }
 .cs-tab svg { width: 1.05rem; height: 1.05rem; flex: none; }
 .cs-tab:active { transform: scale(0.96); }
-.cs-tab[aria-selected="true"] { background: var(--ms-navy); color: var(--ms-offwhite); }
+.cs-tab[aria-selected="true"] { background: var(--ms-ink); color: var(--ms-on-dark); }
 @media (hover: hover) and (pointer: fine) {
-  .cs-tab:hover:not([aria-selected="true"]) { background: var(--ms-sunk); color: var(--ms-navy); }
+  .cs-tab:hover:not([aria-selected="true"]) { background: var(--ms-sunk); color: var(--ms-ink); }
 }
 
 /* ---------- Main and page heads ---------------------------- */
@@ -148,17 +148,15 @@ body.cs {
   margin-bottom: 1.25rem;
 }
 .cs-title {
-  font-family: var(--ms-text);
-  font-stretch: 112%;
-  font-variation-settings: "wdth" 112;
-  font-size: clamp(1.5rem, 2.6vw, 2rem);
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  line-height: 1.1;
+  font-family: var(--ms-serif);
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
   margin: 0;
 }
 .cs-lede { margin: 0.4rem 0 0; font-size: var(--ms-fs-sm); color: var(--ms-soft); max-width: 62ch; }
-.cs-lede strong { color: var(--ms-navy); }
+.cs-lede strong { color: var(--ms-ink); }
 .cs-sub { font-size: var(--ms-fs-lg); font-weight: 700; margin: 2.5rem 0 0.4rem; }
 
 /* ---------- Cards ------------------------------------------ */
@@ -177,10 +175,10 @@ body.cs {
   margin: 0 0 1rem;
 }
 .cs-card__title { display: flex; align-items: center; gap: 0.55rem; font-size: var(--ms-fs-lg); font-weight: 700; margin: 0; }
-.cs-card__title svg { width: 1.25rem; height: 1.25rem; color: var(--ms-forest); }
+.cs-card__title svg { width: 1.25rem; height: 1.25rem; color: var(--ms-deep); }
 
-.cs-card--forest { background: var(--ms-forest); color: var(--ms-offwhite); box-shadow: none; } /* taste-skill-ignore: removes a shadow */
-.cs-card--forest .cs-card__title svg { color: var(--ms-gold); }
+.cs-card--forest { background: var(--ms-deep); color: var(--ms-on-dark); box-shadow: none; } /* taste-skill-ignore: removes a shadow */
+.cs-card--forest .cs-card__title svg { color: var(--ms-accent); }
 
 /* Forms inside cards */
 .cs .field { margin-bottom: 1rem; }
@@ -192,24 +190,24 @@ body.cs {
   min-height: 2.875rem;
   font: inherit;
   font-size: var(--ms-fs-md);
-  color: var(--ms-navy);
+  color: var(--ms-ink);
   padding: 0.6rem 0.8rem;
   background: var(--ms-paper);
   border: 1px solid #C8CFC6;
   border-radius: var(--ms-r-sm);
   transition: border-color var(--ms-t-fast), box-shadow var(--ms-t-fast); /* taste-skill-ignore: transition list, not a shadow */
 }
-.cs select { background-color: var(--ms-paper); color: var(--ms-navy); }
+.cs select { background-color: var(--ms-paper); color: var(--ms-ink); }
 .cs textarea { min-height: 4.5rem; resize: vertical; }
 .cs input:focus, .cs textarea:focus, .cs select:focus {
   outline: none;
-  border-color: var(--ms-forest);
+  border-color: var(--ms-deep);
   box-shadow: 0 0 0 3px rgba(30, 59, 50, 0.18); /* taste-skill-ignore: 1px card edge on an app screen, app-screens.md §13 */
 }
 .cs input::placeholder, .cs textarea::placeholder { color: #8A938D; }
 
 .cs .toggle { display: inline-flex; align-items: center; gap: 0.6rem; font-size: var(--ms-fs-sm); font-weight: 600; cursor: pointer; }
-.cs .toggle input { width: 1.15rem; height: 1.15rem; accent-color: var(--ms-forest); cursor: pointer; }
+.cs .toggle input { width: 1.15rem; height: 1.15rem; accent-color: var(--ms-deep); cursor: pointer; }
 
 /* ---------- The line ---------------------------------------- */
 
@@ -235,13 +233,13 @@ body.cs {
 .cs-stat dd { margin: 0; display: flex; align-items: baseline; gap: 0.35rem; }
 .cs-stat .v { font-family: var(--ms-display); font-size: clamp(2.5rem, 4vw, 3.25rem); line-height: 0.9; font-variant-numeric: tabular-nums; }
 .cs-stat .u { font-size: var(--ms-fs-md); font-weight: 700; }
-.cs-stat--forest { background: var(--ms-forest); color: var(--ms-offwhite); box-shadow: none; } /* taste-skill-ignore: removes a shadow */
-.cs-stat--forest dt { color: var(--ms-sage); }
+.cs-stat--forest { background: var(--ms-deep); color: var(--ms-on-dark); box-shadow: none; } /* taste-skill-ignore: removes a shadow */
+.cs-stat--forest dt { color: var(--ms-on-deep-soft); }
 
 /* Chairs: one seat per chair running, gold when someone is in it */
 .cs-chairs { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.cs-chairs svg { width: 1.9rem; height: 1.9rem; color: var(--ms-forest-3); }
-.cs-chairs svg.is-busy { color: var(--ms-gold); }
+.cs-chairs svg { width: 1.9rem; height: 1.9rem; color: var(--ms-deep-3); }
+.cs-chairs svg.is-busy { color: var(--ms-accent); }
 
 .cs-split { display: grid; gap: 1.5rem; align-items: start; }
 @media (min-width: 64rem) { .cs-split { grid-template-columns: minmax(0, 1fr) 23rem; } }
@@ -269,14 +267,14 @@ body.cs {
   align-self: stretch;
   min-height: 4.5rem;
   border-radius: var(--ms-r-md);
-  background: var(--ms-porcelain);
+  background: var(--ms-ground);
   font-family: var(--ms-display);
   font-size: 2.25rem;
   line-height: 1;
-  color: var(--ms-navy);
+  color: var(--ms-ink);
   font-variant-numeric: tabular-nums;
 }
-.cs-ticket.is-chair .cs-ticket__no { background: var(--ms-forest); color: var(--ms-gold); }
+.cs-ticket.is-chair .cs-ticket__no { background: var(--ms-deep); color: var(--ms-accent); }
 .cs-ticket__who { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; }
 .cs-ticket__name { font-size: var(--ms-fs-lg); font-weight: 700; overflow-wrap: anywhere; }
 .cs-meta {
@@ -294,7 +292,7 @@ body.cs {
   margin-top: 0.45rem;
   padding: 0.2rem 0.6rem;
   border-radius: var(--ms-r-sm);
-  background: var(--ms-gold-tint);
+  background: var(--ms-accent-tint);
   color: #5C3F08;
   font-size: var(--ms-fs-xs);
   font-weight: 600;
@@ -321,8 +319,8 @@ body.cs {
   color: var(--ms-soft);
   font-size: var(--ms-fs-sm);
 }
-.cs-empty svg { width: 2rem; height: 2rem; color: var(--ms-forest-3); margin-bottom: 0.25rem; }
-.cs-empty strong { color: var(--ms-navy); font-size: var(--ms-fs-lg); }
+.cs-empty svg { width: 2rem; height: 2rem; color: var(--ms-deep-3); margin-bottom: 0.25rem; }
+.cs-empty strong { color: var(--ms-ink); font-size: var(--ms-fs-lg); }
 
 /* ---------- Calendar ---------------------------------------- */
 
@@ -336,24 +334,24 @@ body.cs {
   min-height: 3.25rem;
   border: 0;
   border-radius: var(--ms-r-sm);
-  background: var(--ms-porcelain);
+  background: var(--ms-ground);
   transition: background-color var(--ms-t-fast), color var(--ms-t-fast);
 }
 .cs .cal__cell:disabled { background: transparent; }
 .cs .cal__cell:hover:not(:disabled) { background: var(--ms-sunk); border-color: transparent; }
-.cs .cal__cell[aria-pressed="true"], .cs .cal__cell[aria-pressed="true"]:hover { background: var(--ms-navy); color: var(--ms-offwhite); }
-.cs .cal__cell.is-today { box-shadow: inset 0 0 0 2px var(--ms-forest); } /* taste-skill-ignore: selected/today outline */
+.cs .cal__cell[aria-pressed="true"], .cs .cal__cell[aria-pressed="true"]:hover { background: var(--ms-ink); color: var(--ms-on-dark); }
+.cs .cal__cell.is-today { box-shadow: inset 0 0 0 2px var(--ms-deep); } /* taste-skill-ignore: selected/today outline */
 .cs .cal__count {
   min-width: 1.35rem;
   padding: 0 0.3rem;
   border-radius: var(--ms-r-pill);
-  background: var(--ms-gold);
-  color: var(--ms-on-gold);
+  background: var(--ms-accent);
+  color: var(--ms-on-accent);
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.35rem;
 }
-.cs .cal__cell[aria-pressed="true"] .cal__count { background: var(--ms-gold); color: var(--ms-on-gold); }
+.cs .cal__cell[aria-pressed="true"] .cal__count { background: var(--ms-accent); color: var(--ms-on-accent); }
 .cs .cal__note { margin: 0.75rem 0 0; font-size: var(--ms-fs-xs); color: var(--ms-soft); }
 
 .cs .slotgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); gap: 0.4rem; }
@@ -361,15 +359,15 @@ body.cs {
   min-height: 2.75rem;
   font: inherit;
   font-weight: 700;
-  background: var(--ms-porcelain);
+  background: var(--ms-ground);
   border: 0;
   border-radius: var(--ms-r-sm);
   cursor: pointer;
   transition: background-color var(--ms-t-fast), color var(--ms-t-fast), transform var(--ms-t-med) var(--ms-ease-spring);
 }
 .cs .timeslot:active { transform: scale(0.96); }
-.cs .timeslot[aria-pressed="true"] { background: var(--ms-navy); color: var(--ms-offwhite); }
-@media (hover: hover) and (pointer: fine) { .cs .timeslot:hover:not([aria-pressed="true"]) { background: var(--ms-gold-tint); } }
+.cs .timeslot[aria-pressed="true"] { background: var(--ms-ink); color: var(--ms-on-dark); }
+@media (hover: hover) and (pointer: fine) { .cs .timeslot:hover:not([aria-pressed="true"]) { background: var(--ms-accent-tint); } }
 
 /* A booking in the day list */
 .cs-appt {
@@ -384,7 +382,7 @@ body.cs {
 }
 .cs-appt__time { font-family: var(--ms-display); font-size: 1.35rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
 .cs-appt__time small { display: block; font-family: var(--ms-text); font-size: var(--ms-fs-xs); color: var(--ms-soft); font-weight: 500; }
-.cs-appt.is-now { box-shadow: 0 0 0 2px var(--ms-forest); } /* taste-skill-ignore: selected/today outline */
+.cs-appt.is-now { box-shadow: 0 0 0 2px var(--ms-deep); } /* taste-skill-ignore: selected/today outline */
 .cs-appt.is-cancelled { opacity: 0.6; }
 .cs-appt.is-cancelled .cs-ticket__name { text-decoration: line-through; }
 .apptwrap { container-type: inline-size; }
@@ -453,7 +451,7 @@ body.cs {
   align-items: center;
   gap: 0.75rem 1rem;
   padding: 0.6rem 0.9rem;
-  background: var(--ms-porcelain);
+  background: var(--ms-ground);
   border: 0;
   border-radius: var(--ms-r-md);
 }
@@ -464,7 +462,7 @@ body.cs {
 .cs .hourrow.is-closed .hourrow__times { opacity: 1; }
 .cs .hourrow.is-closed .hourrow__times input,
 .cs .hourrow.is-closed .hourrow__times > span { opacity: 0.45; }
-.cs .hourrow.is-today { box-shadow: inset 0 0 0 2px var(--ms-forest); } /* taste-skill-ignore: selected/today outline */
+.cs .hourrow.is-today { box-shadow: inset 0 0 0 2px var(--ms-deep); } /* taste-skill-ignore: selected/today outline */
 @media (max-width: 40rem) {
   .cs .hourrow { grid-template-columns: 1fr auto; }
   .cs .hourrow__times { grid-column: 1 / -1; }
@@ -494,7 +492,7 @@ body.cs {
 .cs .qrcard svg { display: block; width: 14rem; height: 14rem; margin: 0 auto; }
 .cs .qrcard__cap { margin-top: 0.9rem; font-size: var(--ms-fs-sm); color: var(--ms-soft); max-width: 14rem; }
 .cs .urlbox { display: flex; gap: 0.5rem; align-items: stretch; }
-.cs .urlbox input { background: var(--ms-porcelain); font-size: var(--ms-fs-sm); }
+.cs .urlbox input { background: var(--ms-ground); font-size: var(--ms-fs-sm); }
 
 @media print {
   .cs-bar, .cs-tabs-wrap, .ms-btn, .cs .urlbox, .cs-head .cs-lede { display: none !important; }
@@ -527,22 +525,24 @@ body.cs {
   justify-content: space-between;
   gap: 2rem;
   padding: clamp(1.5rem, 5vw, 4rem);
-  background: var(--ms-forest);
-  color: var(--ms-offwhite);
+  background: var(--ms-deep);
+  color: var(--ms-on-dark);
   overflow: hidden;
 }
-.cs-gate__mark { font-family: var(--ms-display); font-size: 1.5rem; letter-spacing: 0.16em; }
+.cs-gate__mark { font-family: var(--ms-display); font-size: 1.6rem; font-weight: 600; letter-spacing: 0.01em; }
 .cs-gate__shout {
   font-family: var(--ms-display);
-  font-weight: 400;
+  font-weight: 500;
   font-size: clamp(3rem, 7vw, 6.5rem);
-  line-height: 0.9;
-  text-transform: uppercase;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
   margin: 0;
-  max-width: 9ch;
+  max-width: 10ch;
+  text-wrap: balance;
 }
-.cs-gate__shout span { color: var(--ms-gold); }
-.cs-gate__note { margin: 0; color: var(--ms-sage); font-size: var(--ms-fs-md); max-width: 36ch; }
+.cs-gate__shout span { color: var(--ms-accent); font-style: italic; }
+.cs-gate__note { position: relative; z-index: 1; margin: 0; color: var(--ms-on-deep-soft); font-size: var(--ms-fs-md); max-width: 36ch; }
+.cs-gate__mark, .cs-gate__shout { position: relative; z-index: 1; }
 
 /* The barber chair, drawn once as the page's one picture */
 .cs-gate__chair {
@@ -551,7 +551,7 @@ body.cs {
   bottom: -1.5rem;
   width: clamp(11rem, 26vw, 20rem);
   height: auto;
-  color: var(--ms-forest-2);
+  color: var(--ms-deep-2);
   pointer-events: none;
 }
 @media (max-width: 55.99rem) {
@@ -563,12 +563,10 @@ body.cs {
 .cs-gate__form { display: grid; place-items: center; padding: clamp(1.5rem, 5vw, 4rem); }
 .cs-gate__card { width: 100%; max-width: 24rem; }
 .cs-gate__card h1 {
-  font-family: var(--ms-text);
-  font-stretch: 112%;
-  font-variation-settings: "wdth" 112;
-  font-size: var(--ms-fs-xl);
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-family: var(--ms-serif);
+  font-size: clamp(2.25rem, 4vw, 2.75rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
   margin: 0;
 }
 .cs-gate__intro { margin: 0.4rem 0 1.75rem; color: var(--ms-soft); font-size: var(--ms-fs-sm); }
@@ -583,7 +581,7 @@ body.cs {
   font-weight: 600;
   text-decoration: none;
 }
-@media (hover: hover) and (pointer: fine) { .cs-gate__back:hover { color: var(--ms-navy); } }
+@media (hover: hover) and (pointer: fine) { .cs-gate__back:hover { color: var(--ms-ink); } }
 
 @media (prefers-reduced-motion: no-preference) {
   .cs-gate__card { animation: ms-rise 0.45s var(--ms-ease-out) both; }
