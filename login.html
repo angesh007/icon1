@@ -8,38 +8,64 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@100..125,400..700&display=swap">
 <link rel="stylesheet" href="./icon.css">
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./console.css">
+<meta name="theme-color" content="#1E3B32">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
-<body class="on-ink">
+<body class="cs">
 
-<main class="gate">
-  <div>
-    <form class="gate__card" id="signInForm">
-      <span class="wordmark">Icon</span>
-      <p class="gate__intro">Sign in to run the chair.</p>
+<main class="cs-gate">
+  <section class="cs-gate__brand" aria-hidden="true">
+    <span class="cs-gate__mark" translate="no">ICON</span>
+    <p class="cs-gate__shout">Run the <span>chair</span></p>
+    <p class="cs-gate__note">The line, the calendar and the shop, from one desk.</p>
+    <!-- A barber chair, drawn: headrest, back, seat, arms, footrest, pump and base -->
+    <svg class="cs-gate__chair" viewBox="0 0 200 240" fill="currentColor">
+      <rect x="62" y="6" width="56" height="20" rx="10"/>
+      <rect x="86" y="24" width="8" height="12"/>
+      <path d="M56 36h68a10 10 0 0 1 10 10v70H46V46a10 10 0 0 1 10-10z"/>
+      <rect x="30" y="110" width="140" height="30" rx="12"/>
+      <rect x="22" y="92" width="34" height="12" rx="6"/>
+      <rect x="144" y="92" width="34" height="12" rx="6"/>
+      <rect x="26" y="102" width="10" height="20" rx="4"/>
+      <rect x="164" y="102" width="10" height="20" rx="4"/>
+      <path d="M70 140h60l-6 18H76z"/>
+      <rect x="92" y="156" width="16" height="50"/>
+      <rect x="130" y="166" width="46" height="8" rx="4"/>
+      <ellipse cx="100" cy="222" rx="62" ry="12"/>
+    </svg>
+  </section>
 
-      <p class="msg msg--bad" id="msg" hidden></p>
+  <section class="cs-gate__form">
+    <div class="cs-gate__card">
+      <form id="signInForm" novalidate>
+        <h1>Staff sign in</h1>
+        <p class="cs-gate__intro">Use the staff ID and password your shop gave you.</p>
 
-      <div class="field">
-        <label for="adminId">Staff ID</label>
-        <input type="text" id="adminId" name="adminId" required
-               autocomplete="username" autocapitalize="none" spellcheck="false"
-               placeholder="ravi">
-      </div>
+        <p class="msg msg--bad" id="msg" role="alert" hidden></p>
 
-      <div class="field">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required
-               autocomplete="current-password">
-      </div>
+        <div class="field">
+          <label for="adminId">Staff ID</label>
+          <input type="text" id="adminId" name="adminId" required
+                 autocomplete="username" autocapitalize="none" spellcheck="false"
+                 placeholder="ravi">
+        </div>
 
-      <button type="submit" class="btn btn--block btn--lg" id="signInBtn">Sign in</button>
-    </form>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required
+                 autocomplete="current-password">
+        </div>
 
-    <a class="gate__back" href="./index.html" id="backLink">Back to check-in</a>
-  </div>
+        <button type="submit" class="ms-btn ms-btn--primary ms-btn--lg ms-btn--block" id="signInBtn">Sign in</button>
+      </form>
+
+      <a class="cs-gate__back" href="./index.html" id="backLink">&larr; Back to check-in</a>
+    </div>
+  </section>
 </main>
 
 <script src="./config.js"></script>
