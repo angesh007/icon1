@@ -195,6 +195,7 @@ html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   padding-bottom: 2px;
 }
 .ms-link:hover, .ms-link:focus-visible { background-size: 100% 1px; }
+.ms-link:has(.ms-arrow) { display: inline-flex; align-items: center; gap: 0.4rem; }
 
 /* ---------- Badge: statuses everywhere ----------------------- */
 /* A tint with dark text of the same hue, and always a word. */
@@ -327,6 +328,119 @@ html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   a:hover .ms-ph--zoom img, button:hover .ms-ph--zoom img, .ms-ph--zoom:hover img,
   a:hover .ms-ph--zoom .ms-ph__art, button:hover .ms-ph--zoom .ms-ph__art, .ms-ph--zoom:hover .ms-ph__art { transform: scale(1.045); }
 }
+
+/* ---------- Drawn scenes ------------------------------------- */
+/* ui.js MS.scene(): line drawings standing in for photography. The
+   object is drawn in fine line over a soft arch with champagne fills;
+   floating details move only on hover, or always in a hero
+   (.ms-ph--live), and never under reduced motion. */
+
+.ms-ph--scene .ms-ph__art { inset: 0; place-items: end center; }
+.ms-ph__glow {
+  position: absolute; left: 50%; top: 58%; width: 85%; aspect-ratio: 1;
+  translate: -50% -50%;
+  background: radial-gradient(closest-side, rgba(255, 246, 228, 0.95), rgba(214, 190, 146, 0.35) 55%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.ms-ph--dark .ms-ph__glow { background: radial-gradient(closest-side, rgba(198, 167, 116, 0.32), rgba(198, 167, 116, 0.08) 60%, transparent); }
+.ms-ph__mono--back {
+  position: absolute; top: 4%; left: 7%;
+  font-size: clamp(4rem, 42cqi, 14rem);
+  opacity: 0.13;
+  pointer-events: none;
+}
+.ms-sc {
+  position: relative;
+  width: 100%; height: 96%;
+  color: rgba(29, 27, 24, 0.78);
+  overflow: visible;
+  transition: transform var(--ms-t-slow) var(--ms-ease-out);
+}
+.ms-sc--flip { transform: scaleX(-1); }
+.ms-ph--dark .ms-sc { color: rgba(244, 238, 228, 0.82); }
+
+.ms-sc .sc-paper  { fill: #FFFCF7; }
+.ms-sc .sc-acc    { fill: var(--sc-acc, #D8C19A); }
+.ms-sc .sc-ink    { fill: #2A2723; }
+.ms-sc .sc-ground { fill: #E6DBC7; }
+.ms-sc .sc-shine  { stroke: rgba(255, 255, 255, 0.75); stroke-width: 3.5; }
+.ms-sc .sc-arch   { fill: rgba(255, 252, 247, 0.5); stroke: none; }
+.ms-sc .sc-arch-line { stroke: var(--ms-accent); stroke-width: 1.2; opacity: 0.6; }
+.ms-sc .sc-acc-line  { stroke: var(--ms-accent-strong); stroke-width: 4; }
+.ms-sc .sc-bubble { fill: rgba(255, 255, 255, 0.55); stroke-width: 1.4; }
+.ms-sc .sc-water  { stroke: var(--ms-accent-strong); stroke-width: 2.5; stroke-dasharray: 2 9; }
+.ms-sc .sc-steam  { stroke-width: 2; opacity: 0.55; }
+.ms-sc .sc-rays   { stroke: var(--ms-accent); stroke-width: 2; opacity: 0.7; }
+.ms-sc .sc-twinkle { stroke: none; fill: var(--ms-accent); }
+
+.ms-ph--dark .ms-sc .sc-paper  { fill: #2F2B26; }
+.ms-ph--dark .ms-sc .sc-acc    { fill: #8E7650; }
+.ms-ph--dark .ms-sc .sc-ink    { fill: #141311; }
+.ms-ph--dark .ms-sc .sc-ground { fill: #221F1B; }
+.ms-ph--dark .ms-sc .sc-shine  { stroke: rgba(244, 238, 228, 0.35); }
+.ms-ph--dark .ms-sc .sc-arch   { fill: rgba(244, 238, 228, 0.05); }
+.ms-ph--dark .ms-sc .sc-bubble { fill: rgba(244, 238, 228, 0.08); }
+.ms-ph--dark .ms-sc .sc-twinkle { fill: var(--ms-accent); }
+
+html.ms-motion .ms-sc .sc-float,
+html.ms-motion .ms-sc .sc-twinkle,
+html.ms-motion .ms-sc .sc-rise,
+html.ms-motion .ms-sc .sc-pole,
+html.ms-motion .ms-ph__glow { animation-play-state: paused; }
+html.ms-motion .ms-sc .sc-float   { animation: ms-bob 5.5s ease-in-out var(--d, 0s) infinite alternate; }
+html.ms-motion .ms-sc .sc-twinkle { animation: ms-twinkle 2.8s ease-in-out var(--d, 0s) infinite; }
+html.ms-motion .ms-sc .sc-rise    { animation: ms-bubble 4.2s ease-in-out var(--d, 0s) infinite; }
+html.ms-motion .ms-sc .sc-pole    { animation: ms-pole 2.6s linear infinite; }
+html.ms-motion .ms-ph__glow       { animation: ms-breathe 7s ease-in-out infinite alternate; }
+html.ms-motion .ms-ph--live:not(.is-paused) .sc-float,
+html.ms-motion .ms-ph--live:not(.is-paused) .sc-twinkle,
+html.ms-motion .ms-ph--live:not(.is-paused) .sc-rise,
+html.ms-motion .ms-ph--live:not(.is-paused) .sc-pole,
+html.ms-motion .ms-ph--live:not(.is-paused) .ms-ph__glow { animation-play-state: running; }
+@media (hover: hover) and (pointer: fine) {
+  html.ms-motion :is(a, button, article):hover .ms-ph--scene :is(.sc-float, .sc-twinkle, .sc-rise, .sc-pole),
+  html.ms-motion :is(a, button, article):hover .ms-ph--scene .ms-ph__glow { animation-play-state: running; }
+  :is(a, button, article):hover .ms-ph--zoom .ms-sc { transform: translateY(-3%) scale(1.04); }
+  :is(a, button, article):hover .ms-ph--zoom .ms-sc--flip { transform: translateY(-3%) scale(-1.04, 1.04); }
+}
+@keyframes ms-bob     { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-10px) rotate(-2deg); } }
+@keyframes ms-twinkle { 0%, 100% { opacity: 0.35; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes ms-bubble  { 0% { opacity: 0; transform: translateY(8px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px); } }
+@keyframes ms-pole    { to { transform: translateY(26px); } }
+@keyframes ms-breathe { from { transform: scale(0.92); opacity: 0.8; } to { transform: scale(1.06); opacity: 1; } }
+
+/* ---------- Split headlines (ui.js [data-split]) ------------- */
+
+.sw { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.12em; margin-bottom: -0.12em; }
+.sw > span { display: inline-block; }
+html.ms-motion [data-reveal][data-split] { opacity: 1; transform: none; }
+html.ms-motion [data-split] .sw > span { transform: translateY(108%); }
+html.ms-motion [data-split].is-in .sw > span {
+  transform: none;
+  transition: transform 0.95s var(--ms-ease-out) calc(var(--w, 0) * 65ms + 60ms);
+}
+html.ms-motion [data-split].is-now .sw > span { transition: none; }
+
+/* ---------- Arrows, ripple ---------------------------------- */
+
+.ms-arrow { width: 1.05em; height: 1.05em; flex: none; transition: transform var(--ms-t-med) var(--ms-ease-spring); }
+@media (hover: hover) and (pointer: fine) {
+  :is(a, button):hover > .ms-arrow,
+  :is(a, button):hover .ms-arrow:not(.ms-arrow--left) { transform: translateX(4px); }
+  :is(a, button):hover .ms-arrow--left { transform: translateX(-4px); }
+}
+.ms-btn, .pick, .choice { overflow: hidden; isolation: isolate; }
+.ms-ripple {
+  position: absolute; z-index: -1;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.16;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ms-ripple 0.65s var(--ms-ease-out) forwards;
+}
+@keyframes ms-ripple { to { transform: scale(1); opacity: 0; } }
 
 /* ---------- Glass ------------------------------------------ */
 
